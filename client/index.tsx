@@ -1,11 +1,19 @@
 import { Route, Router, Routes, useAuth } from "lakebed/client";
 import { Shell, Surface } from "./components/ui";
 import { useDailyGame } from "./game/use-daily-game";
+import { useEndlessGame } from "./game/use-endless-game";
 import { Header } from "./layout/header";
+import { EndlessPage } from "./pages/endless";
 import { HomePage } from "./pages/home";
 import { LeaderboardPage } from "./pages/leaderboard";
 import { NotFoundPage } from "./pages/not-found";
 import { PlayPage } from "./pages/play";
+
+function EndlessRoute() {
+  const endless = useEndlessGame();
+
+  return <EndlessPage {...endless} />;
+}
 
 export function App() {
   const auth = useAuth();
@@ -29,6 +37,7 @@ export function App() {
               }
             />
             <Route path="/play" element={<PlayPage {...playProps} />} />
+            <Route path="/endless" element={<EndlessRoute />} />
             <Route
               path="/leaderboard"
               element={<LeaderboardPage leaderboard={leaderboard} />}

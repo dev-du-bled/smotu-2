@@ -1,5 +1,7 @@
 export const WORD_LENGTH = 5;
 export const MAX_ATTEMPTS = 6;
+export const DAILY_SCORE_UNIT = 150;
+export const ENDLESS_SCORE_UNIT = 60;
 
 export const WORDS = [
   "ARBRE",
@@ -51,6 +53,8 @@ export const WORDS = [
 ];
 
 export type TileState = "correct" | "present" | "absent";
+export type GameMode = "daily" | "endless";
+export type EndlessGameStatus = "idle" | "active" | "solved" | "failed";
 
 export type Attempt = {
   id: string;
@@ -70,6 +74,16 @@ export type LeaderboardEntry = {
   createdAt: string;
 };
 
+export type GlobalLeaderboardEntry = {
+  userId: string;
+  userName: string;
+  totalScore: number;
+  dailyScore: number;
+  endlessScore: number;
+  gamesSolved: number;
+  lastScoredAt: string;
+};
+
 export type GameState = {
   dateKey: string;
   attempts: Attempt[];
@@ -78,6 +92,12 @@ export type GameState = {
   solved: boolean;
   over: boolean;
   answer: string;
+};
+
+export type EndlessGameState = GameState & {
+  gameId: string;
+  status: EndlessGameStatus;
+  gamesPlayed: number;
 };
 
 export function normalizeGuess(value: string): string {
@@ -125,5 +145,13 @@ export function getPattern(guess: string, answer: string): TileState[] {
 }
 
 export function getScore(attemptNumber: number): number {
-  return Math.max(1, MAX_ATTEMPTS - attemptNumber + 1) * 100;
+  return getScoreForMode("daily", attemptNumber);
+}
+
+export function getScoreForMode(
+  mode: GameMode,
+  attemptNumber: number,
+): number {
+  const unit = mode === "daily" ? DAILY_SCORE_UNIT : ENDLESS_SCORE_UNIT;
+  return Math.max(1, MAX_ATTEMPTS - attemptNumber + 1) * unit;
 }

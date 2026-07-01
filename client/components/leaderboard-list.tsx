@@ -1,11 +1,11 @@
-import type { LeaderboardEntry } from "../../shared/game";
+import type { GlobalLeaderboardEntry } from "../../shared/game";
 import { RankMedal } from "./ui";
 
 export function LeaderboardList({
   leaderboard,
   large = false,
 }: {
-  leaderboard: LeaderboardEntry[];
+  leaderboard: GlobalLeaderboardEntry[];
   large?: boolean;
 }) {
   return (
@@ -22,15 +22,19 @@ export function LeaderboardList({
             <div className="min-w-0 flex-1">
               <p className="truncate font-bold">{entry.userName}</p>
               <p className="text-sm text-[#818384]">
-                {entry.attempts} {entry.attempts > 1 ? "essais" : "essai"}
+                {entry.gamesSolved}{" "}
+                {entry.gamesSolved > 1 ? "victoires" : "victoire"}
+              </p>
+              <p className="text-xs font-semibold text-[#565758]">
+                Jour {entry.dailyScore} · Libre {entry.endlessScore}
               </p>
             </div>
-            <p className="font-mono text-lg font-black">{entry.score}</p>
+            <p className="font-mono text-lg font-black">{entry.totalScore}</p>
           </li>
         ))
       ) : (
         <li className="rounded-md border border-dashed border-[#3a3a3c] p-5 text-sm text-[#818384]">
-          Aucun joueur classé aujourd'hui.
+          Aucun score global pour le moment.
         </li>
       )}
     </ol>

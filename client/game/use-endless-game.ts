@@ -4,22 +4,20 @@ import {
   normalizeGuess,
   WORD_LENGTH,
   type Attempt,
-  type GameState,
-  type GlobalLeaderboardEntry,
+  type EndlessGameState,
 } from "../../shared/game";
-import { letterStates, normalizeGame } from "./state";
+import { letterStates, normalizeEndlessGame } from "./state";
 
-export function useDailyGame() {
-  const game = normalizeGame(useQuery<GameState>("game"));
-  const leaderboardQuery =
-    useQuery<GlobalLeaderboardEntry[]>("globalLeaderboard");
-  const leaderboard = Array.isArray(leaderboardQuery) ? leaderboardQuery : [];
+export function useEndlessGame() {
+  const game = normalizeEndlessGame(useQuery<EndlessGameState>("endlessGame"));
+  const startGame = useMutation<[], EndlessGameState>("startEndlessGame");
   const submitGuess = useMutation<[guess: string], Attempt | null>(
-    "submitGuess",
+    "submitEndlessGuess",
   );
   const [inputValue, setInputValue] = useState("");
   const [pendingGuess, setPendingGuess] = useState("");
   const [localError, setLocalError] = useState("");
+  const [isStarting, setIsStarting] = useState(false);
 
   const visibleAttempts = pendingGuess
     ? [
@@ -44,12 +42,32 @@ export function useDailyGame() {
   const solvedAttempt = game.attempts.find((attempt) => attempt.solved);
   const progress = Math.round((game.attempts.length / game.maxAttempts) * 100);
   const canSubmit =
-    inputValue.length === WORD_LENGTH && !game.over && !pendingGuess;
-  const bestScore = leaderboard[0]?.totalScore ?? 0;
+    game.status === "active" &&
+    inputValue.length === WORD_LENGTH &&
+    !game.over &&
+    !pendingGuess;
+
+  async function startRound() {
+    setLocalError("");
+    setInputValue("");
+    setPendingGuess("");
+    setIsStarting(true);
+
+    try {
+      await startGame();
+    } finally {
+      setIsStarting(false);
+    }
+  }
 
   async function onSubmit(event?: SubmitEvent) {
     event?.preventDefault();
     const guess = normalizeGuess(inputValue);
+
+    if (game.status !== "active") {
+      setLocalError("Lance une manche libre avant de proposer un mot.");
+      return;
+    }
 
     if (guess.length !== WORD_LENGTH || game.over || pendingGuess) {
       return;
@@ -71,9 +89,9 @@ export function useDailyGame() {
   }
 
   return {
-    bestScore,
     game,
-    leaderboard,
+    isStarting,
+    startRound,
     playProps: {
       activeRow,
       canSubmit,

@@ -2,6 +2,7 @@ import {
   MAX_ATTEMPTS,
   WORD_LENGTH,
   type Attempt,
+  type EndlessGameState,
   type GameState,
   type TileState,
 } from "../../shared/game";
@@ -16,7 +17,17 @@ export const emptyGame: GameState = {
   answer: "",
 };
 
-export function normalizeGame(value: Partial<GameState> | undefined): GameState {
+export const emptyEndlessGame: EndlessGameState = {
+  ...emptyGame,
+  gameId: "",
+  status: "idle",
+  gamesPlayed: 0,
+  over: true,
+};
+
+export function normalizeGame(
+  value: Partial<GameState> | undefined,
+): GameState {
   return {
     dateKey: value?.dateKey ?? emptyGame.dateKey,
     attempts: Array.isArray(value?.attempts) ? value.attempts : [],
@@ -31,6 +42,22 @@ export function normalizeGame(value: Partial<GameState> | undefined): GameState 
     solved: Boolean(value?.solved),
     over: Boolean(value?.over),
     answer: value?.answer ?? "",
+  };
+}
+
+export function normalizeEndlessGame(
+  value: Partial<EndlessGameState> | undefined,
+): EndlessGameState {
+  const game = normalizeGame(value);
+
+  return {
+    ...game,
+    gameId: value?.gameId ?? emptyEndlessGame.gameId,
+    status: value?.status ?? emptyEndlessGame.status,
+    gamesPlayed:
+      typeof value?.gamesPlayed === "number"
+        ? value.gamesPlayed
+        : emptyEndlessGame.gamesPlayed,
   };
 }
 

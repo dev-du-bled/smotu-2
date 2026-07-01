@@ -1,0 +1,78 @@
+import type { EndlessGameState } from "../../shared/game";
+import { Button, Panel, ProgressStrip, SectionKicker } from "../components/ui";
+import { GameBoard, type GameBoardProps } from "../game/board";
+
+export function EndlessPage({
+  game,
+  isStarting,
+  playProps,
+  startRound,
+}: {
+  game: EndlessGameState;
+  isStarting: boolean;
+  playProps: GameBoardProps & { progress: number };
+  startRound: () => void;
+}) {
+  const showStartPanel = game.status === "idle";
+
+  if (showStartPanel) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-65px)] max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
+        <Panel className="w-full space-y-5">
+          <SectionKicker>Mode libre</SectionKicker>
+          <h2 className="text-4xl font-black">Une manche quand tu veux.</h2>
+          <p className="text-[#d7dadc]">
+            Même règle que le mot du jour, mais sans limite quotidienne. Une
+            victoire rapporte moins de points, parce que tu peux relancer autant
+            de manches que tu veux.
+          </p>
+          <Button
+            disabled={isStarting}
+            size="lg"
+            type="button"
+            variant="success"
+            onClick={startRound}
+          >
+            {isStarting ? "Lancement..." : "Nouvelle manche"}
+          </Button>
+        </Panel>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-6xl grid-rows-[auto_1fr] px-4 py-5">
+      <div className="mx-auto mb-5 grid w-full max-w-xl gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <SectionKicker>Mode libre</SectionKicker>
+            <p className="mt-1 text-sm font-semibold text-[#d7dadc]">
+              Manche #{game.gamesPlayed} · jusqu'à 360 points
+            </p>
+          </div>
+          {game.over ? (
+            <Button
+              disabled={isStarting}
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={startRound}
+            >
+              {isStarting ? "Lancement..." : "Rejouer"}
+            </Button>
+          ) : null}
+        </div>
+        <div>
+          <div className="mb-2 flex items-center justify-between text-sm text-[#818384]">
+            <span>Progression</span>
+            <span>
+              {game.attempts.length}/{game.maxAttempts}
+            </span>
+          </div>
+          <ProgressStrip value={playProps.progress} />
+        </div>
+      </div>
+      <GameBoard {...playProps} />
+    </div>
+  );
+}
