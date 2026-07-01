@@ -104,6 +104,18 @@ export function Badge({ children, className }: BaseProps) {
   );
 }
 
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "inline-flex animate-pulse rounded-md bg-[#272729]",
+        className,
+      )}
+    />
+  );
+}
+
 export function SectionKicker({ children, className }: BaseProps) {
   return (
     <p
