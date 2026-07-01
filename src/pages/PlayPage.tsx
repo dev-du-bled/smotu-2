@@ -3,16 +3,30 @@ import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import { ProgressStrip, SectionKicker } from "../components/ui";
 
 export function PlayPage({
+  authLoading = false,
   onSignIn,
   playProps,
   signedIn,
 }: {
+  authLoading?: boolean;
   onSignIn: () => void | Promise<void>;
-  playProps: GameBoardProps & { progress: number };
+  playProps?: GameBoardProps & { progress: number };
   signedIn: boolean;
 }) {
-  if (!signedIn) {
-    return <AuthRequired onSignIn={onSignIn} />;
+  if (!signedIn || !playProps) {
+    return (
+      <AuthRequired
+        loading={authLoading}
+        title={
+          authLoading
+            ? "Vérification de ta session."
+            : "Connecte-toi pour jouer au mot du jour."
+        }
+        description="Le mot du jour garde une seule grille par compte et attribue les gros points au bon profil."
+        eyebrow="Mot du jour"
+        onSignIn={onSignIn}
+      />
+    );
   }
 
   return (

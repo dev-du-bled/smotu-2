@@ -4,16 +4,30 @@ import { LeaderboardList } from "../components/LeaderboardList";
 import { Panel, SectionKicker } from "../components/ui";
 
 export function LeaderboardPage({
+  authLoading = false,
   leaderboard,
   onSignIn,
   signedIn,
 }: {
+  authLoading?: boolean;
   leaderboard: GlobalLeaderboardEntry[];
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
 }) {
   if (!signedIn) {
-    return <AuthRequired onSignIn={onSignIn} />;
+    return (
+      <AuthRequired
+        loading={authLoading}
+        title={
+          authLoading
+            ? "Vérification de ta session."
+            : "Connecte-toi pour voir le classement."
+        }
+        description="Le classement global est lié aux comptes Google pour éviter les scores anonymes et additionner tes points."
+        eyebrow="Classement"
+        onSignIn={onSignIn}
+      />
+    );
   }
 
   return (

@@ -4,6 +4,7 @@ import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import { Button, Panel, ProgressStrip, SectionKicker } from "../components/ui";
 
 export function EndlessPage({
+  authLoading = false,
   game,
   isStarting,
   onSignIn,
@@ -11,15 +12,28 @@ export function EndlessPage({
   signedIn,
   startRound,
 }: {
-  game: EndlessGameState;
+  authLoading?: boolean;
+  game?: EndlessGameState;
   isStarting: boolean;
   onSignIn: () => void | Promise<void>;
-  playProps: GameBoardProps & { progress: number };
+  playProps?: GameBoardProps & { progress: number };
   signedIn: boolean;
   startRound: () => void | Promise<void>;
 }) {
-  if (!signedIn) {
-    return <AuthRequired onSignIn={onSignIn} />;
+  if (!signedIn || !game || !playProps) {
+    return (
+      <AuthRequired
+        loading={authLoading}
+        title={
+          authLoading
+            ? "Vérification de ta session."
+            : "Connecte-toi pour lancer le mode libre."
+        }
+        description="Le mode libre enregistre tes manches, tes victoires et tes points sur ton compte."
+        eyebrow="Mode libre"
+        onSignIn={onSignIn}
+      />
+    );
   }
 
   if (game.status === "idle") {

@@ -39,12 +39,35 @@ function HomeRoute({
 }
 
 function PlayRoute({
+  authLoading,
   onSignIn,
   signedIn,
   token,
 }: {
+  authLoading: boolean;
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
+  token?: string;
+}) {
+  if (!signedIn) {
+    return (
+      <PlayPage
+        authLoading={authLoading}
+        playProps={undefined}
+        signedIn={false}
+        onSignIn={onSignIn}
+      />
+    );
+  }
+
+  return <SignedInPlayRoute token={token} onSignIn={onSignIn} />;
+}
+
+function SignedInPlayRoute({
+  onSignIn,
+  token,
+}: {
+  onSignIn: () => void | Promise<void>;
   token?: string;
 }) {
   const daily = useDailyGame(token);
@@ -52,19 +75,45 @@ function PlayRoute({
   return (
     <PlayPage
       playProps={daily.playProps}
-      signedIn={signedIn}
+      signedIn
       onSignIn={onSignIn}
     />
   );
 }
 
 function EndlessRoute({
+  authLoading,
   onSignIn,
   signedIn,
   token,
 }: {
+  authLoading: boolean;
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
+  token?: string;
+}) {
+  if (!signedIn) {
+    return (
+      <EndlessPage
+        authLoading={authLoading}
+        game={undefined}
+        isStarting={false}
+        playProps={undefined}
+        signedIn={false}
+        startRound={() => undefined}
+        onSignIn={onSignIn}
+      />
+    );
+  }
+
+  return <SignedInEndlessRoute token={token} onSignIn={onSignIn} />;
+}
+
+function SignedInEndlessRoute({
+  onSignIn,
+  token,
+}: {
+  onSignIn: () => void | Promise<void>;
   token?: string;
 }) {
   const endless = useEndlessGame(token);
@@ -72,19 +121,42 @@ function EndlessRoute({
   return (
     <EndlessPage
       {...endless}
-      signedIn={signedIn}
+      signedIn
       onSignIn={onSignIn}
     />
   );
 }
 
 function LeaderboardRoute({
+  authLoading,
   onSignIn,
   signedIn,
   token,
 }: {
+  authLoading: boolean;
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
+  token?: string;
+}) {
+  if (!signedIn) {
+    return (
+      <LeaderboardPage
+        authLoading={authLoading}
+        leaderboard={[]}
+        signedIn={false}
+        onSignIn={onSignIn}
+      />
+    );
+  }
+
+  return <SignedInLeaderboardRoute token={token} onSignIn={onSignIn} />;
+}
+
+function SignedInLeaderboardRoute({
+  onSignIn,
+  token,
+}: {
+  onSignIn: () => void | Promise<void>;
   token?: string;
 }) {
   const leaderboard = useGlobalLeaderboard(token);
@@ -92,7 +164,7 @@ function LeaderboardRoute({
   return (
     <LeaderboardPage
       leaderboard={leaderboard.data}
-      signedIn={signedIn}
+      signedIn
       onSignIn={onSignIn}
     />
   );
@@ -123,6 +195,7 @@ export function App() {
               path="/play"
               element={
                 <PlayRoute
+                  authLoading={auth.loading}
                   signedIn={signedIn}
                   token={token}
                   onSignIn={signIn}
@@ -133,6 +206,7 @@ export function App() {
               path="/endless"
               element={
                 <EndlessRoute
+                  authLoading={auth.loading}
                   signedIn={signedIn}
                   token={token}
                   onSignIn={signIn}
@@ -143,6 +217,7 @@ export function App() {
               path="/leaderboard"
               element={
                 <LeaderboardRoute
+                  authLoading={auth.loading}
                   signedIn={signedIn}
                   token={token}
                   onSignIn={signIn}
