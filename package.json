@@ -1,0 +1,17 @@
+{
+  "name": "smotu",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "lakebed dev --port 3000",
+    "build": "lakebed build --target anonymous --out .lakebed/artifacts/smotu.anonymous.json"
+  },
+  "dependencies": {
+    "lakebed": "^0.0.25",
+    "preact": "^10.29.3"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
