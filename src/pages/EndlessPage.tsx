@@ -1,21 +1,28 @@
 import type { EndlessGameState } from "../../shared/game";
+import { AuthRequired } from "../components/AuthRequired";
+import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import { Button, Panel, ProgressStrip, SectionKicker } from "../components/ui";
-import { GameBoard, type GameBoardProps } from "../game/board";
 
 export function EndlessPage({
   game,
   isStarting,
+  onSignIn,
   playProps,
+  signedIn,
   startRound,
 }: {
   game: EndlessGameState;
   isStarting: boolean;
+  onSignIn: () => void | Promise<void>;
   playProps: GameBoardProps & { progress: number };
-  startRound: () => void;
+  signedIn: boolean;
+  startRound: () => void | Promise<void>;
 }) {
-  const showStartPanel = game.status === "idle";
+  if (!signedIn) {
+    return <AuthRequired onSignIn={onSignIn} />;
+  }
 
-  if (showStartPanel) {
+  if (game.status === "idle") {
     return (
       <div className="mx-auto flex min-h-[calc(100vh-65px)] max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
         <Panel className="w-full space-y-5">

@@ -1,10 +1,20 @@
-import { GameBoard, type GameBoardProps } from "../game/board";
+import { AuthRequired } from "../components/AuthRequired";
+import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import { ProgressStrip, SectionKicker } from "../components/ui";
 
 export function PlayPage({
-  progress,
-  ...boardProps
-}: GameBoardProps & { progress: number }) {
+  onSignIn,
+  playProps,
+  signedIn,
+}: {
+  onSignIn: () => void | Promise<void>;
+  playProps: GameBoardProps & { progress: number };
+  signedIn: boolean;
+}) {
+  if (!signedIn) {
+    return <AuthRequired onSignIn={onSignIn} />;
+  }
+
   return (
     <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-6xl grid-rows-[auto_1fr] px-4 py-5">
       <div className="mx-auto mb-5 grid w-full max-w-xl gap-3">
@@ -18,13 +28,13 @@ export function PlayPage({
           <div className="mb-2 flex items-center justify-between text-sm text-[#818384]">
             <span>Progression</span>
             <span>
-              {boardProps.game.attempts.length}/{boardProps.game.maxAttempts}
+              {playProps.game.attempts.length}/{playProps.game.maxAttempts}
             </span>
           </div>
-          <ProgressStrip value={progress} />
+          <ProgressStrip value={playProps.progress} />
         </div>
       </div>
-      <GameBoard {...boardProps} />
+      <GameBoard {...playProps} />
     </div>
   );
 }

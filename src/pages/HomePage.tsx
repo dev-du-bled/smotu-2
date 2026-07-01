@@ -1,4 +1,4 @@
-import { Link } from "lakebed/client";
+import { Link } from "react-router-dom";
 import type { GameState } from "../../shared/game";
 import { Panel, SectionKicker } from "../components/ui";
 

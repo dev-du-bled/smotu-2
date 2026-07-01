@@ -1,14 +1,13 @@
-import { Button, Input, KeyCap, WordTile } from "../components/ui";
+import type { FormEvent } from "react";
 import {
   WORD_LENGTH,
   type Attempt,
   type GameState,
   type TileState,
 } from "../../shared/game";
+import { Button, Input, KeyCap, WordTile } from "./ui";
 
 const KEY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
-
-type SubmitHandler = (event?: SubmitEvent) => void;
 
 export type GameBoardProps = {
   activeRow: number;
@@ -19,7 +18,7 @@ export type GameBoardProps = {
   onBackspace: () => void;
   onInput: (value: string) => void;
   onLetter: (letter: string) => void;
-  onSubmit: SubmitHandler;
+  onSubmit: (event?: FormEvent) => void;
   pendingGuess: string;
   rows: Array<Attempt | undefined>;
   solvedAttempt?: Attempt;
@@ -37,6 +36,7 @@ function statusText(
   solvedAttempt?: Attempt,
 ): string {
   const remaining = game.maxAttempts - game.attempts.length;
+
   if (pendingGuess) {
     return "Vérification du mot...";
   }
@@ -52,14 +52,14 @@ function statusText(
 
 function Keyboard({
   states,
-  onLetter,
   onBackspace,
   onEnter,
+  onLetter,
 }: {
   states: Record<string, TileState>;
-  onLetter: (letter: string) => void;
   onBackspace: () => void;
   onEnter: () => void;
+  onLetter: (letter: string) => void;
 }) {
   return (
     <div className="mx-auto grid w-full max-w-xl gap-2">
@@ -124,6 +124,7 @@ export function GameBoard({
               : rowIndex === activeRow
                 ? wordLetters(inputValue)
                 : Array.from({ length: WORD_LENGTH }, () => "");
+
             return (
               <div
                 className="grid grid-cols-5 gap-1.5"
@@ -147,7 +148,7 @@ export function GameBoard({
 
       <form
         className="grid w-full max-w-sm grid-cols-[1fr_auto] gap-2"
-        onSubmit={(event) => void onSubmit(event)}
+        onSubmit={(event) => onSubmit(event)}
       >
         <Input
           aria-label="Mot proposé"
@@ -158,9 +159,7 @@ export function GameBoard({
           pattern="[A-Za-z]{5}"
           placeholder="OCEAN"
           value={inputValue}
-          onInput={(event) =>
-            onInput((event.currentTarget as HTMLInputElement).value)
-          }
+          onChange={(event) => onInput(event.currentTarget.value)}
         />
         <Button disabled={!canSubmit} size="lg" type="submit" variant="success">
           Valider

@@ -3,7 +3,7 @@
 Smotu est une réadaptation du grand Smotu, le seul et l'unique selon Codex.
 
 L'app reprend le principe du mot à deviner en cinq lettres, avec deux modes de
-jeu et un classement global.
+jeu, un classement global et une authentification Google via Shoo.
 
 ## Modes
 
@@ -17,8 +17,12 @@ présente ailleurs, les grises une lettre absente.
 
 ## Stack
 
-- Lakebed
-- Preact
+- React
+- React Router
+- Tailwind CSS
+- Shoo pour l'auth Google
+- Cloudflare Workers + D1
+- Drizzle ORM + Drizzle Kit
 - TypeScript
 
 ## Lancer en local
@@ -28,13 +32,26 @@ npm install
 npm run dev
 ```
 
-Puis ouvrir `http://localhost:3000`.
+Puis ouvrir `http://localhost:5173`.
 
-Pour simuler plusieurs joueurs en local:
+Les routes `/api/*` passent par Cloudflare Workers, le reste est servi comme une
+SPA React. Le schéma D1 est défini dans `worker/db/schema.ts`.
 
-```txt
-http://localhost:3000/?lakebed_guest=alice
-http://localhost:3000/?lakebed_guest=bob
+## Déploiement Cloudflare
+
+Créer une base D1, puis remplacer `database_id` dans `wrangler.jsonc`:
+
+```sh
+wrangler d1 create smotu-db
+```
+
+Ensuite:
+
+```sh
+npm run db:generate
+npm run d1:migrate:remote
+npm run build
+npm run deploy
 ```
 
 ## Commandes utiles
@@ -42,7 +59,18 @@ http://localhost:3000/?lakebed_guest=bob
 ```sh
 npm exec tsc -- --noEmit
 npm run build
-npx lakebed deploy --json
+npm run db:generate
+npm run db:push
+npm run deploy
+npm run d1:migrate:local
+npm run d1:migrate:remote
 ```
 
-La DB locale Lakebed est en mémoire: redémarrer `npm run dev` la remet à zéro.
+`npm run db:push` utilise Drizzle Kit en mode D1 HTTP et attend
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_DATABASE_ID` et `CLOUDFLARE_D1_TOKEN`.
+
+Pour remettre à zéro la D1 locale, supprimer l'état local Wrangler:
+
+```sh
+rm -rf .wrangler/state
+```

@@ -1,28 +1,18 @@
-import { Link, SignInWithGoogle, signOut, useLocation } from "lakebed/client";
-import { useState } from "preact/hooks";
-import { Button, LogoMark, Skeleton } from "../components/ui";
+import type { UseShooAuthResult } from "@shoojs/react";
+import { useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { Button, LogoMark, Skeleton } from "./ui";
 
-type HeaderAuth = {
-  isGuest?: boolean;
-  isLoading?: boolean;
+type HeaderProps = {
+  auth: UseShooAuthResult;
 };
 
-function NavLink({ children, to }: { children: string; to: string }) {
-  const location = useLocation();
-  const active = location.pathname === to;
-
-  return (
-    <Link
-      className={`rounded-md px-3 py-2 text-sm font-bold transition ${
-        active
-          ? "bg-[#f8f8f8] text-[#121213]"
-          : "text-[#d7dadc] hover:bg-[#272729]"
-      }`}
-      to={to}
-    >
-      {children}
-    </Link>
-  );
+function navClass(active: boolean): string {
+  return `rounded-md px-3 py-2 text-sm font-bold transition ${
+    active
+      ? "bg-[#f8f8f8] text-[#121213]"
+      : "text-[#d7dadc] hover:bg-[#272729]"
+  }`;
 }
 
 function GameModeDropdown() {
@@ -33,11 +23,7 @@ function GameModeDropdown() {
   return (
     <div className="relative">
       <button
-        className={`rounded-md px-3 py-2 text-sm font-bold transition ${
-          active
-            ? "bg-[#f8f8f8] text-[#121213]"
-            : "text-[#d7dadc] hover:bg-[#272729]"
-        }`}
+        className={navClass(active)}
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
@@ -81,7 +67,9 @@ function GameModeDropdown() {
   );
 }
 
-export function Header({ auth }: { auth: HeaderAuth }) {
+export function Header({ auth }: HeaderProps) {
+  const signedIn = Boolean(auth.identity.userId);
+
   return (
     <header className="border-b border-[#3a3a3c]">
       <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -101,25 +89,37 @@ export function Header({ auth }: { auth: HeaderAuth }) {
           className="flex max-w-full rounded-lg bg-[#18191b] p-1"
           aria-label="Navigation principale"
         >
-          <NavLink to="/">Accueil</NavLink>
+          <NavLink className={({ isActive }) => navClass(isActive)} to="/">
+            Accueil
+          </NavLink>
           <GameModeDropdown />
-          <NavLink to="/leaderboard">Classement</NavLink>
+          <NavLink
+            className={({ isActive }) => navClass(isActive)}
+            to="/leaderboard"
+          >
+            Classement
+          </NavLink>
         </nav>
 
-        {auth.isLoading ? (
+        {auth.loading ? (
           <Skeleton className="h-9 w-32" />
-        ) : auth.isGuest ? (
-          <SignInWithGoogle className="h-9 rounded-md bg-[#3a3a3c] px-3 text-sm font-bold text-white hover:bg-[#4a4a4d]">
-            Se connecter
-          </SignInWithGoogle>
+        ) : signedIn ? (
+          <Button
+            size="sm"
+            type="button"
+            variant="secondary"
+            onClick={() => auth.clearIdentity()}
+          >
+            Se déconnecter
+          </Button>
         ) : (
           <Button
             size="sm"
             type="button"
             variant="secondary"
-            onClick={() => signOut()}
+            onClick={() => void auth.signIn({ requestPii: true })}
           >
-            Se déconnecter
+            Se connecter
           </Button>
         )}
       </div>

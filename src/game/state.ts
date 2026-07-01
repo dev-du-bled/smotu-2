@@ -25,42 +25,6 @@ export const emptyEndlessGame: EndlessGameState = {
   over: true,
 };
 
-export function normalizeGame(
-  value: Partial<GameState> | undefined,
-): GameState {
-  return {
-    dateKey: value?.dateKey ?? emptyGame.dateKey,
-    attempts: Array.isArray(value?.attempts) ? value.attempts : [],
-    maxAttempts:
-      typeof value?.maxAttempts === "number"
-        ? value.maxAttempts
-        : emptyGame.maxAttempts,
-    wordLength:
-      typeof value?.wordLength === "number"
-        ? value.wordLength
-        : emptyGame.wordLength,
-    solved: Boolean(value?.solved),
-    over: Boolean(value?.over),
-    answer: value?.answer ?? "",
-  };
-}
-
-export function normalizeEndlessGame(
-  value: Partial<EndlessGameState> | undefined,
-): EndlessGameState {
-  const game = normalizeGame(value);
-
-  return {
-    ...game,
-    gameId: value?.gameId ?? emptyEndlessGame.gameId,
-    status: value?.status ?? emptyEndlessGame.status,
-    gamesPlayed:
-      typeof value?.gamesPlayed === "number"
-        ? value.gamesPlayed
-        : emptyEndlessGame.gamesPlayed,
-  };
-}
-
 export function letterStates(attempts: Attempt[]): Record<string, TileState> {
   const priority: Record<TileState, number> = {
     absent: 1,

@@ -1,4 +1,4 @@
-import { Link } from "lakebed/client";
+import { Link } from "react-router-dom";
 import { SectionKicker } from "../components/ui";
 
 export function NotFoundPage() {
