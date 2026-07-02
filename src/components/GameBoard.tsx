@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   WORD_LENGTH,
   type Attempt,
@@ -6,7 +6,7 @@ import {
   type TileState,
 } from "../../shared/game";
 import { ConfettiBurst } from "./ConfettiBurst";
-import { Button, Input, KeyCap, WordTile } from "./ui";
+import { KeyCap, WordTile } from "./ui";
 
 const KEY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
 
@@ -102,13 +102,11 @@ function Keyboard({
 
 export function GameBoard({
   activeRow,
-  canSubmit,
   celebrationKey,
   game,
   inputValue,
   localError,
   onBackspace,
-  onInput,
   onLetter,
   onSubmit,
   pendingGuess,
@@ -117,6 +115,43 @@ export function GameBoard({
   states,
 }: GameBoardProps) {
   const [debugCelebrationKey, setDebugCelebrationKey] = useState("");
+
+  // Capture le clavier physique: on saisit directement dans la grille, sans zone de texte.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (event.key === "Enter") {
+        onSubmit();
+        return;
+      }
+      if (game.over || pendingGuess) {
+        return;
+      }
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        onBackspace();
+        return;
+      }
+      if (/^[a-zA-Z]$/.test(event.key)) {
+        onLetter(event.key.toUpperCase());
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [game.over, pendingGuess, onBackspace, onLetter, onSubmit]);
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5">
@@ -153,26 +188,6 @@ export function GameBoard({
           })}
         </div>
       </div>
-
-      <form
-        className="grid w-full max-w-sm grid-cols-[1fr_auto] gap-2"
-        onSubmit={(event) => onSubmit(event)}
-      >
-        <Input
-          aria-label="Mot proposé"
-          autoComplete="off"
-          disabled={game.over || Boolean(pendingGuess)}
-          maxLength={WORD_LENGTH}
-          name="guess"
-          pattern="[A-Za-z]{5}"
-          placeholder="OCEAN"
-          value={inputValue}
-          onChange={(event) => onInput(event.currentTarget.value)}
-        />
-        <Button disabled={!canSubmit} size="lg" type="submit" variant="success">
-          Valider
-        </Button>
-      </form>
 
       <p className="min-h-6 text-center text-sm font-semibold text-[#d7dadc]">
         {localError || statusText(game, pendingGuess, solvedAttempt)}
