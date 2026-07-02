@@ -1,21 +1,18 @@
-import type {
-  ButtonHTMLAttributes,
-  ComponentChildren,
-  InputHTMLAttributes,
-} from "preact";
+import type { ComponentProps, ReactNode } from "react";
 import { cn } from "../lib/utils";
+import type { TileState } from "../../shared/game";
 
 type BaseProps = {
-  children?: ComponentChildren;
+  children?: ReactNode;
   className?: string;
 };
 
-type Variant = "primary" | "secondary" | "ghost" | "success" | "warning";
-type Size = "sm" | "md" | "lg";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "success" | "warning";
+type ButtonSize = "sm" | "md" | "lg";
 
 export function Shell({ children, className }: BaseProps) {
   return (
-    <main className={cn("min-h-screen bg-[#121213] text-[#f8f8f8]", className)}>
+    <main className={cn("min-h-dvh bg-[#121213] text-[#f8f8f8]", className)}>
       {children}
     </main>
   );
@@ -23,7 +20,11 @@ export function Shell({ children, className }: BaseProps) {
 
 export function Surface({ children, className }: BaseProps) {
   return (
-    <section className={cn("min-h-screen", className)}>{children}</section>
+    <section
+      className={cn("grid min-h-dvh grid-rows-[auto_minmax(0,1fr)]", className)}
+    >
+      {children}
+    </section>
   );
 }
 
@@ -43,19 +44,21 @@ export function Panel({ children, className }: BaseProps) {
 export function Button({
   children,
   className,
-  variant = "primary",
   size = "md",
+  variant = "primary",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> &
-  BaseProps & { variant?: Variant; size?: Size }) {
-  const variants: Record<Variant, string> = {
+}: ComponentProps<"button"> & {
+  size?: ButtonSize;
+  variant?: ButtonVariant;
+}) {
+  const variants: Record<ButtonVariant, string> = {
     primary: "bg-[#f8f8f8] text-[#121213] hover:bg-white",
     secondary: "bg-[#3a3a3c] text-white hover:bg-[#4a4a4d]",
     ghost: "bg-transparent text-[#d7dadc] hover:bg-[#272729]",
     success: "bg-[#538d4e] text-white hover:bg-[#5f9b59]",
     warning: "bg-[#b59f3b] text-white hover:bg-[#c4ad46]",
   };
-  const sizes: Record<Size, string> = {
+  const sizes: Record<ButtonSize, string> = {
     sm: "h-9 px-3 text-sm",
     md: "h-10 px-4 text-sm",
     lg: "h-12 px-5 text-base",
@@ -76,10 +79,7 @@ export function Button({
   );
 }
 
-export function Input({
-  className,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, ...props }: ComponentProps<"input">) {
   return (
     <input
       className={cn(
@@ -88,44 +88,6 @@ export function Input({
       )}
       {...props}
     />
-  );
-}
-
-export function Badge({ children, className }: BaseProps) {
-  return (
-    <span
-      className={cn(
-        "inline-flex h-8 items-center rounded-full bg-[#272729] px-3 text-xs font-bold uppercase text-[#d7dadc]",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-export function Skeleton({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "inline-flex animate-pulse rounded-md bg-[#272729]",
-        className,
-      )}
-    />
-  );
-}
-
-export function SectionKicker({ children, className }: BaseProps) {
-  return (
-    <p
-      className={cn(
-        "text-xs font-bold uppercase tracking-[0.18em] text-[#818384]",
-        className,
-      )}
-    >
-      {children}
-    </p>
   );
 }
 
@@ -142,17 +104,51 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
+export function SectionKicker({ children, className }: BaseProps) {
+  return (
+    <p
+      className={cn(
+        "text-xs font-bold uppercase tracking-[0.18em] text-[#818384]",
+        className,
+      )}
+    >
+      {children}
+    </p>
+  );
+}
+
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("inline-flex animate-pulse rounded-md bg-[#272729]", className)}
+    />
+  );
+}
+
+export function ProgressStrip({ value }: { value: number }) {
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-[#272729]">
+      <div
+        className="h-full rounded-full bg-[#538d4e] transition-[width]"
+        style={{ width: `${value}%` }}
+      />
+    </div>
+  );
+}
+
 export function WordTile({
-  children,
-  state,
-  pending,
   active,
+  children,
+  pending,
+  state,
 }: BaseProps & {
-  state?: "correct" | "present" | "absent";
-  pending?: boolean;
   active?: boolean;
+  pending?: boolean;
+  state?: TileState;
 }) {
   let stateClass = "border-[#3a3a3c] bg-transparent text-white";
+
   if (pending) {
     stateClass = "border-[#d7dadc] bg-[#272729] text-white";
   } else if (state === "correct") {
@@ -179,13 +175,14 @@ export function WordTile({
 
 export function KeyCap({
   children,
-  state,
   onClick,
+  state,
 }: BaseProps & {
-  state?: "correct" | "present" | "absent";
   onClick?: () => void;
+  state?: TileState;
 }) {
   let stateClass = "bg-[#818384] text-white";
+
   if (state === "correct") {
     stateClass = "bg-[#538d4e] text-white";
   } else if (state === "present") {
@@ -217,6 +214,7 @@ export function RankMedal({ children, index }: BaseProps & { index: number }) {
         : index === 2
           ? "bg-[#3a3a3c]"
           : "bg-[#272729]";
+
   return (
     <span
       className={cn(
@@ -226,16 +224,5 @@ export function RankMedal({ children, index }: BaseProps & { index: number }) {
     >
       {children}
     </span>
-  );
-}
-
-export function ProgressStrip({ value }: { value: number }) {
-  return (
-    <div className="h-2 overflow-hidden rounded-full bg-[#272729]">
-      <div
-        className="h-full rounded-full bg-[#538d4e] transition-[width]"
-        style={{ width: `${value}%` }}
-      />
-    </div>
   );
 }

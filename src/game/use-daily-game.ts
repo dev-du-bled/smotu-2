@@ -1,24 +1,30 @@
-import { useMutation, useQuery } from "lakebed/client";
-import { useState } from "preact/hooks";
+import type { FormEvent } from "react";
+import { useMemo, useState } from "react";
 import {
-  normalizeGuess,
   WORD_LENGTH,
+  normalizeGuess,
   type Attempt,
-  type EndlessGameState,
+  type GameState,
+  type GlobalLeaderboardEntry,
 } from "../../shared/game";
-import { letterStates, normalizeEndlessGame } from "./state";
+import { apiJson, useApiResource } from "../lib/api";
+import { emptyGame, emptyLeaderboard, letterStates } from "./state";
 
-export function useEndlessGame() {
-  const game = normalizeEndlessGame(useQuery<EndlessGameState>("endlessGame"));
-  const startGame = useMutation<[], EndlessGameState>("startEndlessGame");
-  const submitGuess = useMutation<[guess: string], Attempt | null>(
-    "submitEndlessGuess",
+export function useGlobalLeaderboard(token: string | undefined) {
+  return useApiResource<GlobalLeaderboardEntry[]>(
+    "/api/leaderboard/global",
+    token,
+    emptyLeaderboard,
   );
+}
+
+export function useDailyGame(token: string | undefined) {
+  const gameResource = useApiResource<GameState>("/api/game/daily", token, emptyGame);
   const [inputValue, setInputValue] = useState("");
   const [pendingGuess, setPendingGuess] = useState("");
   const [localError, setLocalError] = useState("");
-  const [isStarting, setIsStarting] = useState(false);
 
+  const game = gameResource.data;
   const visibleAttempts = pendingGuess
     ? [
         ...game.attempts,
@@ -33,42 +39,26 @@ export function useEndlessGame() {
         },
       ]
     : game.attempts;
+
   const rows = Array.from(
     { length: game.maxAttempts },
     (_, index) => visibleAttempts[index],
   );
-  const activeRow = Math.min(visibleAttempts.length, game.maxAttempts - 1);
-  const states = letterStates(game.attempts);
+  const states = useMemo(() => letterStates(game.attempts), [game.attempts]);
   const solvedAttempt = game.attempts.find((attempt) => attempt.solved);
+  const activeRow = Math.min(visibleAttempts.length, game.maxAttempts - 1);
   const progress = Math.round((game.attempts.length / game.maxAttempts) * 100);
   const canSubmit =
-    game.status === "active" &&
-    inputValue.length === WORD_LENGTH &&
-    !game.over &&
-    !pendingGuess;
+    Boolean(token) && inputValue.length === WORD_LENGTH && !game.over && !pendingGuess;
 
-  async function startRound() {
-    setLocalError("");
-    setInputValue("");
-    setPendingGuess("");
-    setIsStarting(true);
-
-    try {
-      await startGame();
-    } finally {
-      setIsStarting(false);
-    }
-  }
-
-  async function onSubmit(event?: SubmitEvent) {
+  async function onSubmit(event?: FormEvent) {
     event?.preventDefault();
     const guess = normalizeGuess(inputValue);
 
-    if (game.status !== "active") {
-      setLocalError("Lance une manche libre avant de proposer un mot.");
+    if (!token) {
+      setLocalError("Connecte-toi avec Google pour jouer.");
       return;
     }
-
     if (guess.length !== WORD_LENGTH || game.over || pendingGuess) {
       return;
     }
@@ -78,20 +68,26 @@ export function useEndlessGame() {
     setInputValue("");
 
     try {
-      const result = await submitGuess(guess);
-      if (!result) {
-        setLocalError("Impossible d'envoyer cette proposition.");
-        setInputValue(guess);
-      }
+      gameResource.setData(
+        await apiJson<GameState>("/api/game/daily/guess", token, {
+          method: "POST",
+          body: JSON.stringify({ guess }),
+        }),
+      );
+    } catch (reason) {
+      setInputValue(guess);
+      setLocalError(
+        reason instanceof Error ? reason.message : "Impossible d'envoyer ce mot.",
+      );
     } finally {
       setPendingGuess("");
     }
   }
 
   return {
+    error: gameResource.error,
     game,
-    isStarting,
-    startRound,
+    loading: gameResource.loading,
     playProps: {
       activeRow,
       canSubmit,

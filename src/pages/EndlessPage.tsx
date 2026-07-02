@@ -1,23 +1,44 @@
 import type { EndlessGameState } from "../../shared/game";
+import { AuthRequired } from "../components/AuthRequired";
+import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import { Button, Panel, ProgressStrip, SectionKicker } from "../components/ui";
-import { GameBoard, type GameBoardProps } from "../game/board";
 
 export function EndlessPage({
+  authLoading = false,
   game,
   isStarting,
+  onSignIn,
   playProps,
+  signedIn,
   startRound,
 }: {
-  game: EndlessGameState;
+  authLoading?: boolean;
+  game?: EndlessGameState;
   isStarting: boolean;
-  playProps: GameBoardProps & { progress: number };
-  startRound: () => void;
+  onSignIn: () => void | Promise<void>;
+  playProps?: GameBoardProps & { progress: number };
+  signedIn: boolean;
+  startRound: () => void | Promise<void>;
 }) {
-  const showStartPanel = game.status === "idle";
-
-  if (showStartPanel) {
+  if (!signedIn || !game || !playProps) {
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-65px)] max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
+      <AuthRequired
+        loading={authLoading}
+        title={
+          authLoading
+            ? "Vérification de ta session."
+            : "Connecte-toi pour lancer le mode libre."
+        }
+        description="Le mode libre enregistre tes manches, tes victoires et tes points sur ton compte."
+        eyebrow="Mode libre"
+        onSignIn={onSignIn}
+      />
+    );
+  }
+
+  if (game.status === "idle") {
+    return (
+      <div className="mx-auto flex min-h-full max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
         <Panel className="w-full space-y-5">
           <SectionKicker>Mode libre</SectionKicker>
           <h2 className="text-4xl font-black">Une manche quand tu veux.</h2>
@@ -41,7 +62,7 @@ export function EndlessPage({
   }
 
   return (
-    <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-6xl grid-rows-[auto_1fr] px-4 py-5">
+    <div className="mx-auto grid min-h-full max-w-6xl grid-rows-[auto_1fr] px-4 py-5">
       <div className="mx-auto mb-5 grid w-full max-w-xl gap-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
