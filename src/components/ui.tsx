@@ -20,9 +20,7 @@ export function Shell({ children, className }: BaseProps) {
 
 export function Surface({ children, className }: BaseProps) {
   return (
-    <section
-      className={cn("grid min-h-dvh grid-rows-[auto_minmax(0,1fr)]", className)}
-    >
+    <section className={cn("min-h-dvh", className)}>
       {children}
     </section>
   );

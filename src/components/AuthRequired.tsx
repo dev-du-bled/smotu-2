@@ -16,7 +16,7 @@ export function AuthRequired({
   title?: string;
 }) {
   return (
-    <div className="mx-auto flex min-h-full max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
+    <div className="mx-auto flex min-h-[inherit] max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
       <Panel className="w-full space-y-5">
         <SectionKicker>{eyebrow}</SectionKicker>
         <h2 className="text-4xl font-black">{title}</h2>

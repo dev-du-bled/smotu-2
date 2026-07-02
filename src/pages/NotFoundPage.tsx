@@ -3,7 +3,7 @@ import { SectionKicker } from "../components/ui";
 
 export function NotFoundPage() {
   return (
-    <div className="mx-auto flex min-h-full max-w-2xl flex-col items-center justify-center px-4 text-center">
+    <div className="mx-auto flex min-h-[inherit] max-w-2xl flex-col items-center justify-center px-4 text-center">
       <SectionKicker>Page introuvable</SectionKicker>
       <h2 className="mt-3 text-4xl font-black">Cette route n'existe pas.</h2>
       <p className="mt-4 text-[#d7dadc]">

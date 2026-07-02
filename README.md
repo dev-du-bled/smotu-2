@@ -35,7 +35,8 @@ npm run dev
 Puis ouvrir `http://localhost:5173`.
 
 Les routes `/api/*` passent par Cloudflare Workers, le reste est servi comme une
-SPA React. Le schéma D1 est défini dans `worker/db/schema.ts`.
+SPA React. Le schéma D1 est défini dans `worker/db/schema.ts` et le Worker crée
+les tables/index initiaux automatiquement au premier appel API.
 
 ## Déploiement Cloudflare
 
@@ -48,11 +49,13 @@ wrangler d1 create smotu-db
 Ensuite:
 
 ```sh
-npm run db:generate
-npm run d1:migrate:remote
-npm run build
 npm run deploy
 ```
+
+Le deploy ne demande pas de commande de migration: `npm run deploy` build
+l'application puis lance `wrangler deploy`. Les migrations Drizzle restent
+disponibles comme outil de maintenance, mais elles ne sont pas nécessaires pour
+installer le schéma initial.
 
 ## Commandes utiles
 

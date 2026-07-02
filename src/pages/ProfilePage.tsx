@@ -107,16 +107,13 @@ export function ProfilePage({
   const picture = displayPicture(auth);
 
   return (
-    <div className="mx-auto grid min-h-full max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[360px_1fr]">
+    <div className="mx-auto grid min-h-[inherit] max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[360px_1fr]">
       <Panel className="h-fit space-y-5">
         <div className="flex items-center gap-4">
           <ProfileAvatar name={name} picture={picture} />
           <div className="min-w-0">
             <SectionKicker>Profil</SectionKicker>
             <h2 className="mt-1 truncate text-3xl font-black">{name}</h2>
-            <p className="mt-1 text-xs font-semibold text-[#818384]">
-              {picture ? "Photo Google" : "Aucune photo Google"}
-            </p>
           </div>
         </div>
 

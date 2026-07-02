@@ -26,7 +26,7 @@ export function HomePage({
   leaderboardCount: number;
 }) {
   return (
-    <div className="mx-auto grid min-h-full max-w-6xl items-center gap-8 px-4 py-10 lg:grid-cols-[1fr_380px]">
+    <div className="mx-auto grid min-h-[inherit] max-w-6xl items-center gap-8 px-4 py-10 lg:grid-cols-[1fr_380px]">
       <section>
         <SectionKicker>Smotu</SectionKicker>
         <h2 className="mt-4 max-w-3xl text-5xl font-black leading-[0.95] sm:text-7xl">

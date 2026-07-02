@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --header-height: 65px;
+  }
+
   html,
   body,
   #root {

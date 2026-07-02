@@ -7,12 +7,60 @@ type HeaderProps = {
   auth: UseShooAuthResult;
 };
 
-function navClass(active: boolean): string {
-  return `rounded-md px-3 py-2 text-sm font-bold transition ${
+function navClass(active: boolean, block = false): string {
+  return `${block ? "block w-full" : ""} rounded-md px-3 py-2 text-sm font-bold transition ${
     active
       ? "bg-[#f8f8f8] text-[#121213]"
       : "text-[#d7dadc] hover:bg-[#272729]"
   }`;
+}
+
+function AuthAction({
+  auth,
+  className = "",
+  onDone,
+}: {
+  auth: UseShooAuthResult;
+  className?: string;
+  onDone?: () => void;
+}) {
+  const signedIn = Boolean(auth.identity.userId);
+
+  if (auth.loading) {
+    return <Skeleton className={`h-9 w-32 ${className}`} />;
+  }
+
+  if (signedIn) {
+    return (
+      <Button
+        className={className}
+        size="sm"
+        type="button"
+        variant="secondary"
+        onClick={() => {
+          auth.clearIdentity();
+          onDone?.();
+        }}
+      >
+        Se déconnecter
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      className={className}
+      size="sm"
+      type="button"
+      variant="secondary"
+      onClick={() => {
+        onDone?.();
+        void auth.signIn({ requestPii: true });
+      }}
+    >
+      Se connecter
+    </Button>
+  );
 }
 
 function GameModeDropdown() {
@@ -88,11 +136,34 @@ function GameModeDropdown() {
 }
 
 export function Header({ auth }: HeaderProps) {
-  const signedIn = Boolean(auth.identity.userId);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const menu = mobileMenuRef.current;
+
+      if (!menu || menu.contains(event.target as Node)) {
+        return;
+      }
+
+      setMobileOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [mobileOpen]);
 
   return (
-    <header className="border-b border-[#3a3a3c]">
-      <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <header className="h-[var(--header-height)] border-b border-[#3a3a3c]">
+      <div
+        className="relative mx-auto flex h-full max-w-6xl items-center justify-between gap-3 px-4"
+        ref={mobileMenuRef}
+      >
         <Link className="flex items-center gap-3" to="/">
           <LogoMark />
           <div className="text-left">
@@ -106,7 +177,7 @@ export function Header({ auth }: HeaderProps) {
         </Link>
 
         <nav
-          className="flex max-w-full rounded-lg bg-[#18191b] p-1"
+          className="hidden max-w-full rounded-lg bg-[#18191b] p-1 md:flex"
           aria-label="Navigation principale"
         >
           <NavLink className={({ isActive }) => navClass(isActive)} to="/">
@@ -127,27 +198,72 @@ export function Header({ auth }: HeaderProps) {
           </NavLink>
         </nav>
 
-        {auth.loading ? (
-          <Skeleton className="h-9 w-32" />
-        ) : signedIn ? (
-          <Button
-            size="sm"
-            type="button"
-            variant="secondary"
-            onClick={() => auth.clearIdentity()}
-          >
-            Se déconnecter
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            type="button"
-            variant="secondary"
-            onClick={() => void auth.signIn({ requestPii: true })}
-          >
-            Se connecter
-          </Button>
-        )}
+        <div className="hidden md:block">
+          <AuthAction auth={auth} />
+        </div>
+
+        <button
+          className="grid size-10 place-items-center rounded-md bg-[#18191b] text-[#d7dadc] transition hover:bg-[#272729] md:hidden"
+          type="button"
+          aria-expanded={mobileOpen}
+          aria-label="Ouvrir la navigation"
+          onClick={() => setMobileOpen((value) => !value)}
+        >
+          <span className="grid gap-1.5" aria-hidden="true">
+            <span className="block h-0.5 w-5 rounded-full bg-current" />
+            <span className="block h-0.5 w-5 rounded-full bg-current" />
+            <span className="block h-0.5 w-5 rounded-full bg-current" />
+          </span>
+        </button>
+
+        {mobileOpen ? (
+          <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-30 rounded-lg border border-[#3a3a3c] bg-[#18191b] p-2 shadow-xl md:hidden">
+            <nav className="grid gap-1" aria-label="Navigation mobile">
+              <NavLink
+                className={({ isActive }) => navClass(isActive, true)}
+                to="/"
+                onClick={() => setMobileOpen(false)}
+              >
+                Accueil
+              </NavLink>
+              <NavLink
+                className={({ isActive }) => navClass(isActive, true)}
+                to="/play"
+                onClick={() => setMobileOpen(false)}
+              >
+                Mot du jour
+              </NavLink>
+              <NavLink
+                className={({ isActive }) => navClass(isActive, true)}
+                to="/endless"
+                onClick={() => setMobileOpen(false)}
+              >
+                Mode libre
+              </NavLink>
+              <NavLink
+                className={({ isActive }) => navClass(isActive, true)}
+                to="/leaderboard"
+                onClick={() => setMobileOpen(false)}
+              >
+                Classement
+              </NavLink>
+              <NavLink
+                className={({ isActive }) => navClass(isActive, true)}
+                to="/profile"
+                onClick={() => setMobileOpen(false)}
+              >
+                Profil
+              </NavLink>
+            </nav>
+            <div className="mt-2 border-t border-[#2f3033] pt-2">
+              <AuthAction
+                auth={auth}
+                className="w-full"
+                onDone={() => setMobileOpen(false)}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
     </header>
   );

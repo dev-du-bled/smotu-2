@@ -1,5 +1,6 @@
 import { useShooAuth } from "@shoojs/react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { Shell, Surface } from "./components/ui";
 import { useDailyGame, useGlobalLeaderboard } from "./game/use-daily-game";
@@ -240,7 +241,7 @@ export function App() {
       <Shell>
         <Surface>
           <Header auth={auth} />
-          <div className="h-full min-h-0">
+          <div className="min-h-[calc(100dvh_-_var(--header-height))]">
             <Routes>
               <Route
                 path="/"
@@ -295,6 +296,7 @@ export function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>
+          <Footer />
         </Surface>
       </Shell>
     </BrowserRouter>
