@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 @layer base {
-  html {
+  html,
+  body,
+  #root {
     color-scheme: dark;
+    min-height: 100%;
   }
 
   body {

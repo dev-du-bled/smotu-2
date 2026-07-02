@@ -12,14 +12,20 @@ type ButtonSize = "sm" | "md" | "lg";
 
 export function Shell({ children, className }: BaseProps) {
   return (
-    <main className={cn("min-h-screen bg-[#121213] text-[#f8f8f8]", className)}>
+    <main className={cn("min-h-dvh bg-[#121213] text-[#f8f8f8]", className)}>
       {children}
     </main>
   );
 }
 
 export function Surface({ children, className }: BaseProps) {
-  return <section className={cn("min-h-screen", className)}>{children}</section>;
+  return (
+    <section
+      className={cn("grid min-h-dvh grid-rows-[auto_minmax(0,1fr)]", className)}
+    >
+      {children}
+    </section>
+  );
 }
 
 export function Panel({ children, className }: BaseProps) {

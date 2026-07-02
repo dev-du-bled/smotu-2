@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type ApiResource<T> = {
   data: T;
@@ -42,13 +42,18 @@ export function useApiResource<T>(
   token: string | undefined,
   fallback: T,
 ): ApiResource<T> {
+  const fallbackRef = useRef(fallback);
   const [data, setData] = useState<T>(fallback);
   const [loading, setLoading] = useState(Boolean(token));
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    fallbackRef.current = fallback;
+  }, [fallback]);
+
   const refetch = useCallback(async () => {
     if (!token) {
-      setData(fallback);
+      setData(fallbackRef.current);
       setLoading(false);
       setError("");
       return;
@@ -64,7 +69,7 @@ export function useApiResource<T>(
     } finally {
       setLoading(false);
     }
-  }, [fallback, path, token]);
+  }, [path, token]);
 
   useEffect(() => {
     void refetch();

@@ -4,6 +4,7 @@ import {
   type Attempt,
   type EndlessGameState,
   type GameState,
+  type GlobalLeaderboardEntry,
   type TileState,
 } from "../../shared/game";
 
@@ -24,6 +25,8 @@ export const emptyEndlessGame: EndlessGameState = {
   gamesPlayed: 0,
   over: true,
 };
+
+export const emptyLeaderboard: GlobalLeaderboardEntry[] = [];
 
 export function letterStates(attempts: Attempt[]): Record<string, TileState> {
   const priority: Record<TileState, number> = {

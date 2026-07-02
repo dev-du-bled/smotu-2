@@ -30,7 +30,7 @@ export function PlayPage({
   }
 
   return (
-    <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-6xl grid-rows-[auto_1fr] px-4 py-5">
+    <div className="mx-auto grid min-h-full max-w-6xl grid-rows-[auto_1fr] px-4 py-5">
       <div className="mx-auto mb-5 grid w-full max-w-xl gap-3">
         <div>
           <SectionKicker>Mot du jour</SectionKicker>

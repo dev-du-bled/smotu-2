@@ -15,6 +15,7 @@ import {
   type GameMode,
   type GameState,
   type GlobalLeaderboardEntry,
+  type ProfileStats,
   type TileState,
 } from "../shared/game";
 import {
@@ -500,7 +501,7 @@ function addScore(
   entries[event.userId] = current;
 }
 
-async function globalLeaderboard(db: Db): Promise<GlobalLeaderboardEntry[]> {
+async function leaderboardRows(db: Db) {
   const daily = await db
     .select({
       userId: attemptsTable.userId,
@@ -526,6 +527,13 @@ async function globalLeaderboard(db: Db): Promise<GlobalLeaderboardEntry[]> {
     .orderBy(asc(endlessAttemptsTable.createdAt))
     .all();
 
+  return { daily, endless };
+}
+
+function buildLeaderboard({
+  daily,
+  endless,
+}: Awaited<ReturnType<typeof leaderboardRows>>): GlobalLeaderboardEntry[] {
   const entries: Record<string, GlobalLeaderboardEntry> = {};
 
   for (const row of daily) {
@@ -555,7 +563,32 @@ async function globalLeaderboard(db: Db): Promise<GlobalLeaderboardEntry[]> {
       }
       return left.lastScoredAt < right.lastScoredAt ? -1 : 1;
     })
-    .slice(0, 30);
+}
+
+async function globalLeaderboard(db: Db): Promise<GlobalLeaderboardEntry[]> {
+  return buildLeaderboard(await leaderboardRows(db)).slice(0, 30);
+}
+
+async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
+  const rows = await leaderboardRows(db);
+  const leaderboard = buildLeaderboard(rows);
+  const index = leaderboard.findIndex((entry) => entry.userId === user.userId);
+  const entry = index >= 0 ? leaderboard[index] : undefined;
+  const dailySolved = rows.daily.filter((row) => row.userId === user.userId).length;
+  const endlessSolved = rows.endless.filter((row) => row.userId === user.userId).length;
+
+  return {
+    userId: user.userId,
+    userName: entry?.userName ?? user.name,
+    totalScore: entry?.totalScore ?? 0,
+    dailyScore: entry?.dailyScore ?? 0,
+    endlessScore: entry?.endlessScore ?? 0,
+    gamesSolved: entry?.gamesSolved ?? 0,
+    dailySolved,
+    endlessSolved,
+    lastScoredAt: entry?.lastScoredAt ?? "",
+    rank: index >= 0 ? index + 1 : null,
+  };
 }
 
 async function requestBody(request: Request): Promise<Record<string, unknown>> {
@@ -577,6 +610,10 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
   if (request.method === "GET" && url.pathname === "/api/session") {
     return json({ user });
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/profile") {
+    return json(await profileStats(db, user));
   }
 
   if (request.method === "GET" && url.pathname === "/api/game/daily") {

@@ -38,7 +38,7 @@ export function EndlessPage({
 
   if (game.status === "idle") {
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-65px)] max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
+      <div className="mx-auto flex min-h-full max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
         <Panel className="w-full space-y-5">
           <SectionKicker>Mode libre</SectionKicker>
           <h2 className="text-4xl font-black">Une manche quand tu veux.</h2>
@@ -62,7 +62,7 @@ export function EndlessPage({
   }
 
   return (
-    <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-6xl grid-rows-[auto_1fr] px-4 py-5">
+    <div className="mx-auto grid min-h-full max-w-6xl grid-rows-[auto_1fr] px-4 py-5">
       <div className="mx-auto mb-5 grid w-full max-w-xl gap-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

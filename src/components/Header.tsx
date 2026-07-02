@@ -1,5 +1,5 @@
 import type { UseShooAuthResult } from "@shoojs/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Button, LogoMark, Skeleton } from "./ui";
 
@@ -17,11 +17,31 @@ function navClass(active: boolean): string {
 
 function GameModeDropdown() {
   const location = useLocation();
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const active = location.pathname === "/play" || location.pathname === "/endless";
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const dropdown = dropdownRef.current;
+
+      if (!dropdown || dropdown.contains(event.target as Node)) {
+        return;
+      }
+
+      setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         className={navClass(active)}
         type="button"
@@ -98,6 +118,12 @@ export function Header({ auth }: HeaderProps) {
             to="/leaderboard"
           >
             Classement
+          </NavLink>
+          <NavLink
+            className={({ isActive }) => navClass(isActive)}
+            to="/profile"
+          >
+            Profil
           </NavLink>
         </nav>
 

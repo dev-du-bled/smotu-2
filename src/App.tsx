@@ -4,12 +4,15 @@ import { Header } from "./components/Header";
 import { Shell, Surface } from "./components/ui";
 import { useDailyGame, useGlobalLeaderboard } from "./game/use-daily-game";
 import { useEndlessGame } from "./game/use-endless-game";
+import { emptyProfileStats, useProfileStats } from "./game/use-profile";
+import { emptyLeaderboard } from "./game/state";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { EndlessPage } from "./pages/EndlessPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PlayPage } from "./pages/PlayPage";
+import { ProfilePage } from "./pages/ProfilePage";
 
 function useSignIn(auth: ReturnType<typeof useShooAuth>) {
   return () =>
@@ -142,7 +145,7 @@ function LeaderboardRoute({
     return (
       <LeaderboardPage
         authLoading={authLoading}
-        leaderboard={[]}
+        leaderboard={emptyLeaderboard}
         signedIn={false}
         onSignIn={onSignIn}
       />
@@ -170,6 +173,57 @@ function SignedInLeaderboardRoute({
   );
 }
 
+function ProfileRoute({
+  auth,
+  authLoading,
+  onSignIn,
+  signedIn,
+  token,
+}: {
+  auth: ReturnType<typeof useShooAuth>;
+  authLoading: boolean;
+  onSignIn: () => void | Promise<void>;
+  signedIn: boolean;
+  token?: string;
+}) {
+  if (!signedIn) {
+    return (
+      <ProfilePage
+        auth={auth}
+        authLoading={authLoading}
+        loading={false}
+        stats={emptyProfileStats(auth.identity.userId ?? undefined)}
+        signedIn={false}
+        onSignIn={onSignIn}
+      />
+    );
+  }
+
+  return <SignedInProfileRoute auth={auth} token={token} onSignIn={onSignIn} />;
+}
+
+function SignedInProfileRoute({
+  auth,
+  onSignIn,
+  token,
+}: {
+  auth: ReturnType<typeof useShooAuth>;
+  onSignIn: () => void | Promise<void>;
+  token?: string;
+}) {
+  const profile = useProfileStats(token, auth.identity.userId ?? undefined);
+
+  return (
+    <ProfilePage
+      auth={auth}
+      loading={profile.loading}
+      stats={profile.data}
+      signedIn
+      onSignIn={onSignIn}
+    />
+  );
+}
+
 export function App() {
   const auth = useShooAuth({
     autoSessionMonitor: true,
@@ -186,47 +240,61 @@ export function App() {
       <Shell>
         <Surface>
           <Header auth={auth} />
-          <Routes>
-            <Route
-              path="/"
-              element={<HomeRoute token={token} onSignIn={signIn} />}
-            />
-            <Route
-              path="/play"
-              element={
-                <PlayRoute
-                  authLoading={auth.loading}
-                  signedIn={signedIn}
-                  token={token}
-                  onSignIn={signIn}
-                />
-              }
-            />
-            <Route
-              path="/endless"
-              element={
-                <EndlessRoute
-                  authLoading={auth.loading}
-                  signedIn={signedIn}
-                  token={token}
-                  onSignIn={signIn}
-                />
-              }
-            />
-            <Route
-              path="/leaderboard"
-              element={
-                <LeaderboardRoute
-                  authLoading={auth.loading}
-                  signedIn={signedIn}
-                  token={token}
-                  onSignIn={signIn}
-                />
-              }
-            />
-            <Route path="/auth/callback" element={<AuthCallbackPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+          <div className="h-full min-h-0">
+            <Routes>
+              <Route
+                path="/"
+                element={<HomeRoute token={token} onSignIn={signIn} />}
+              />
+              <Route
+                path="/play"
+                element={
+                  <PlayRoute
+                    authLoading={auth.loading}
+                    signedIn={signedIn}
+                    token={token}
+                    onSignIn={signIn}
+                  />
+                }
+              />
+              <Route
+                path="/endless"
+                element={
+                  <EndlessRoute
+                    authLoading={auth.loading}
+                    signedIn={signedIn}
+                    token={token}
+                    onSignIn={signIn}
+                  />
+                }
+              />
+              <Route
+                path="/leaderboard"
+                element={
+                  <LeaderboardRoute
+                    authLoading={auth.loading}
+                    signedIn={signedIn}
+                    token={token}
+                    onSignIn={signIn}
+                  />
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProfileRoute
+                    auth={auth}
+                    authLoading={auth.loading}
+                    signedIn={signedIn}
+                    token={token}
+                    onSignIn={signIn}
+                  />
+                }
+              />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </div>
         </Surface>
       </Shell>
     </BrowserRouter>

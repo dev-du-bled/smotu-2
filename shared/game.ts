@@ -41,6 +41,12 @@ export type GlobalLeaderboardEntry = {
   lastScoredAt: string;
 };
 
+export type ProfileStats = GlobalLeaderboardEntry & {
+  dailySolved: number;
+  endlessSolved: number;
+  rank: number | null;
+};
+
 export const WORDS = [
   "ABORD",
   "ACIER",

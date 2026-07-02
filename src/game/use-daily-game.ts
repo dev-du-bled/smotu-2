@@ -8,13 +8,13 @@ import {
   type GlobalLeaderboardEntry,
 } from "../../shared/game";
 import { apiJson, useApiResource } from "../lib/api";
-import { emptyGame, letterStates } from "./state";
+import { emptyGame, emptyLeaderboard, letterStates } from "./state";
 
 export function useGlobalLeaderboard(token: string | undefined) {
   return useApiResource<GlobalLeaderboardEntry[]>(
     "/api/leaderboard/global",
     token,
-    [],
+    emptyLeaderboard,
   );
 }
 
