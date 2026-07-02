@@ -17,6 +17,7 @@ export function useEndlessGame(token: string | undefined) {
   const [inputValue, setInputValue] = useState("");
   const [pendingGuess, setPendingGuess] = useState("");
   const [localError, setLocalError] = useState("");
+  const [celebrationKey, setCelebrationKey] = useState("");
   const [isStarting, setIsStarting] = useState(false);
 
   const game = gameResource.data;
@@ -97,12 +98,21 @@ export function useEndlessGame(token: string | undefined) {
     setInputValue("");
 
     try {
-      gameResource.setData(
-        await apiJson<EndlessGameState>("/api/game/endless/guess", token, {
+      const nextGame = await apiJson<EndlessGameState>(
+        "/api/game/endless/guess",
+        token,
+        {
           method: "POST",
           body: JSON.stringify({ guess }),
-        }),
+        },
       );
+      const winningAttempt = nextGame.attempts.find((attempt) => attempt.solved);
+
+      gameResource.setData(nextGame);
+
+      if (!game.solved && winningAttempt) {
+        setCelebrationKey(`${nextGame.gameId}-${winningAttempt.id}-${Date.now()}`);
+      }
     } catch (reason) {
       setInputValue(guess);
       setLocalError(
@@ -122,6 +132,7 @@ export function useEndlessGame(token: string | undefined) {
     playProps: {
       activeRow,
       canSubmit,
+      celebrationKey,
       game,
       inputValue,
       localError,
