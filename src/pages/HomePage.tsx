@@ -63,7 +63,7 @@ export function HomePage({
         <div>
           <SectionKicker>Aujourd'hui</SectionKicker>
           <p className="mt-2 text-3xl font-black capitalize leading-tight">
-            {game.dateKey ? formatDateKey(game.dateKey) : "..."}
+            {formatDateKey(game.dateKey)}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3">

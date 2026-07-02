@@ -8,8 +8,12 @@ import {
   type TileState,
 } from "../../shared/game";
 
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export const emptyGame: GameState = {
-  dateKey: "",
+  dateKey: todayKey(),
   attempts: [],
   maxAttempts: MAX_ATTEMPTS,
   wordLength: WORD_LENGTH,
