@@ -67,7 +67,10 @@ function GameModeDropdown() {
   const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const active = location.pathname === "/play" || location.pathname === "/endless";
+  const active =
+    location.pathname === "/play" ||
+    location.pathname === "/endless" ||
+    location.pathname === "/mastermind";
 
   useEffect(() => {
     if (!open) {
@@ -129,6 +132,18 @@ function GameModeDropdown() {
           >
             Mode libre
           </Link>
+          <Link
+            className={`mt-1 block rounded-md px-3 py-2 text-sm font-bold transition ${
+              location.pathname === "/mastermind"
+                ? "bg-[#a855f7] text-white"
+                : "text-[#d7dadc] hover:bg-[#272729]"
+            }`}
+            role="menuitem"
+            to="/mastermind"
+            onClick={() => setOpen(false)}
+          >
+            Mastermind
+          </Link>
         </div>
       ) : null}
     </div>
@@ -170,9 +185,6 @@ export function Header({ auth }: HeaderProps) {
             <h1 className="text-2xl font-black uppercase tracking-[0.08em]">
               Smotu
             </h1>
-            <p className="text-xs font-semibold text-[#818384]">
-              Le mot quotidien
-            </p>
           </div>
         </Link>
 
@@ -239,6 +251,13 @@ export function Header({ auth }: HeaderProps) {
                 onClick={() => setMobileOpen(false)}
               >
                 Mode libre
+              </NavLink>
+              <NavLink
+                className={({ isActive }) => navClass(isActive, true)}
+                to="/mastermind"
+                onClick={() => setMobileOpen(false)}
+              >
+                Mastermind
               </NavLink>
               <NavLink
                 className={({ isActive }) => navClass(isActive, true)}

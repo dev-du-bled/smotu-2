@@ -3,14 +3,20 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { Shell, Surface } from "./components/ui";
-import { useDailyGame, useGlobalLeaderboard } from "./game/use-daily-game";
+import {
+  useDailyGame,
+  useGlobalLeaderboard,
+  useLeaderboards,
+} from "./game/use-daily-game";
 import { useEndlessGame } from "./game/use-endless-game";
+import { useMastermindGame } from "./game/use-mastermind-game";
 import { emptyProfileStats, useProfileStats } from "./game/use-profile";
-import { emptyLeaderboard } from "./game/state";
+import { emptyLeaderboards } from "./game/state";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { EndlessPage } from "./pages/EndlessPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { MastermindPage } from "./pages/MastermindPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PlayPage } from "./pages/PlayPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -97,6 +103,60 @@ function EndlessRoute({
   return <EndlessPage {...endless} signedIn={signedIn} />;
 }
 
+function MastermindRoute({
+  authLoading,
+  onSignIn,
+  signedIn,
+  token,
+}: {
+  authLoading: boolean;
+  onSignIn: () => void | Promise<void>;
+  signedIn: boolean;
+  token?: string;
+}) {
+  if (!signedIn) {
+    return (
+      <MastermindPage
+        authLoading={authLoading}
+        canSubmit={false}
+        game={undefined}
+        guess={[]}
+        isStarting={false}
+        localError=""
+        pendingGuess={false}
+        progress={0}
+        signedIn={false}
+        addColor={() => undefined}
+        clearGuess={() => undefined}
+        removeColor={() => undefined}
+        startRound={() => undefined}
+        onSignIn={onSignIn}
+        onSubmit={() => undefined}
+      />
+    );
+  }
+
+  return <SignedInMastermindRoute token={token} onSignIn={onSignIn} />;
+}
+
+function SignedInMastermindRoute({
+  onSignIn,
+  token,
+}: {
+  onSignIn: () => void | Promise<void>;
+  token?: string;
+}) {
+  const mastermind = useMastermindGame(token);
+
+  return (
+    <MastermindPage
+      {...mastermind}
+      signedIn
+      onSignIn={onSignIn}
+    />
+  );
+}
+
 function LeaderboardRoute({
   authLoading,
   onSignIn,
@@ -112,7 +172,7 @@ function LeaderboardRoute({
     return (
       <LeaderboardPage
         authLoading={authLoading}
-        leaderboard={emptyLeaderboard}
+        leaderboards={emptyLeaderboards}
         signedIn={false}
         onSignIn={onSignIn}
       />
@@ -129,11 +189,11 @@ function SignedInLeaderboardRoute({
   onSignIn: () => void | Promise<void>;
   token?: string;
 }) {
-  const leaderboard = useGlobalLeaderboard(token);
+  const leaderboards = useLeaderboards(token);
 
   return (
     <LeaderboardPage
-      leaderboard={leaderboard.data}
+      leaderboards={leaderboards.data}
       signedIn
       onSignIn={onSignIn}
     />
@@ -228,6 +288,17 @@ export function App() {
               <Route
                 path="/endless"
                 element={<EndlessRoute signedIn={signedIn} token={token} />}
+              />
+              <Route
+                path="/mastermind"
+                element={
+                  <MastermindRoute
+                    authLoading={auth.loading}
+                    signedIn={signedIn}
+                    token={token}
+                    onSignIn={signIn}
+                  />
+                }
               />
               <Route
                 path="/leaderboard"

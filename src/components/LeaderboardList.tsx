@@ -2,9 +2,11 @@ import type { GlobalLeaderboardEntry } from "../../shared/game";
 import { RankMedal } from "./ui";
 
 export function LeaderboardList({
+  emptyLabel = "Aucun score pour le moment.",
   leaderboard,
   large = false,
 }: {
+  emptyLabel?: string;
   leaderboard: GlobalLeaderboardEntry[];
   large?: boolean;
 }) {
@@ -26,7 +28,8 @@ export function LeaderboardList({
                 {entry.gamesSolved > 1 ? "victoires" : "victoire"}
               </p>
               <p className="text-xs font-semibold text-[#565758]">
-                Jour {entry.dailyScore} · Libre {entry.endlessScore}
+                Jour {entry.dailyScore} · Libre {entry.endlessScore} · Mastermind{" "}
+                {entry.mastermindScore}
               </p>
             </div>
             <p className="font-mono text-lg font-black">{entry.totalScore}</p>
@@ -34,7 +37,7 @@ export function LeaderboardList({
         ))
       ) : (
         <li className="rounded-md border border-dashed border-[#3a3a3c] p-5 text-sm text-[#818384]">
-          Aucun score global pour le moment.
+          {emptyLabel}
         </li>
       )}
     </ol>

@@ -271,6 +271,21 @@ export function ProfilePage({
               Lancer
             </Link>
           </Panel>
+
+          <Panel className="space-y-4">
+            <SectionKicker>Mastermind</SectionKicker>
+            <p className="font-mono text-4xl font-black">{stats.mastermindScore}</p>
+            <p className="text-sm text-[#818384]">
+              {stats.mastermindSolved}{" "}
+              {stats.mastermindSolved > 1 ? "victoires" : "victoire"} Mastermind.
+            </p>
+            <Link
+              className="inline-flex h-10 items-center justify-center rounded-md bg-[#a855f7] px-4 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#b86cff]"
+              to="/mastermind"
+            >
+              Jouer
+            </Link>
+          </Panel>
         </div>
       </section>
     </div>
