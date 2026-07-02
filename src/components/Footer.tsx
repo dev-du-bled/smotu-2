@@ -23,8 +23,8 @@ export function Footer() {
 
   return (
     <footer className="border-t border-[#2f3033]">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-7 px-4 py-8 text-sm text-[#818384]">
-        <div className="max-w-xs">
+      <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-7 px-4 py-8 text-sm text-[#818384] sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="max-w-xs sm:min-w-52">
           <p className="text-lg font-black uppercase tracking-[0.08em] text-white">
             Smotu
           </p>
@@ -34,20 +34,20 @@ export function Footer() {
           </p>
         </div>
 
-        <nav aria-label="Footer jouer">
+        <nav className="sm:min-w-32" aria-label="Footer jouer">
           <FooterTitle>Jouer</FooterTitle>
           <FooterLink to="/">Accueil</FooterLink>
           <FooterLink to="/play">Mot du jour</FooterLink>
           <FooterLink to="/endless">Mode libre</FooterLink>
         </nav>
 
-        <nav aria-label="Footer score">
+        <nav className="sm:min-w-32" aria-label="Footer score">
           <FooterTitle>Score</FooterTitle>
           <FooterLink to="/leaderboard">Classement</FooterLink>
           <FooterLink to="/profile">Mon profil</FooterLink>
         </nav>
 
-        <div>
+        <div className="sm:min-w-48">
           <FooterTitle>Aide</FooterTitle>
           <button
             className="block py-1.5 text-left transition hover:text-white"
@@ -56,6 +56,14 @@ export function Footer() {
           >
             Règles du jeu
           </button>
+          <a
+            className="block py-1.5 transition hover:text-white"
+            href="https://github.com/dev-du-bled/smotu-2"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Voir le projet sur GitHub
+          </a>
           <p className="mt-2 leading-6 text-[#565758]">
             Cinq lettres, six essais, propositions libres.
           </p>
