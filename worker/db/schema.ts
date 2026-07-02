@@ -1,6 +1,13 @@
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type { EndlessGameStatus } from "../../shared/game";
 
+export const users = sqliteTable("users", {
+  userId: text("user_id").primaryKey(),
+  username: text("username").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export const attempts = sqliteTable(
   "attempts",
   {
@@ -72,6 +79,7 @@ export const endlessAttempts = sqliteTable(
   ],
 );
 
+export type StoredUser = typeof users.$inferSelect;
 export type StoredAttempt = typeof attempts.$inferSelect;
 export type StoredEndlessGame = typeof endlessGames.$inferSelect;
 export type StoredEndlessAttempt = typeof endlessAttempts.$inferSelect;

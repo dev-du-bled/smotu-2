@@ -1,41 +1,20 @@
 import type { EndlessGameState } from "../../shared/game";
-import { AuthRequired } from "../components/AuthRequired";
 import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import { Button, Panel, ProgressStrip, SectionKicker } from "../components/ui";
 
 export function EndlessPage({
-  authLoading = false,
   game,
   isStarting,
-  onSignIn,
   playProps,
   signedIn,
   startRound,
 }: {
-  authLoading?: boolean;
-  game?: EndlessGameState;
+  game: EndlessGameState;
   isStarting: boolean;
-  onSignIn: () => void | Promise<void>;
-  playProps?: GameBoardProps & { progress: number };
+  playProps: GameBoardProps & { progress: number };
   signedIn: boolean;
   startRound: () => void | Promise<void>;
 }) {
-  if (!signedIn || !game || !playProps) {
-    return (
-      <AuthRequired
-        loading={authLoading}
-        title={
-          authLoading
-            ? "Vérification de ta session."
-            : "Connecte-toi pour lancer le mode libre."
-        }
-        description="Le mode libre enregistre tes manches, tes victoires et tes points sur ton compte."
-        eyebrow="Mode libre"
-        onSignIn={onSignIn}
-      />
-    );
-  }
-
   if (game.status === "idle") {
     return (
       <div className="mx-auto flex min-h-[inherit] max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
@@ -47,6 +26,12 @@ export function EndlessPage({
             victoire rapporte moins de points, parce que tu peux relancer autant
             de manches que tu veux.
           </p>
+          {!signedIn ? (
+            <p className="text-sm text-[#818384]">
+              Tu joues en invité : la partie n'est pas enregistrée et ne compte
+              pas au classement. Connecte-toi pour garder tes scores.
+            </p>
+          ) : null}
           <Button
             disabled={isStarting}
             size="lg"
