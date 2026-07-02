@@ -1,10 +1,14 @@
 import {
+  MASTERMIND_CODE_LENGTH,
+  MASTERMIND_MAX_ATTEMPTS,
   MAX_ATTEMPTS,
   WORD_LENGTH,
   type Attempt,
   type EndlessGameState,
   type GameState,
   type GlobalLeaderboardEntry,
+  type LeaderboardSet,
+  type MastermindGameState,
   type TileState,
 } from "../../shared/game";
 
@@ -31,6 +35,25 @@ export const emptyEndlessGame: EndlessGameState = {
 };
 
 export const emptyLeaderboard: GlobalLeaderboardEntry[] = [];
+
+export const emptyLeaderboards: LeaderboardSet = {
+  global: [],
+  daily: [],
+  endless: [],
+  mastermind: [],
+};
+
+export const emptyMastermindGame: MastermindGameState = {
+  gameId: "",
+  attempts: [],
+  maxAttempts: MASTERMIND_MAX_ATTEMPTS,
+  codeLength: MASTERMIND_CODE_LENGTH,
+  solved: false,
+  over: true,
+  answer: [],
+  status: "idle",
+  gamesPlayed: 0,
+};
 
 export function letterStates(attempts: Attempt[]): Record<string, TileState> {
   const priority: Record<TileState, number> = {

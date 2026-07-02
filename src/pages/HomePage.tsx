@@ -33,9 +33,9 @@ export function HomePage({
           Devine le mot. Marque des points.
         </h2>
         <p className="mt-5 max-w-2xl text-lg leading-8 text-[#d7dadc]">
-          Deux modes, une même règle: cinq lettres, six essais, des propositions
-          libres. Le mot du jour rapporte beaucoup de points, le mode libre en
-          rapporte moins mais se joue autant de fois que tu veux.
+          Trois jeux, trois rythmes: le mot du jour, le mode libre et
+          Mastermind. Les propositions restent libres, les points changent selon
+          le mode et le classement additionne tout.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
@@ -76,7 +76,7 @@ export function HomePage({
             <p className="text-sm text-[#818384]">Joueurs au classement</p>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-md border border-[#538d4e]/50 bg-[#182019] p-4">
             <p className="font-black">Mot du jour</p>
             <p className="text-sm text-[#818384]">Jusqu'à 900 points</p>
@@ -84,6 +84,10 @@ export function HomePage({
           <div className="rounded-md border border-[#b59f3b]/50 bg-[#211f16] p-4">
             <p className="font-black">Mode libre</p>
             <p className="text-sm text-[#818384]">Jusqu'à 360 points</p>
+          </div>
+          <div className="rounded-md border border-[#a855f7]/50 bg-[#1c1622] p-4">
+            <p className="font-black">Mastermind</p>
+            <p className="text-sm text-[#818384]">Jusqu'à 560 points</p>
           </div>
         </div>
         <div className="rounded-md bg-[#272729] p-4">

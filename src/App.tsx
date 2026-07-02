@@ -2,15 +2,22 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { Shell, Surface } from "./components/ui";
-import { useDailyGame, useGlobalLeaderboard } from "./game/use-daily-game";
+import {
+  useDailyGame,
+  useGlobalLeaderboard,
+  useLeaderboards,
+} from "./game/use-daily-game";
 import { useEndlessGame } from "./game/use-endless-game";
+import { useMastermindGame } from "./game/use-mastermind-game";
 import { emptyProfileStats, useProfileStats } from "./game/use-profile";
-import { emptyLeaderboard } from "./game/state";
+import { emptyLeaderboards } from "./game/state";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { AuthErrorPage } from "./pages/AuthErrorPage";
 import { AuthPage } from "./pages/AuthPage";
 import { EndlessPage } from "./pages/EndlessPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { MastermindPage } from "./pages/MastermindPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PlayPage } from "./pages/PlayPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -22,11 +29,37 @@ type EmailAuthInput = {
   password: string;
 };
 
+function safeAuthReturnTo(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+
+  return value;
+}
+
+function currentAuthReturnTo(): string {
+  const searchParams = new URLSearchParams(window.location.search);
+  const explicitReturnTo = safeAuthReturnTo(searchParams.get("returnTo"));
+
+  if (
+    (window.location.pathname === "/auth" ||
+      window.location.pathname === "/auth/error") &&
+    explicitReturnTo
+  ) {
+    return explicitReturnTo;
+  }
+
+  return `${window.location.pathname}${window.location.search}`;
+}
+
 function useSignIn() {
   return async () => {
+    const returnTo = currentAuthReturnTo();
+
     await authClient.signIn.social({
       provider: "google",
-      callbackURL: `${window.location.pathname}${window.location.search}`,
+      callbackURL: returnTo,
+      errorCallbackURL: `/auth/error?returnTo=${encodeURIComponent(returnTo)}`,
     });
   };
 }
@@ -103,6 +136,60 @@ function EndlessRoute({
   return <EndlessPage {...endless} signedIn={signedIn} />;
 }
 
+function MastermindRoute({
+  authLoading,
+  enabled,
+  onSignIn,
+  signedIn,
+}: {
+  authLoading: boolean;
+  enabled: boolean;
+  onSignIn: () => void | Promise<void>;
+  signedIn: boolean;
+}) {
+  if (!signedIn) {
+    return (
+      <MastermindPage
+        authLoading={authLoading}
+        canSubmit={false}
+        game={undefined}
+        guess={[]}
+        isStarting={false}
+        localError=""
+        pendingGuess={false}
+        progress={0}
+        signedIn={false}
+        addColor={() => undefined}
+        clearGuess={() => undefined}
+        removeColor={() => undefined}
+        startRound={() => undefined}
+        onSignIn={onSignIn}
+        onSubmit={() => undefined}
+      />
+    );
+  }
+
+  return <SignedInMastermindRoute enabled={enabled} onSignIn={onSignIn} />;
+}
+
+function SignedInMastermindRoute({
+  enabled,
+  onSignIn,
+}: {
+  enabled: boolean;
+  onSignIn: () => void | Promise<void>;
+}) {
+  const mastermind = useMastermindGame(enabled);
+
+  return (
+    <MastermindPage
+      {...mastermind}
+      signedIn
+      onSignIn={onSignIn}
+    />
+  );
+}
+
 function LeaderboardRoute({
   authLoading,
   enabled,
@@ -118,7 +205,7 @@ function LeaderboardRoute({
     return (
       <LeaderboardPage
         authLoading={authLoading}
-        leaderboard={emptyLeaderboard}
+        leaderboards={emptyLeaderboards}
         signedIn={false}
         onSignIn={onSignIn}
       />
@@ -135,11 +222,11 @@ function SignedInLeaderboardRoute({
   enabled: boolean;
   onSignIn: () => void | Promise<void>;
 }) {
-  const leaderboard = useGlobalLeaderboard(enabled);
+  const leaderboards = useLeaderboards(enabled);
 
   return (
     <LeaderboardPage
-      leaderboard={leaderboard.data}
+      leaderboards={leaderboards.data}
       signedIn
       onSignIn={onSignIn}
     />
@@ -270,6 +357,17 @@ export function App() {
                 element={<EndlessRoute signedIn={signedIn} />}
               />
               <Route
+                path="/mastermind"
+                element={
+                  <MastermindRoute
+                    authLoading={session.isPending}
+                    enabled={signedIn}
+                    signedIn={signedIn}
+                    onSignIn={signIn}
+                  />
+                }
+              />
+              <Route
                 path="/leaderboard"
                 element={
                   <LeaderboardRoute
@@ -306,6 +404,7 @@ export function App() {
                 }
               />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="/auth/error" element={<AuthErrorPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>

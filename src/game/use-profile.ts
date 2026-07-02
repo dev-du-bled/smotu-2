@@ -9,9 +9,11 @@ export function emptyProfileStats(userId = ""): ProfileStats {
     totalScore: 0,
     dailyScore: 0,
     endlessScore: 0,
+    mastermindScore: 0,
     gamesSolved: 0,
     dailySolved: 0,
     endlessSolved: 0,
+    mastermindSolved: 0,
     lastScoredAt: "",
     rank: null,
   };

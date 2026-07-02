@@ -44,6 +44,7 @@ export function Footer() {
           <FooterTitle>Score</FooterTitle>
           <FooterLink to="/leaderboard">Classement</FooterLink>
           <FooterLink to="/profile">Mon profil</FooterLink>
+          <FooterLink to="/mastermind">Mastermind</FooterLink>
         </nav>
 
         <div className="sm:min-w-48">

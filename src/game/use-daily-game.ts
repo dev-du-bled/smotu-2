@@ -6,15 +6,24 @@ import {
   type Attempt,
   type GameState,
   type GlobalLeaderboardEntry,
+  type LeaderboardSet,
 } from "../../shared/game";
 import { apiJson, useApiResource } from "../lib/api";
-import { emptyGame, emptyLeaderboard, letterStates } from "./state";
+import { emptyGame, emptyLeaderboard, emptyLeaderboards, letterStates } from "./state";
 
 export function useGlobalLeaderboard(enabled: boolean) {
   return useApiResource<GlobalLeaderboardEntry[]>(
     "/api/leaderboard/global",
     enabled,
     emptyLeaderboard,
+  );
+}
+
+export function useLeaderboards(enabled: boolean) {
+  return useApiResource<LeaderboardSet>(
+    "/api/leaderboards",
+    enabled,
+    emptyLeaderboards,
   );
 }
 
