@@ -1,10 +1,11 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
   WORD_LENGTH,
   type Attempt,
   type GameState,
   type TileState,
 } from "../../shared/game";
+import { ConfettiBurst } from "./ConfettiBurst";
 import { Button, Input, KeyCap, WordTile } from "./ui";
 
 const KEY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
@@ -12,6 +13,7 @@ const KEY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
 export type GameBoardProps = {
   activeRow: number;
   canSubmit: boolean;
+  celebrationKey?: string;
   game: GameState;
   inputValue: string;
   localError: string;
@@ -101,6 +103,7 @@ function Keyboard({
 export function GameBoard({
   activeRow,
   canSubmit,
+  celebrationKey,
   game,
   inputValue,
   localError,
@@ -113,8 +116,13 @@ export function GameBoard({
   solvedAttempt,
   states,
 }: GameBoardProps) {
+  const [debugCelebrationKey, setDebugCelebrationKey] = useState("");
+
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5">
+      <ConfettiBurst burstKey={celebrationKey} />
+      {import.meta.env.DEV ? <ConfettiBurst burstKey={debugCelebrationKey} /> : null}
+
       <div className="w-full max-w-sm">
         <div className="grid gap-1.5">
           {rows.map((attempt, rowIndex) => {
@@ -169,6 +177,16 @@ export function GameBoard({
       <p className="min-h-6 text-center text-sm font-semibold text-[#d7dadc]">
         {localError || statusText(game, pendingGuess, solvedAttempt)}
       </p>
+
+      {import.meta.env.DEV ? (
+        <button
+          className="rounded-md border border-dashed border-[#f97316]/60 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[#f97316] transition hover:border-[#f97316] hover:bg-[#f97316]/10"
+          type="button"
+          onClick={() => setDebugCelebrationKey(`debug-${Date.now()}`)}
+        >
+          Debug confettis
+        </button>
+      ) : null}
 
       <Keyboard
         states={states}

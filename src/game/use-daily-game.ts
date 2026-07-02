@@ -23,6 +23,7 @@ export function useDailyGame(token: string | undefined) {
   const [inputValue, setInputValue] = useState("");
   const [pendingGuess, setPendingGuess] = useState("");
   const [localError, setLocalError] = useState("");
+  const [celebrationKey, setCelebrationKey] = useState("");
 
   const game = gameResource.data;
   const visibleAttempts = pendingGuess
@@ -68,12 +69,17 @@ export function useDailyGame(token: string | undefined) {
     setInputValue("");
 
     try {
-      gameResource.setData(
-        await apiJson<GameState>("/api/game/daily/guess", token, {
-          method: "POST",
-          body: JSON.stringify({ guess }),
-        }),
-      );
+      const nextGame = await apiJson<GameState>("/api/game/daily/guess", token, {
+        method: "POST",
+        body: JSON.stringify({ guess }),
+      });
+      const winningAttempt = nextGame.attempts.find((attempt) => attempt.solved);
+
+      gameResource.setData(nextGame);
+
+      if (!game.solved && winningAttempt) {
+        setCelebrationKey(`${nextGame.dateKey}-${winningAttempt.id}-${Date.now()}`);
+      }
     } catch (reason) {
       setInputValue(guess);
       setLocalError(
@@ -91,6 +97,7 @@ export function useDailyGame(token: string | undefined) {
     playProps: {
       activeRow,
       canSubmit,
+      celebrationKey,
       game,
       inputValue,
       localError,

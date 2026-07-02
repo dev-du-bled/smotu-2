@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "deploy": "npm run build && wrangler deploy",
@@ -15,6 +16,7 @@
   },
   "dependencies": {
     "@shoojs/react": "^0.2.2",
+    "canvas-confetti": "^1.9.4",
     "drizzle-orm": "^1.0.0-rc.4",
     "jose": "^6.2.3",
     "react": "^19.2.7",
@@ -25,6 +27,7 @@
     "@cloudflare/vite-plugin": "^1.42.4",
     "@cloudflare/workers-types": "^4.20260701.1",
     "@tailwindcss/vite": "^4.3.2",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
