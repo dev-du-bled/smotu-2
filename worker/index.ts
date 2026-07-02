@@ -3,11 +3,16 @@ import { drizzle } from "drizzle-orm/d1";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import {
   MAX_ATTEMPTS,
+  MASTERMIND_CODE_LENGTH,
+  MASTERMIND_COLORS,
+  MASTERMIND_MAX_ATTEMPTS,
   WORDS,
   WORD_LENGTH,
+  getMastermindFeedback,
   getPattern,
   getScoreForMode,
   getWordForDate,
+  normalizeMastermindGuess,
   normalizeGuess,
   type Attempt,
   type EndlessGameState,
@@ -15,6 +20,11 @@ import {
   type GameMode,
   type GameState,
   type GlobalLeaderboardEntry,
+  type LeaderboardSet,
+  type MastermindAttempt,
+  type MastermindColorId,
+  type MastermindGameState,
+  type MastermindGameStatus,
   type ProfileStats,
   type TileState,
 } from "../shared/game";
@@ -23,9 +33,13 @@ import {
   endlessAttempts as endlessAttemptsTable,
   endlessGames as endlessGamesTable,
   users as usersTable,
+  mastermindAttempts as mastermindAttemptsTable,
+  mastermindGames as mastermindGamesTable,
   type StoredAttempt,
   type StoredEndlessAttempt,
   type StoredEndlessGame,
+  type StoredMastermindAttempt,
+  type StoredMastermindGame,
 } from "./db/schema";
 
 type Env = {
@@ -57,6 +71,11 @@ const schemaStatements = [
   "CREATE TABLE IF NOT EXISTS endless_attempts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, game_id TEXT NOT NULL, guess TEXT NOT NULL, pattern TEXT NOT NULL, attempt_number INTEGER NOT NULL, solved INTEGER NOT NULL DEFAULT 0, score INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
   "CREATE INDEX IF NOT EXISTS endless_attempts_game_idx ON endless_attempts (game_id, created_at)",
   "CREATE INDEX IF NOT EXISTS endless_attempts_solved_idx ON endless_attempts (solved, created_at)",
+  "CREATE TABLE IF NOT EXISTS mastermind_games (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, answer TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active', score INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS mastermind_games_user_status_idx ON mastermind_games (user_id, status, created_at)",
+  "CREATE TABLE IF NOT EXISTS mastermind_attempts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, game_id TEXT NOT NULL, guess TEXT NOT NULL, exact_count INTEGER NOT NULL DEFAULT 0, present_count INTEGER NOT NULL DEFAULT 0, attempt_number INTEGER NOT NULL, solved INTEGER NOT NULL DEFAULT 0, score INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS mastermind_attempts_game_idx ON mastermind_attempts (game_id, created_at)",
+  "CREATE INDEX IF NOT EXISTS mastermind_attempts_solved_idx ON mastermind_attempts (solved, created_at)",
 ];
 
 let schemaReady: Promise<void> | undefined;
@@ -212,6 +231,13 @@ function randomWord(): string {
   return WORDS[Math.floor(Math.random() * WORDS.length)];
 }
 
+function randomMastermindAnswer(): string {
+  return Array.from({ length: MASTERMIND_CODE_LENGTH }, () => {
+    const color = MASTERMIND_COLORS[Math.floor(Math.random() * MASTERMIND_COLORS.length)];
+    return color.id;
+  }).join("");
+}
+
 function scoreFor(mode: GameMode, attemptNumber: number): number {
   return getScoreForMode(mode, attemptNumber);
 }
@@ -221,6 +247,19 @@ function toAttempt(row: StoredAttempt | StoredEndlessAttempt): Attempt {
     id: row.id,
     guess: row.guess,
     pattern: JSON.parse(row.pattern) as TileState[],
+    attemptNumber: row.attemptNumber,
+    solved: Boolean(row.solved),
+    score: row.score,
+    createdAt: row.createdAt,
+  };
+}
+
+function toMastermindAttempt(row: StoredMastermindAttempt): MastermindAttempt {
+  return {
+    id: row.id,
+    guess: normalizeMastermindGuess(row.guess),
+    exact: row.exactCount,
+    present: row.presentCount,
     attemptNumber: row.attemptNumber,
     solved: Boolean(row.solved),
     score: row.score,
@@ -250,6 +289,18 @@ async function endlessAttempts(
     .from(endlessAttemptsTable)
     .where(eq(endlessAttemptsTable.gameId, gameId))
     .orderBy(asc(endlessAttemptsTable.createdAt))
+    .all();
+}
+
+async function mastermindAttempts(
+  db: Db,
+  gameId: string,
+): Promise<StoredMastermindAttempt[]> {
+  return await db
+    .select()
+    .from(mastermindAttemptsTable)
+    .where(eq(mastermindAttemptsTable.gameId, gameId))
+    .orderBy(asc(mastermindAttemptsTable.createdAt))
     .all();
 }
 
@@ -288,11 +339,56 @@ async function latestEndlessGame(
   );
 }
 
+async function activeMastermindGame(
+  db: Db,
+  userId: string,
+): Promise<StoredMastermindGame | null> {
+  return (
+    (await db
+      .select()
+      .from(mastermindGamesTable)
+      .where(
+        and(
+          eq(mastermindGamesTable.userId, userId),
+          eq(mastermindGamesTable.status, "active"),
+        ),
+      )
+      .orderBy(desc(mastermindGamesTable.createdAt))
+      .limit(1)
+      .get()) ?? null
+  );
+}
+
+async function latestMastermindGame(
+  db: Db,
+  userId: string,
+): Promise<StoredMastermindGame | null> {
+  return (
+    (await db
+      .select()
+      .from(mastermindGamesTable)
+      .where(eq(mastermindGamesTable.userId, userId))
+      .orderBy(desc(mastermindGamesTable.createdAt))
+      .limit(1)
+      .get()) ?? null
+  );
+}
+
 async function gamesPlayed(db: Db, userId: string): Promise<number> {
   const row = await db
     .select({ count: sql<number>`count(*)` })
     .from(endlessGamesTable)
     .where(eq(endlessGamesTable.userId, userId))
+    .get();
+
+  return Number(row?.count ?? 0);
+}
+
+async function mastermindGamesPlayed(db: Db, userId: string): Promise<number> {
+  const row = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(mastermindGamesTable)
+    .where(eq(mastermindGamesTable.userId, userId))
     .get();
 
   return Number(row?.count ?? 0);
@@ -372,6 +468,66 @@ async function getEndlessGame(
   const attempts = latest ? await endlessAttempts(db, latest.id) : [];
 
   return toEndlessGameState(latest, attempts, played);
+}
+
+function idleMastermindState(games: number): MastermindGameState {
+  return {
+    gameId: "",
+    attempts: [],
+    maxAttempts: MASTERMIND_MAX_ATTEMPTS,
+    codeLength: MASTERMIND_CODE_LENGTH,
+    solved: false,
+    over: true,
+    answer: [],
+    status: "idle",
+    gamesPlayed: games,
+  };
+}
+
+function toMastermindGameState(
+  game: StoredMastermindGame | null,
+  attempts: StoredMastermindAttempt[],
+  played: number,
+): MastermindGameState {
+  if (!game) {
+    return idleMastermindState(played);
+  }
+
+  const mappedAttempts = attempts.map(toMastermindAttempt);
+  const solved =
+    game.status === "solved" || mappedAttempts.some((attempt) => attempt.solved);
+  const failed =
+    game.status === "failed" ||
+    (!solved && mappedAttempts.length >= MASTERMIND_MAX_ATTEMPTS);
+  const status: MastermindGameStatus = solved
+    ? "solved"
+    : failed
+      ? "failed"
+      : "active";
+
+  return {
+    gameId: game.id,
+    attempts: mappedAttempts,
+    maxAttempts: MASTERMIND_MAX_ATTEMPTS,
+    codeLength: MASTERMIND_CODE_LENGTH,
+    solved,
+    over: status !== "active",
+    answer: status === "active" ? [] : normalizeMastermindGuess(game.answer),
+    status,
+    gamesPlayed: played,
+  };
+}
+
+async function getMastermindGame(
+  db: Db,
+  user: AuthUser,
+): Promise<MastermindGameState> {
+  const active = await activeMastermindGame(db, user.userId);
+  const latest = active ?? (await latestMastermindGame(db, user.userId));
+  const played = await mastermindGamesPlayed(db, user.userId);
+  const attempts = latest ? await mastermindAttempts(db, latest.id) : [];
+
+  return toMastermindGameState(latest, attempts, played);
 }
 
 async function submitDailyGuess(
@@ -513,15 +669,118 @@ async function submitEndlessGuess(
   return getEndlessGame(db, user);
 }
 
+async function startMastermindGame(
+  db: Db,
+  user: AuthUser,
+): Promise<MastermindGameState> {
+  const active = await activeMastermindGame(db, user.userId);
+  const played = await mastermindGamesPlayed(db, user.userId);
+
+  if (active) {
+    return toMastermindGameState(
+      active,
+      await mastermindAttempts(db, active.id),
+      played,
+    );
+  }
+
+  const gameId = crypto.randomUUID();
+  const timestamp = now();
+
+  await db
+    .insert(mastermindGamesTable)
+    .values({
+      id: gameId,
+      userId: user.userId,
+      userName: user.name,
+      answer: randomMastermindAnswer(),
+      status: "active",
+      score: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .run();
+
+  const game = await latestMastermindGame(db, user.userId);
+  return toMastermindGameState(game, [], played + 1);
+}
+
+async function submitMastermindGuess(
+  db: Db,
+  user: AuthUser,
+  rawGuess: unknown,
+): Promise<MastermindGameState> {
+  const game = await activeMastermindGame(db, user.userId);
+  const guess = normalizeMastermindGuess(rawGuess);
+
+  if (!game) {
+    throw new Error("Lance une manche Mastermind avant de jouer.");
+  }
+  if (guess.length !== MASTERMIND_CODE_LENGTH) {
+    throw new Error("Le code doit contenir quatre couleurs.");
+  }
+
+  const previous = await mastermindAttempts(db, game.id);
+  if (
+    previous.length >= MASTERMIND_MAX_ATTEMPTS ||
+    previous.some((attempt) => Boolean(attempt.solved))
+  ) {
+    return getMastermindGame(db, user);
+  }
+
+  const answer = normalizeMastermindGuess(game.answer);
+  const attemptNumber = previous.length + 1;
+  const feedback = getMastermindFeedback(guess, answer);
+  const solved = feedback.exact === MASTERMIND_CODE_LENGTH;
+  const score = solved ? scoreFor("mastermind", attemptNumber) : 0;
+  const timestamp = now();
+
+  await db
+    .insert(mastermindAttemptsTable)
+    .values({
+      id: crypto.randomUUID(),
+      userId: user.userId,
+      userName: user.name,
+      gameId: game.id,
+      guess: guess.join(""),
+      exactCount: feedback.exact,
+      presentCount: feedback.present,
+      attemptNumber,
+      solved: solved ? 1 : 0,
+      score,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .run();
+
+  if (solved) {
+    await db
+      .update(mastermindGamesTable)
+      .set({ score, status: "solved", updatedAt: timestamp })
+      .where(eq(mastermindGamesTable.id, game.id))
+      .run();
+  } else if (attemptNumber >= MASTERMIND_MAX_ATTEMPTS) {
+    await db
+      .update(mastermindGamesTable)
+      .set({ score: 0, status: "failed", updatedAt: timestamp })
+      .where(eq(mastermindGamesTable.id, game.id))
+      .run();
+  }
+
+  return getMastermindGame(db, user);
+}
+
+type ScoreEvent = {
+  mode: GameMode;
+  score: number;
+  userId: string;
+  userName: string;
+  createdAt: string;
+};
+
 function addScore(
   entries: Record<string, GlobalLeaderboardEntry>,
-  event: {
-    mode: GameMode;
-    score: number;
-    userId: string;
-    userName: string;
-    createdAt: string;
-  },
+  event: ScoreEvent,
 ) {
   const current =
     entries[event.userId] ??
@@ -531,6 +790,7 @@ function addScore(
       totalScore: 0,
       dailyScore: 0,
       endlessScore: 0,
+      mastermindScore: 0,
       gamesSolved: 0,
       lastScoredAt: event.createdAt,
     } satisfies GlobalLeaderboardEntry);
@@ -543,8 +803,10 @@ function addScore(
 
   if (event.mode === "daily") {
     current.dailyScore += event.score;
-  } else {
+  } else if (event.mode === "endless") {
     current.endlessScore += event.score;
+  } else {
+    current.mastermindScore += event.score;
   }
 
   entries[event.userId] = current;
@@ -576,33 +838,64 @@ async function leaderboardRows(db: Db) {
     .orderBy(asc(endlessAttemptsTable.createdAt))
     .all();
 
-  return { daily, endless };
+  const mastermind = await db
+    .select({
+      userId: mastermindAttemptsTable.userId,
+      userName: mastermindAttemptsTable.userName,
+      attemptNumber: mastermindAttemptsTable.attemptNumber,
+      score: mastermindAttemptsTable.score,
+      createdAt: mastermindAttemptsTable.createdAt,
+    })
+    .from(mastermindAttemptsTable)
+    .where(eq(mastermindAttemptsTable.solved, 1))
+    .orderBy(asc(mastermindAttemptsTable.createdAt))
+    .all();
+
+  return { daily, endless, mastermind };
 }
 
-function buildLeaderboard({
+function scoreEvents({
   daily,
   endless,
-}: Awaited<ReturnType<typeof leaderboardRows>>): GlobalLeaderboardEntry[] {
+  mastermind,
+}: Awaited<ReturnType<typeof leaderboardRows>>) {
+  const dailyEvents: ScoreEvent[] = daily.map((row) => ({
+    userId: row.userId,
+    userName: row.userName,
+    mode: "daily",
+    score: scoreFor("daily", row.attemptNumber),
+    createdAt: row.createdAt,
+  }));
+
+  const endlessEvents: ScoreEvent[] = endless.map((row) => ({
+    userId: row.userId,
+    userName: row.userName,
+    mode: "endless",
+    score: row.score || scoreFor("endless", row.attemptNumber),
+    createdAt: row.createdAt,
+  }));
+
+  const mastermindEvents: ScoreEvent[] = mastermind.map((row) => ({
+    userId: row.userId,
+    userName: row.userName,
+    mode: "mastermind",
+    score: row.score || scoreFor("mastermind", row.attemptNumber),
+    createdAt: row.createdAt,
+  }));
+
+  return {
+    daily: dailyEvents,
+    endless: endlessEvents,
+    mastermind: mastermindEvents,
+    all: [...dailyEvents, ...endlessEvents, ...mastermindEvents],
+  };
+}
+
+function buildLeaderboard(events: ScoreEvent[]): GlobalLeaderboardEntry[] {
   const entries: Record<string, GlobalLeaderboardEntry> = {};
 
-  for (const row of daily) {
-    addScore(entries, {
-      userId: row.userId,
-      userName: row.userName,
-      mode: "daily",
-      score: scoreFor("daily", row.attemptNumber),
-      createdAt: row.createdAt,
-    });
-  }
-
-  for (const row of endless) {
-    addScore(entries, {
-      userId: row.userId,
-      userName: row.userName,
-      mode: "endless",
-      score: row.score || scoreFor("endless", row.attemptNumber),
-      createdAt: row.createdAt,
-    });
+  for (const event of events) {
+    addScore(entries, event);
   }
 
   return Object.values(entries)
@@ -611,20 +904,34 @@ function buildLeaderboard({
         return right.totalScore - left.totalScore;
       }
       return left.lastScoredAt < right.lastScoredAt ? -1 : 1;
-    })
+    });
+}
+
+async function leaderboards(db: Db): Promise<LeaderboardSet> {
+  const events = scoreEvents(await leaderboardRows(db));
+
+  return {
+    global: buildLeaderboard(events.all).slice(0, 30),
+    daily: buildLeaderboard(events.daily).slice(0, 30),
+    endless: buildLeaderboard(events.endless).slice(0, 30),
+    mastermind: buildLeaderboard(events.mastermind).slice(0, 30),
+  };
 }
 
 async function globalLeaderboard(db: Db): Promise<GlobalLeaderboardEntry[]> {
-  return buildLeaderboard(await leaderboardRows(db)).slice(0, 30);
+  return (await leaderboards(db)).global;
 }
 
 async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
   const rows = await leaderboardRows(db);
-  const leaderboard = buildLeaderboard(rows);
+  const leaderboard = buildLeaderboard(scoreEvents(rows).all);
   const index = leaderboard.findIndex((entry) => entry.userId === user.userId);
   const entry = index >= 0 ? leaderboard[index] : undefined;
   const dailySolved = rows.daily.filter((row) => row.userId === user.userId).length;
   const endlessSolved = rows.endless.filter((row) => row.userId === user.userId).length;
+  const mastermindSolved = rows.mastermind.filter(
+    (row) => row.userId === user.userId,
+  ).length;
 
   return {
     userId: user.userId,
@@ -632,9 +939,11 @@ async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
     totalScore: entry?.totalScore ?? 0,
     dailyScore: entry?.dailyScore ?? 0,
     endlessScore: entry?.endlessScore ?? 0,
+    mastermindScore: entry?.mastermindScore ?? 0,
     gamesSolved: entry?.gamesSolved ?? 0,
     dailySolved,
     endlessSolved,
+    mastermindSolved,
     lastScoredAt: entry?.lastScoredAt ?? "",
     rank: index >= 0 ? index + 1 : null,
   };
@@ -691,6 +1000,23 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   if (request.method === "POST" && url.pathname === "/api/game/endless/guess") {
     const body = await requestBody(request);
     return json(await submitEndlessGuess(db, user, String(body.guess ?? "")));
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/game/mastermind") {
+    return json(await getMastermindGame(db, user));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/game/mastermind/start") {
+    return json(await startMastermindGame(db, user));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/game/mastermind/guess") {
+    const body = await requestBody(request);
+    return json(await submitMastermindGuess(db, user, body.guess));
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/leaderboards") {
+    return json(await leaderboards(db));
   }
 
   if (request.method === "GET" && url.pathname === "/api/leaderboard/global") {

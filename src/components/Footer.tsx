@@ -29,8 +29,7 @@ export function Footer() {
             Smotu
           </p>
           <p className="mt-2 max-w-xs leading-6">
-            Une réadaptation du grand Smotu, avec deux modes et un classement
-            global.
+            Une réadaptation du grand Smotu, le seul et l'unique.
           </p>
         </div>
 
@@ -45,6 +44,7 @@ export function Footer() {
           <FooterTitle>Score</FooterTitle>
           <FooterLink to="/leaderboard">Classement</FooterLink>
           <FooterLink to="/profile">Mon profil</FooterLink>
+          <FooterLink to="/mastermind">Mastermind</FooterLink>
         </nav>
 
         <div className="sm:min-w-48">
