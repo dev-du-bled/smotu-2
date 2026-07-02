@@ -4,6 +4,9 @@ import type { EndlessGameStatus } from "../../shared/game";
 export const users = sqliteTable("users", {
   userId: text("user_id").primaryKey(),
   username: text("username").notNull(),
+  authUserId: text("auth_user_id"),
+  googleAccountId: text("google_account_id"),
+  email: text("email"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

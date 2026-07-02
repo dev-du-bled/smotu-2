@@ -1,9 +1,9 @@
-import type { UseShooAuthResult } from "@shoojs/react";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { ProfileStats } from "../../shared/game";
 import { AuthRequired } from "../components/AuthRequired";
 import { apiJson } from "../lib/api";
+import type { AuthUser } from "../lib/auth";
 import { Button, Input, Panel, SectionKicker, Skeleton } from "../components/ui";
 
 function StatBox({
@@ -25,12 +25,12 @@ function displayName(stats: ProfileStats): string {
   return stats.userName || "Joueur Smotu";
 }
 
-function displayEmail(auth: UseShooAuthResult): string {
-  return auth.claims?.email || "Email non partage";
+function displayEmail(user: AuthUser | undefined): string {
+  return user?.email || "Email non partage";
 }
 
-function displayPicture(auth: UseShooAuthResult): string {
-  return auth.claims?.picture || "";
+function displayPicture(user: AuthUser | undefined): string {
+  return user?.image || "";
 }
 
 function shortUserId(userId: string | undefined): string {
@@ -66,11 +66,9 @@ function ProfileAvatar({ name, picture }: { name: string; picture: string }) {
 
 function UsernameForm({
   currentName,
-  token,
   onSaved,
 }: {
   currentName: string;
-  token: string;
   onSaved: () => void;
 }) {
   const [value, setValue] = useState(currentName);
@@ -83,7 +81,7 @@ function UsernameForm({
     setMessage("");
 
     try {
-      await apiJson("/api/profile/username", token, {
+      await apiJson("/api/profile/username", {
         method: "POST",
         body: JSON.stringify({ username: value }),
       });
@@ -125,21 +123,23 @@ function UsernameForm({
 }
 
 export function ProfilePage({
-  auth,
   authLoading = false,
   loading,
   onSignIn,
+  onSignOut,
   refetch,
   stats,
   signedIn,
+  user,
 }: {
-  auth: UseShooAuthResult;
   authLoading?: boolean;
   loading: boolean;
   onSignIn: () => void | Promise<void>;
+  onSignOut: () => void | Promise<void>;
   refetch?: () => void;
   stats: ProfileStats;
   signedIn: boolean;
+  user?: AuthUser;
 }) {
   if (!signedIn) {
     return (
@@ -150,9 +150,8 @@ export function ProfilePage({
             ? "Verification de ta session."
             : "Connecte-toi pour voir ton profil."
         }
-        description="Ton profil regroupe ton identite Shoo, ton score global et tes victoires sur Smotu."
+        description="Ton profil regroupe ton compte, ton score global et tes victoires sur Smotu."
         eyebrow="Profil"
-        onSignIn={onSignIn}
       />
     );
   }
@@ -167,8 +166,7 @@ export function ProfilePage({
       }).format(new Date(stats.lastScoredAt))
     : "Aucun score";
   const name = displayName(stats);
-  const picture = displayPicture(auth);
-  const token = auth.identity.token;
+  const picture = displayPicture(user);
 
   return (
     <div className="mx-auto grid min-h-[inherit] max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[360px_1fr]">
@@ -182,25 +180,24 @@ export function ProfilePage({
         </div>
 
         <div className="space-y-3 text-sm">
-          {token ? (
+          {signedIn ? (
             <div className="rounded-md border border-[#2f3033] p-3">
               <UsernameForm
                 currentName={stats.userName}
-                token={token}
                 onSaved={() => refetch?.()}
               />
             </div>
           ) : null}
           <div className="rounded-md border border-[#2f3033] p-3">
-            <p className="text-[#818384]">Google</p>
+            <p className="text-[#818384]">Compte</p>
             <p className="mt-1 truncate font-semibold text-[#d7dadc]">
-              {displayEmail(auth)}
+              {displayEmail(user)}
             </p>
           </div>
           <div className="rounded-md border border-[#2f3033] p-3">
-            <p className="text-[#818384]">Identifiant Shoo</p>
+            <p className="text-[#818384]">Identifiant Smotu</p>
             <p className="mt-1 font-mono text-xs font-semibold text-[#d7dadc]">
-              {shortUserId(auth.identity.userId ?? undefined)}
+              {shortUserId(stats.userId)}
             </p>
           </div>
         </div>
@@ -209,7 +206,7 @@ export function ProfilePage({
           className="w-full"
           type="button"
           variant="secondary"
-          onClick={() => auth.clearIdentity()}
+          onClick={() => void onSignOut()}
         >
           Se deconnecter
         </Button>

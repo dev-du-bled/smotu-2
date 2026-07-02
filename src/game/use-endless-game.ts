@@ -28,10 +28,10 @@ function newLocalRound(gamesPlayed: number): EndlessGameState {
   };
 }
 
-export function useEndlessGame(token: string | undefined) {
+export function useEndlessGame(signedIn: boolean) {
   const gameResource = useApiResource<EndlessGameState>(
     "/api/game/endless",
-    token,
+    signedIn,
     emptyEndlessGame,
   );
   const [localGame, setLocalGame] = useState<EndlessGameState>(emptyEndlessGame);
@@ -41,7 +41,7 @@ export function useEndlessGame(token: string | undefined) {
   const [celebrationKey, setCelebrationKey] = useState("");
   const [isStarting, setIsStarting] = useState(false);
 
-  const game = token ? gameResource.data : localGame;
+  const game = signedIn ? gameResource.data : localGame;
   const visibleAttempts = pendingGuess
     ? [
         ...game.attempts,
@@ -76,7 +76,7 @@ export function useEndlessGame(token: string | undefined) {
     setPendingGuess("");
     setLocalError("");
 
-    if (!token) {
+    if (!signedIn) {
       setLocalGame((current) => newLocalRound(current.gamesPlayed));
       return;
     }
@@ -85,7 +85,7 @@ export function useEndlessGame(token: string | undefined) {
 
     try {
       gameResource.setData(
-        await apiJson<EndlessGameState>("/api/game/endless/start", token, {
+        await apiJson<EndlessGameState>("/api/game/endless/start", {
           method: "POST",
         }),
       );
@@ -110,7 +110,7 @@ export function useEndlessGame(token: string | undefined) {
       return;
     }
 
-    if (!token) {
+    if (!signedIn) {
       const attemptNumber = game.attempts.length + 1;
       const solved = guess === game.answer;
       const failed = !solved && attemptNumber >= MAX_ATTEMPTS;
@@ -145,7 +145,6 @@ export function useEndlessGame(token: string | undefined) {
     try {
       const nextGame = await apiJson<EndlessGameState>(
         "/api/game/endless/guess",
-        token,
         {
           method: "POST",
           body: JSON.stringify({ guess }),

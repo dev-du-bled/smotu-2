@@ -10,16 +10,20 @@ import {
 import { apiJson, useApiResource } from "../lib/api";
 import { emptyGame, emptyLeaderboard, letterStates } from "./state";
 
-export function useGlobalLeaderboard(token: string | undefined) {
+export function useGlobalLeaderboard(enabled: boolean) {
   return useApiResource<GlobalLeaderboardEntry[]>(
     "/api/leaderboard/global",
-    token,
+    enabled,
     emptyLeaderboard,
   );
 }
 
-export function useDailyGame(token: string | undefined) {
-  const gameResource = useApiResource<GameState>("/api/game/daily", token, emptyGame);
+export function useDailyGame(enabled: boolean) {
+  const gameResource = useApiResource<GameState>(
+    "/api/game/daily",
+    enabled,
+    emptyGame,
+  );
   const [inputValue, setInputValue] = useState("");
   const [pendingGuess, setPendingGuess] = useState("");
   const [localError, setLocalError] = useState("");
@@ -50,13 +54,13 @@ export function useDailyGame(token: string | undefined) {
   const activeRow = Math.min(visibleAttempts.length, game.maxAttempts - 1);
   const progress = Math.round((game.attempts.length / game.maxAttempts) * 100);
   const canSubmit =
-    Boolean(token) && inputValue.length === WORD_LENGTH && !game.over && !pendingGuess;
+    enabled && inputValue.length === WORD_LENGTH && !game.over && !pendingGuess;
 
   async function onSubmit(event?: FormEvent) {
     event?.preventDefault();
     const guess = normalizeGuess(inputValue);
 
-    if (!token) {
+    if (!enabled) {
       setLocalError("Connecte-toi avec Google pour jouer.");
       return;
     }
@@ -69,7 +73,7 @@ export function useDailyGame(token: string | undefined) {
     setInputValue("");
 
     try {
-      const nextGame = await apiJson<GameState>("/api/game/daily/guess", token, {
+      const nextGame = await apiJson<GameState>("/api/game/daily/guess", {
         method: "POST",
         body: JSON.stringify({ guess }),
       });

@@ -1,4 +1,3 @@
-import { useShooAuth } from "@shoojs/react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
@@ -8,30 +7,39 @@ import { useEndlessGame } from "./game/use-endless-game";
 import { emptyProfileStats, useProfileStats } from "./game/use-profile";
 import { emptyLeaderboard } from "./game/state";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { AuthPage } from "./pages/AuthPage";
 import { EndlessPage } from "./pages/EndlessPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PlayPage } from "./pages/PlayPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { authClient, type AuthUser } from "./lib/auth";
 
-function useSignIn(auth: ReturnType<typeof useShooAuth>) {
-  return () =>
-    auth.signIn({
-      requestPii: true,
-      returnTo: `${window.location.pathname}${window.location.search}`,
+type EmailAuthInput = {
+  email: string;
+  name?: string;
+  password: string;
+};
+
+function useSignIn() {
+  return async () => {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: `${window.location.pathname}${window.location.search}`,
     });
+  };
 }
 
 function HomeRoute({
+  enabled,
   onSignIn,
-  token,
 }: {
+  enabled: boolean;
   onSignIn: () => void | Promise<void>;
-  token?: string;
 }) {
-  const daily = useDailyGame(token);
-  const leaderboard = useGlobalLeaderboard(token);
+  const daily = useDailyGame(enabled);
+  const leaderboard = useGlobalLeaderboard(enabled);
 
   return (
     <HomePage
@@ -44,14 +52,14 @@ function HomeRoute({
 
 function PlayRoute({
   authLoading,
+  enabled,
   onSignIn,
   signedIn,
-  token,
 }: {
   authLoading: boolean;
+  enabled: boolean;
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
-  token?: string;
 }) {
   if (!signedIn) {
     return (
@@ -64,17 +72,17 @@ function PlayRoute({
     );
   }
 
-  return <SignedInPlayRoute token={token} onSignIn={onSignIn} />;
+  return <SignedInPlayRoute enabled={enabled} onSignIn={onSignIn} />;
 }
 
 function SignedInPlayRoute({
+  enabled,
   onSignIn,
-  token,
 }: {
+  enabled: boolean;
   onSignIn: () => void | Promise<void>;
-  token?: string;
 }) {
-  const daily = useDailyGame(token);
+  const daily = useDailyGame(enabled);
 
   return (
     <PlayPage
@@ -87,26 +95,24 @@ function SignedInPlayRoute({
 
 function EndlessRoute({
   signedIn,
-  token,
 }: {
   signedIn: boolean;
-  token?: string;
 }) {
-  const endless = useEndlessGame(token);
+  const endless = useEndlessGame(signedIn);
 
   return <EndlessPage {...endless} signedIn={signedIn} />;
 }
 
 function LeaderboardRoute({
   authLoading,
+  enabled,
   onSignIn,
   signedIn,
-  token,
 }: {
   authLoading: boolean;
+  enabled: boolean;
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
-  token?: string;
 }) {
   if (!signedIn) {
     return (
@@ -119,17 +125,17 @@ function LeaderboardRoute({
     );
   }
 
-  return <SignedInLeaderboardRoute token={token} onSignIn={onSignIn} />;
+  return <SignedInLeaderboardRoute enabled={enabled} onSignIn={onSignIn} />;
 }
 
 function SignedInLeaderboardRoute({
+  enabled,
   onSignIn,
-  token,
 }: {
+  enabled: boolean;
   onSignIn: () => void | Promise<void>;
-  token?: string;
 }) {
-  const leaderboard = useGlobalLeaderboard(token);
+  const leaderboard = useGlobalLeaderboard(enabled);
 
   return (
     <LeaderboardPage
@@ -141,101 +147,135 @@ function SignedInLeaderboardRoute({
 }
 
 function ProfileRoute({
-  auth,
   authLoading,
+  enabled,
   onSignIn,
+  onSignOut,
   signedIn,
-  token,
+  user,
 }: {
-  auth: ReturnType<typeof useShooAuth>;
   authLoading: boolean;
+  enabled: boolean;
   onSignIn: () => void | Promise<void>;
+  onSignOut: () => void | Promise<void>;
   signedIn: boolean;
-  token?: string;
+  user?: AuthUser;
 }) {
   if (!signedIn) {
     return (
       <ProfilePage
-        auth={auth}
         authLoading={authLoading}
         loading={false}
-        stats={emptyProfileStats(auth.identity.userId ?? undefined)}
+        stats={emptyProfileStats(user?.id)}
         signedIn={false}
         onSignIn={onSignIn}
+        onSignOut={onSignOut}
+        user={user}
       />
     );
   }
 
-  return <SignedInProfileRoute auth={auth} token={token} onSignIn={onSignIn} />;
+  return (
+    <SignedInProfileRoute
+      enabled={enabled}
+      onSignIn={onSignIn}
+      onSignOut={onSignOut}
+      user={user}
+    />
+  );
 }
 
 function SignedInProfileRoute({
-  auth,
+  enabled,
   onSignIn,
-  token,
+  onSignOut,
+  user,
 }: {
-  auth: ReturnType<typeof useShooAuth>;
+  enabled: boolean;
   onSignIn: () => void | Promise<void>;
-  token?: string;
+  onSignOut: () => void | Promise<void>;
+  user?: AuthUser;
 }) {
-  const profile = useProfileStats(token, auth.identity.userId ?? undefined);
+  const profile = useProfileStats(enabled, user?.id);
 
   return (
     <ProfilePage
-      auth={auth}
       loading={profile.loading}
       refetch={profile.refetch}
       stats={profile.data}
       signedIn
       onSignIn={onSignIn}
+      onSignOut={onSignOut}
+      user={user}
     />
   );
 }
 
 export function App() {
-  const auth = useShooAuth({
-    autoSessionMonitor: true,
-    callbackPath: "/auth/callback",
-    requestPii: true,
-    shooBaseUrl: "https://shoo.dev",
-  });
-  const token = auth.identity.token;
-  const signedIn = Boolean(auth.identity.userId && token);
-  const signIn = useSignIn(auth);
+  const session = authClient.useSession();
+  const user = session.data?.user;
+  const signedIn = Boolean(user);
+  const signIn = useSignIn();
+  const signInWithEmail = async ({ email, password }: EmailAuthInput) => {
+    const response = await authClient.signIn.email({ email, password });
+    if (response.error) {
+      throw new Error(response.error.message || "Connexion impossible.");
+    }
+    await session.refetch();
+  };
+  const signUpWithEmail = async ({ email, name, password }: EmailAuthInput) => {
+    const response = await authClient.signUp.email({
+      email,
+      name: name?.trim() || email,
+      password,
+    });
+    if (response.error) {
+      throw new Error(response.error.message || "Inscription impossible.");
+    }
+    await session.refetch();
+  };
+  const signOut = async () => {
+    await authClient.signOut();
+  };
 
   return (
     <BrowserRouter>
       <Shell>
         <Surface>
-          <Header auth={auth} />
+          <Header
+            loading={session.isPending}
+            signedIn={signedIn}
+            onSignIn={signIn}
+            onSignOut={signOut}
+          />
           <div className="min-h-[calc(100dvh_-_var(--header-height))]">
             <Routes>
               <Route
                 path="/"
-                element={<HomeRoute token={token} onSignIn={signIn} />}
+                element={<HomeRoute enabled={signedIn} onSignIn={signIn} />}
               />
               <Route
                 path="/play"
                 element={
                   <PlayRoute
-                    authLoading={auth.loading}
+                    authLoading={session.isPending}
+                    enabled={signedIn}
                     signedIn={signedIn}
-                    token={token}
                     onSignIn={signIn}
                   />
                 }
               />
               <Route
                 path="/endless"
-                element={<EndlessRoute signedIn={signedIn} token={token} />}
+                element={<EndlessRoute signedIn={signedIn} />}
               />
               <Route
                 path="/leaderboard"
                 element={
                   <LeaderboardRoute
-                    authLoading={auth.loading}
+                    authLoading={session.isPending}
+                    enabled={signedIn}
                     signedIn={signedIn}
-                    token={token}
                     onSignIn={signIn}
                   />
                 }
@@ -244,11 +284,24 @@ export function App() {
                 path="/profile"
                 element={
                   <ProfileRoute
-                    auth={auth}
-                    authLoading={auth.loading}
+                    authLoading={session.isPending}
+                    enabled={signedIn}
                     signedIn={signedIn}
-                    token={token}
                     onSignIn={signIn}
+                    onSignOut={signOut}
+                    user={user}
+                  />
+                }
+              />
+              <Route
+                path="/auth"
+                element={
+                  <AuthPage
+                    loading={session.isPending}
+                    signedIn={signedIn}
+                    onEmailSignIn={signInWithEmail}
+                    onEmailSignUp={signUpWithEmail}
+                    onGoogleSignIn={signIn}
                   />
                 }
               />

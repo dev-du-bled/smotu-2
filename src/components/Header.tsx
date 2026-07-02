@@ -1,10 +1,12 @@
-import type { UseShooAuthResult } from "@shoojs/react";
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Button, LogoMark, Skeleton } from "./ui";
 
 type HeaderProps = {
-  auth: UseShooAuthResult;
+  loading: boolean;
+  onSignIn: () => void | Promise<void>;
+  onSignOut: () => void | Promise<void>;
+  signedIn: boolean;
 };
 
 function navClass(active: boolean, block = false): string {
@@ -16,17 +18,23 @@ function navClass(active: boolean, block = false): string {
 }
 
 function AuthAction({
-  auth,
   className = "",
+  loading,
   onDone,
+  onSignIn,
+  onSignOut,
+  onShowAuth,
+  signedIn,
 }: {
-  auth: UseShooAuthResult;
   className?: string;
+  loading: boolean;
   onDone?: () => void;
+  onSignIn: () => void | Promise<void>;
+  onSignOut: () => void | Promise<void>;
+  onShowAuth: () => void;
+  signedIn: boolean;
 }) {
-  const signedIn = Boolean(auth.identity.userId);
-
-  if (auth.loading) {
+  if (loading) {
     return <Skeleton className={`h-9 w-32 ${className}`} />;
   }
 
@@ -38,8 +46,8 @@ function AuthAction({
         type="button"
         variant="secondary"
         onClick={() => {
-          auth.clearIdentity();
           onDone?.();
+          void onSignOut();
         }}
       >
         Se déconnecter
@@ -55,7 +63,7 @@ function AuthAction({
       variant="secondary"
       onClick={() => {
         onDone?.();
-        void auth.signIn({ requestPii: true });
+        onShowAuth();
       }}
     >
       Se connecter
@@ -135,8 +143,14 @@ function GameModeDropdown() {
   );
 }
 
-export function Header({ auth }: HeaderProps) {
+export function Header({
+  loading,
+  onSignIn,
+  onSignOut,
+  signedIn,
+}: HeaderProps) {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -170,9 +184,6 @@ export function Header({ auth }: HeaderProps) {
             <h1 className="text-2xl font-black uppercase tracking-[0.08em]">
               Smotu
             </h1>
-            <p className="text-xs font-semibold text-[#818384]">
-              Le mot quotidien
-            </p>
           </div>
         </Link>
 
@@ -199,7 +210,13 @@ export function Header({ auth }: HeaderProps) {
         </nav>
 
         <div className="hidden md:block">
-          <AuthAction auth={auth} />
+          <AuthAction
+            loading={loading}
+            signedIn={signedIn}
+            onSignIn={onSignIn}
+            onSignOut={onSignOut}
+            onShowAuth={() => navigate("/auth")}
+          />
         </div>
 
         <button
@@ -257,9 +274,13 @@ export function Header({ auth }: HeaderProps) {
             </nav>
             <div className="mt-2 border-t border-[#2f3033] pt-2">
               <AuthAction
-                auth={auth}
                 className="w-full"
+                loading={loading}
                 onDone={() => setMobileOpen(false)}
+                signedIn={signedIn}
+                onSignIn={onSignIn}
+                onSignOut={onSignOut}
+                onShowAuth={() => navigate("/auth")}
               />
             </div>
           </div>

@@ -24,7 +24,6 @@ export function PlayPage({
         }
         description="Le mot du jour garde une seule grille par compte et attribue les gros points au bon profil."
         eyebrow="Mot du jour"
-        onSignIn={onSignIn}
       />
     );
   }
