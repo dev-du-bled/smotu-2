@@ -102,8 +102,8 @@ Déployer:
 npm run deploy
 ```
 
-`npm run deploy` lance le build puis `wrangler deploy`. Le déploiement initial ne
-demande pas de commande de migration manuelle.
+`npm run deploy` lance le build, applique les migrations D1 remote puis lance
+`wrangler deploy`.
 
 ## Commandes utiles
 
@@ -118,8 +118,7 @@ npm run d1:migrate:remote
 ```
 
 `db:generate`, `db:push` et les commandes `d1:migrate:*` restent disponibles
-pour faire évoluer le schéma, mais ne sont pas nécessaires pour installer le
-schéma initial.
+pour faire évoluer ou diagnostiquer le schéma.
 
 Après le passage à Better Auth, applique les migrations D1 avant de déployer le
 Worker:
