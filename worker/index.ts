@@ -22,6 +22,7 @@ import {
   attempts as attemptsTable,
   endlessAttempts as endlessAttemptsTable,
   endlessGames as endlessGamesTable,
+  users as usersTable,
   type StoredAttempt,
   type StoredEndlessAttempt,
   type StoredEndlessGame,
@@ -47,6 +48,7 @@ function database(env: Env) {
 type Db = ReturnType<typeof database>;
 
 const schemaStatements = [
+  "CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, username TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS attempts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, date_key TEXT NOT NULL, guess TEXT NOT NULL, pattern TEXT NOT NULL, attempt_number INTEGER NOT NULL, solved INTEGER NOT NULL DEFAULT 0, score INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
   "CREATE INDEX IF NOT EXISTS attempts_user_date_idx ON attempts (user_id, date_key, created_at)",
   "CREATE INDEX IF NOT EXISTS attempts_date_solved_idx ON attempts (date_key, solved, created_at)",
@@ -157,6 +159,53 @@ async function requireUser(request: Request, env: Env): Promise<AuthUser> {
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
   }
+}
+
+// Remplace le nom Google par le username choisi (public partout) s'il existe.
+async function applyUsername(db: Db, user: AuthUser): Promise<void> {
+  const row = await db
+    .select({ username: usersTable.username })
+    .from(usersTable)
+    .where(eq(usersTable.userId, user.userId))
+    .get();
+
+  if (row?.username) {
+    user.name = row.username;
+  }
+}
+
+function cleanUsername(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ").slice(0, 20);
+}
+
+async function setUsername(
+  db: Db,
+  user: AuthUser,
+  raw: string,
+): Promise<{ username: string }> {
+  const username = cleanUsername(raw);
+  if (username.length < 2) {
+    throw new Error("Le pseudo doit faire au moins deux caractères.");
+  }
+
+  const timestamp = now();
+  await db
+    .insert(usersTable)
+    .values({ userId: user.userId, username, createdAt: timestamp, updatedAt: timestamp })
+    .onConflictDoUpdate({
+      target: usersTable.userId,
+      set: { username, updatedAt: timestamp },
+    })
+    .run();
+
+  // Le nom est dénormalisé dans les scores: on met à jour l'historique pour que
+  // le nom Google disparaisse aussi du classement.
+  await db.update(attemptsTable).set({ userName: username }).where(eq(attemptsTable.userId, user.userId)).run();
+  await db.update(endlessGamesTable).set({ userName: username }).where(eq(endlessGamesTable.userId, user.userId)).run();
+  await db.update(endlessAttemptsTable).set({ userName: username }).where(eq(endlessAttemptsTable.userId, user.userId)).run();
+
+  user.name = username;
+  return { username };
 }
 
 function randomWord(): string {
@@ -607,6 +656,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
   const url = new URL(request.url);
   const user = await requireUser(request, env);
+  await applyUsername(db, user);
 
   if (request.method === "GET" && url.pathname === "/api/session") {
     return json({ user });
@@ -614,6 +664,11 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
   if (request.method === "GET" && url.pathname === "/api/profile") {
     return json(await profileStats(db, user));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/profile/username") {
+    const body = await requestBody(request);
+    return json(await setUsername(db, user, String(body.username ?? "")));
   }
 
   if (request.method === "GET" && url.pathname === "/api/game/daily") {

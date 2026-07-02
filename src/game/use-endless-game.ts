@@ -1,12 +1,32 @@
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import {
+  MAX_ATTEMPTS,
+  WORDS,
   WORD_LENGTH,
+  getPattern,
+  getScoreForMode,
   normalizeGuess,
+  type Attempt,
   type EndlessGameState,
 } from "../../shared/game";
 import { apiJson, useApiResource } from "../lib/api";
 import { emptyEndlessGame, letterStates } from "./state";
+
+// Manche libre jouée entièrement côté navigateur pour les visiteurs non connectés.
+// ponytail: pas de persistance ni de classement pour l'anonyme (décidé), tout en state React.
+function newLocalRound(gamesPlayed: number): EndlessGameState {
+  return {
+    ...emptyEndlessGame,
+    gameId: `local-${gamesPlayed + 1}`,
+    dateKey: `Libre #${gamesPlayed + 1}`,
+    status: "active",
+    over: false,
+    answer: WORDS[Math.floor(Math.random() * WORDS.length)],
+    gamesPlayed: gamesPlayed + 1,
+    attempts: [],
+  };
+}
 
 export function useEndlessGame(token: string | undefined) {
   const gameResource = useApiResource<EndlessGameState>(
@@ -14,13 +34,14 @@ export function useEndlessGame(token: string | undefined) {
     token,
     emptyEndlessGame,
   );
+  const [localGame, setLocalGame] = useState<EndlessGameState>(emptyEndlessGame);
   const [inputValue, setInputValue] = useState("");
   const [pendingGuess, setPendingGuess] = useState("");
   const [localError, setLocalError] = useState("");
   const [celebrationKey, setCelebrationKey] = useState("");
   const [isStarting, setIsStarting] = useState(false);
 
-  const game = gameResource.data;
+  const game = token ? gameResource.data : localGame;
   const visibleAttempts = pendingGuess
     ? [
         ...game.attempts,
@@ -45,21 +66,21 @@ export function useEndlessGame(token: string | undefined) {
   const activeRow = Math.min(visibleAttempts.length, game.maxAttempts - 1);
   const progress = Math.round((game.attempts.length / game.maxAttempts) * 100);
   const canSubmit =
-    Boolean(token) &&
     game.status === "active" &&
     inputValue.length === WORD_LENGTH &&
     !game.over &&
     !pendingGuess;
 
   async function startRound() {
-    if (!token) {
-      setLocalError("Connecte-toi avec Google pour lancer une manche.");
-      return;
-    }
-
     setInputValue("");
     setPendingGuess("");
     setLocalError("");
+
+    if (!token) {
+      setLocalGame((current) => newLocalRound(current.gamesPlayed));
+      return;
+    }
+
     setIsStarting(true);
 
     try {
@@ -81,15 +102,39 @@ export function useEndlessGame(token: string | undefined) {
     event?.preventDefault();
     const guess = normalizeGuess(inputValue);
 
-    if (!token) {
-      setLocalError("Connecte-toi avec Google pour jouer.");
-      return;
-    }
     if (game.status !== "active") {
       setLocalError("Lance une manche libre avant de proposer un mot.");
       return;
     }
     if (guess.length !== WORD_LENGTH || game.over || pendingGuess) {
+      return;
+    }
+
+    if (!token) {
+      const attemptNumber = game.attempts.length + 1;
+      const solved = guess === game.answer;
+      const failed = !solved && attemptNumber >= MAX_ATTEMPTS;
+      const attempt: Attempt = {
+        id: `local-${attemptNumber}`,
+        guess,
+        pattern: getPattern(guess, game.answer),
+        attemptNumber,
+        solved,
+        score: solved ? getScoreForMode("endless", attemptNumber) : 0,
+        createdAt: new Date().toISOString(),
+      };
+      setLocalError("");
+      setInputValue("");
+      setLocalGame((current) => ({
+        ...current,
+        attempts: [...current.attempts, attempt],
+        solved,
+        over: solved || failed,
+        status: solved ? "solved" : failed ? "failed" : "active",
+      }));
+      if (solved) {
+        setCelebrationKey(`${game.gameId}-${attempt.id}-${Date.now()}`);
+      }
       return;
     }
 

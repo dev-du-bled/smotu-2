@@ -1,7 +1,7 @@
 # Smotu
 
 Smotu est une réadaptation moderne du grand Smotu, le seul et l'unique selon
-Codex.
+Codex, mais aussi selon Claude Code.
 
 Un jeu de mot quotidien en cinq lettres, sobre, rapide, connecté et classé. Le
 joueur retrouve l'esprit Wordle: six essais, des indices couleur, une grille du
@@ -10,8 +10,10 @@ jour et la satisfaction de gratter des points quand le mot tombe enfin.
 ## Ce que propose Smotu
 
 - **Mot du jour**: une grille quotidienne, plus exigeante, plus rentable.
-- **Mode libre**: des manches rejouables à volonté pour continuer après le mot
-  du jour.
+- **Mode libre**: des manches rejouables à volonté, jouables même sans compte
+  (en invité, sans sauvegarde), pour continuer après le mot du jour.
+- **Pseudo public**: chaque joueur choisit un pseudo affiché à la place de son
+  nom Google, y compris au classement.
 - **Classement global**: les points des deux modes sont additionnés.
 - **Profil joueur**: score, rang, victoires et photo Google quand disponible.
 - **Propositions libres**: aucun dictionnaire ne bloque les mots saisis.

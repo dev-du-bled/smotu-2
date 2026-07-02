@@ -1,0 +1,25 @@
+{
+  "name": "Smotu",
+  "short_name": "Smotu",
+  "description": "Smotu, le mot à deviner avec classement global.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#538d4e",
+  "background_color": "#121213",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ]
+}
