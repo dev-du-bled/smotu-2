@@ -10,14 +10,13 @@ export type ApiResource<T> = {
 
 export async function apiJson<T>(
   path: string,
-  token: string,
   init: RequestInit = {},
 ): Promise<T> {
   const response = await fetch(path, {
     ...init,
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       ...init.headers,
     },
   });
@@ -39,12 +38,12 @@ export async function apiJson<T>(
 
 export function useApiResource<T>(
   path: string,
-  token: string | undefined,
+  enabled: boolean,
   fallback: T,
 ): ApiResource<T> {
   const fallbackRef = useRef(fallback);
   const [data, setData] = useState<T>(fallback);
-  const [loading, setLoading] = useState(Boolean(token));
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -52,7 +51,7 @@ export function useApiResource<T>(
   }, [fallback]);
 
   const refetch = useCallback(async () => {
-    if (!token) {
+    if (!enabled) {
       setData(fallbackRef.current);
       setLoading(false);
       setError("");
@@ -63,13 +62,13 @@ export function useApiResource<T>(
     setError("");
 
     try {
-      setData(await apiJson<T>(path, token));
+      setData(await apiJson<T>(path));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Requête impossible.");
     } finally {
       setLoading(false);
     }
-  }, [path, token]);
+  }, [path, enabled]);
 
   useEffect(() => {
     void refetch();

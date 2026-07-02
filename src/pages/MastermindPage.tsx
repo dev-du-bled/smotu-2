@@ -187,7 +187,6 @@ export function MastermindPage({
         }
         description="Mastermind enregistre tes manches et ajoute tes points au classement global."
         eyebrow="Mastermind"
-        onSignIn={onSignIn}
       />
     );
   }

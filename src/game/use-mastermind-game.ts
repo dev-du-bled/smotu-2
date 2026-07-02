@@ -8,10 +8,10 @@ import {
 import { apiJson, useApiResource } from "../lib/api";
 import { emptyMastermindGame } from "./state";
 
-export function useMastermindGame(token: string | undefined) {
+export function useMastermindGame(enabled: boolean) {
   const gameResource = useApiResource<MastermindGameState>(
     "/api/game/mastermind",
-    token,
+    enabled,
     emptyMastermindGame,
   );
   const [guess, setGuess] = useState<MastermindColorId[]>([]);
@@ -23,15 +23,15 @@ export function useMastermindGame(token: string | undefined) {
   const game = gameResource.data;
   const progress = Math.round((game.attempts.length / game.maxAttempts) * 100);
   const canSubmit =
-    Boolean(token) &&
+    enabled &&
     game.status === "active" &&
     guess.length === MASTERMIND_CODE_LENGTH &&
     !game.over &&
     !pendingGuess;
 
   async function startRound() {
-    if (!token) {
-      setLocalError("Connecte-toi avec Google pour lancer Mastermind.");
+    if (!enabled) {
+      setLocalError("Connecte-toi pour lancer Mastermind.");
       return;
     }
 
@@ -42,7 +42,7 @@ export function useMastermindGame(token: string | undefined) {
 
     try {
       gameResource.setData(
-        await apiJson<MastermindGameState>("/api/game/mastermind/start", token, {
+        await apiJson<MastermindGameState>("/api/game/mastermind/start", {
           method: "POST",
         }),
       );
@@ -58,8 +58,8 @@ export function useMastermindGame(token: string | undefined) {
   async function onSubmit(event?: FormEvent) {
     event?.preventDefault();
 
-    if (!token) {
-      setLocalError("Connecte-toi avec Google pour jouer.");
+    if (!enabled) {
+      setLocalError("Connecte-toi pour jouer.");
       return;
     }
     if (game.status !== "active") {
@@ -76,7 +76,6 @@ export function useMastermindGame(token: string | undefined) {
     try {
       const nextGame = await apiJson<MastermindGameState>(
         "/api/game/mastermind/guess",
-        token,
         {
           method: "POST",
           body: JSON.stringify({ guess }),

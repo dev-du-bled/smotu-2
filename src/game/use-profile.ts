@@ -19,7 +19,7 @@ export function emptyProfileStats(userId = ""): ProfileStats {
   };
 }
 
-export function useProfileStats(token: string | undefined, userId: string | undefined) {
+export function useProfileStats(enabled: boolean, userId: string | undefined) {
   const fallback = useMemo(() => emptyProfileStats(userId), [userId]);
-  return useApiResource<ProfileStats>("/api/profile", token, fallback);
+  return useApiResource<ProfileStats>("/api/profile", enabled, fallback);
 }

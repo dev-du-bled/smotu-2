@@ -13,7 +13,7 @@ jour et la satisfaction de gratter des points quand le mot tombe enfin.
 - **Mode libre**: des manches rejouables à volonté, jouables même sans compte
   (en invité, sans sauvegarde), pour continuer après le mot du jour.
 - **Pseudo public**: chaque joueur choisit un pseudo affiché à la place de son
-  nom Google, y compris au classement.
+  nom de compte, y compris au classement.
 - **Classement global**: les points des deux modes sont additionnés.
 - **Profil joueur**: score, rang, victoires et photo Google quand disponible.
 - **Propositions libres**: aucun dictionnaire ne bloque les mots saisis.
@@ -46,7 +46,7 @@ manche libre quand le mot du jour est plié.
 
 - React + React Router
 - Tailwind CSS
-- Shoo pour l'auth Google
+- Better Auth pour l'auth Google et email/mot de passe
 - Cloudflare Workers
 - Cloudflare D1
 - Drizzle ORM / Drizzle Kit
@@ -121,6 +121,14 @@ npm run d1:migrate:remote
 pour faire évoluer le schéma, mais ne sont pas nécessaires pour installer le
 schéma initial.
 
+Après le passage à Better Auth, applique les migrations D1 avant de déployer le
+Worker:
+
+```sh
+npm run d1:migrate:local
+npm run d1:migrate:remote
+```
+
 Pour remettre à zéro la D1 locale:
 
 ```sh
@@ -129,8 +137,25 @@ rm -rf .wrangler/state
 
 ## Authentification
 
-Smotu utilise Shoo pour la connexion Google. Le token Shoo est vérifié côté
-Worker avec `jose`, et les scores sont rattachés au `pairwise_sub` fourni par
-Shoo.
+Smotu utilise Better Auth pour la connexion Google et email/mot de passe. Les
+sessions sont stockées dans D1 et lues côté Worker via les cookies Better Auth.
+
+Les scores sont rattachés à un identifiant Smotu stable dérivé du compte Google
+(`google:<sub Google>`), pas à l'identifiant interne Better Auth. Si un compte
+Google recrée une session ou un utilisateur Better Auth, les données de jeu
+continuent donc de pointer vers le même joueur.
+
+Les comptes email utilisent l'identifiant Better Auth local (`auth:<id>`).
 
 Si Google fournit une photo de profil, elle est affichée sur la page profil.
+
+En production, configure les secrets suivants dans Cloudflare:
+
+```sh
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
+```
+
+En local, `GOOGLE_SECRET_ID` est aussi accepté comme alias de
+`GOOGLE_CLIENT_SECRET`.

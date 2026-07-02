@@ -66,9 +66,8 @@ export function LeaderboardPage({
             ? "Vérification de ta session."
             : "Connecte-toi pour voir le classement."
         }
-        description="Le classement global nécessite une connexion pour le consulter."
+        description="Le classement global est lié à ton compte pour éviter les scores anonymes et additionner tes points."
         eyebrow="Classement"
-        onSignIn={onSignIn}
       />
     );
   }

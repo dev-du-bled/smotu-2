@@ -3,6 +3,7 @@
   "name": "smotu-2",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-07-02",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
   "assets": {
@@ -20,7 +21,5 @@
       "migrations_pattern": "migrations/*/migration.sql"
     }
   ],
-  "vars": {
-    "SHOO_BASE_URL": "https://shoo.dev"
-  }
+  "vars": {}
 }

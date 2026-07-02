@@ -1,6 +1,5 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import {
   MAX_ATTEMPTS,
   MASTERMIND_CODE_LENGTH,
@@ -41,15 +40,12 @@ import {
   type StoredMastermindAttempt,
   type StoredMastermindGame,
 } from "./db/schema";
-
-type Env = {
-  ASSETS: Fetcher;
-  DB: D1Database;
-  SHOO_BASE_URL?: string;
-};
+import { createAuth, type Env } from "./auth";
 
 type AuthUser = {
+  authUserId: string;
   email?: string;
+  googleAccountId?: string;
   name: string;
   picture?: string;
   userId: string;
@@ -62,7 +58,12 @@ function database(env: Env) {
 type Db = ReturnType<typeof database>;
 
 const schemaStatements = [
-  "CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, username TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
+  'CREATE TABLE IF NOT EXISTS "user" (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, emailVerified INTEGER NOT NULL DEFAULT 0, image TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS "session" (id TEXT PRIMARY KEY, expiresAt INTEGER NOT NULL, token TEXT NOT NULL UNIQUE, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, ipAddress TEXT, userAgent TEXT, userId TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE)',
+  'CREATE TABLE IF NOT EXISTS "account" (id TEXT PRIMARY KEY, accountId TEXT NOT NULL, providerId TEXT NOT NULL, userId TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE, accessToken TEXT, refreshToken TEXT, idToken TEXT, accessTokenExpiresAt INTEGER, refreshTokenExpiresAt INTEGER, scope TEXT, password TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS account_provider_account_idx ON "account" (providerId, accountId)',
+  'CREATE TABLE IF NOT EXISTS "verification" (id TEXT PRIMARY KEY, identifier TEXT NOT NULL, value TEXT NOT NULL, expiresAt INTEGER NOT NULL, createdAt INTEGER, updatedAt INTEGER)',
+  "CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, username TEXT NOT NULL, auth_user_id TEXT, google_account_id TEXT, email TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS attempts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, date_key TEXT NOT NULL, guess TEXT NOT NULL, pattern TEXT NOT NULL, attempt_number INTEGER NOT NULL, solved INTEGER NOT NULL DEFAULT 0, score INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
   "CREATE INDEX IF NOT EXISTS attempts_user_date_idx ON attempts (user_id, date_key, created_at)",
   "CREATE INDEX IF NOT EXISTS attempts_date_solved_idx ON attempts (date_key, solved, created_at)",
@@ -78,8 +79,18 @@ const schemaStatements = [
   "CREATE INDEX IF NOT EXISTS mastermind_attempts_solved_idx ON mastermind_attempts (solved, created_at)",
 ];
 
+const migrationStatements = [
+  "ALTER TABLE users ADD COLUMN auth_user_id TEXT",
+  "ALTER TABLE users ADD COLUMN google_account_id TEXT",
+  "ALTER TABLE users ADD COLUMN email TEXT",
+];
+
+const postMigrationStatements = [
+  "CREATE INDEX IF NOT EXISTS users_auth_user_idx ON users (auth_user_id)",
+  "CREATE INDEX IF NOT EXISTS users_google_account_idx ON users (google_account_id)",
+];
+
 let schemaReady: Promise<void> | undefined;
-let jwksCache: ReturnType<typeof createRemoteJWKSet> | undefined;
 
 function now(): string {
   return new Date().toISOString();
@@ -108,80 +119,68 @@ async function ensureSchema(db: Db): Promise<void> {
     for (const statement of schemaStatements) {
       await db.run(sql.raw(statement));
     }
+
+    for (const statement of migrationStatements) {
+      try {
+        await db.run(sql.raw(statement));
+      } catch (reason) {
+        // D1 wraps duplicate-column errors and hides the SQLite detail in local
+        // dev. These migrations only add nullable columns after the table exists.
+        void reason;
+      }
+    }
+
+    for (const statement of postMigrationStatements) {
+      await db.run(sql.raw(statement));
+    }
   })();
   await schemaReady;
 }
 
-function shooBaseUrl(env: Env): string {
-  return env.SHOO_BASE_URL || "https://shoo.dev";
+async function googleAccountId(env: Env, authUserId: string): Promise<string | undefined> {
+  const row = await env.DB.prepare(
+    'SELECT "accountId" AS accountId FROM account WHERE "userId" = ? AND "providerId" = ? LIMIT 1',
+  )
+    .bind(authUserId, "google")
+    .first<{ accountId?: string }>();
+
+  return row?.accountId;
 }
 
-function jwks(env: Env) {
-  jwksCache ??= createRemoteJWKSet(
-    new URL("/.well-known/jwks.json", shooBaseUrl(env)),
-  );
-  return jwksCache;
-}
-
-function bearerToken(request: Request): string {
-  const header = request.headers.get("Authorization") || "";
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  return match?.[1] ?? "";
-}
-
-function nameFromClaims(payload: JWTPayload, userId: string): string {
-  const name = typeof payload.name === "string" ? payload.name : "";
-  const email = typeof payload.email === "string" ? payload.email : "";
-  return name.trim() || email.trim() || `Joueur ${userId.slice(-6)}`;
-}
-
-async function verifyUser(request: Request, env: Env): Promise<AuthUser> {
-  const idToken = bearerToken(request);
-
-  if (!idToken) {
-    throw new Response(JSON.stringify({ error: "Missing bearer token" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-    });
-  }
-
-  const origin = new URL(request.url).origin;
-  const { payload } = await jwtVerify(idToken, jwks(env), {
-    issuer: shooBaseUrl(env),
-    audience: `origin:${origin}`,
-  });
-
-  if (typeof payload.pairwise_sub !== "string") {
-    throw new Response(JSON.stringify({ error: "Invalid Shoo token" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-    });
-  }
-
-  return {
-    userId: payload.pairwise_sub,
-    name: nameFromClaims(payload, payload.pairwise_sub),
-    email: typeof payload.email === "string" ? payload.email : undefined,
-    picture: typeof payload.picture === "string" ? payload.picture : undefined,
-  };
+function fallbackName(name: string, email: string | undefined, userId: string): string {
+  return name.trim() || email?.trim() || `Joueur ${userId.slice(-6)}`;
 }
 
 async function requireUser(request: Request, env: Env): Promise<AuthUser> {
-  try {
-    return await verifyUser(request, env);
-  } catch (reason) {
-    if (reason instanceof Response) {
-      throw reason;
-    }
+  const auth = createAuth(env, request);
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+
+  if (!session) {
     throw new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
   }
+
+  const accountId = await googleAccountId(env, session.user.id);
+  const userId = accountId ? `google:${accountId}` : `auth:${session.user.id}`;
+
+  return {
+    authUserId: session.user.id,
+    googleAccountId: accountId,
+    userId,
+    name: fallbackName(session.user.name, session.user.email, userId),
+    email: session.user.email,
+    picture: session.user.image ?? undefined,
+  };
 }
 
-// Remplace le nom Google par le username choisi (public partout) s'il existe.
-async function applyUsername(db: Db, user: AuthUser): Promise<void> {
+// Remplace le nom Google par le username choisi (public partout), et crée le
+// profil Smotu stable rattaché au compte Google.
+async function ensureUserProfile(db: Db, user: AuthUser): Promise<void> {
+  const timestamp = now();
   const row = await db
     .select({ username: usersTable.username })
     .from(usersTable)
@@ -189,8 +188,41 @@ async function applyUsername(db: Db, user: AuthUser): Promise<void> {
     .get();
 
   if (row?.username) {
+    await db
+      .update(usersTable)
+      .set({
+        authUserId: user.authUserId,
+        googleAccountId: user.googleAccountId,
+        email: user.email,
+        updatedAt: timestamp,
+      })
+      .where(eq(usersTable.userId, user.userId))
+      .run();
     user.name = row.username;
+    return;
   }
+
+  await db
+    .insert(usersTable)
+    .values({
+      userId: user.userId,
+      username: user.name,
+      authUserId: user.authUserId,
+      googleAccountId: user.googleAccountId,
+      email: user.email,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .onConflictDoUpdate({
+      target: usersTable.userId,
+      set: {
+        authUserId: user.authUserId,
+        googleAccountId: user.googleAccountId,
+        email: user.email,
+        updatedAt: timestamp,
+      },
+    })
+    .run();
 }
 
 function cleanUsername(raw: string): string {
@@ -210,10 +242,24 @@ async function setUsername(
   const timestamp = now();
   await db
     .insert(usersTable)
-    .values({ userId: user.userId, username, createdAt: timestamp, updatedAt: timestamp })
+    .values({
+      userId: user.userId,
+      username,
+      authUserId: user.authUserId,
+      googleAccountId: user.googleAccountId,
+      email: user.email,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
     .onConflictDoUpdate({
       target: usersTable.userId,
-      set: { username, updatedAt: timestamp },
+      set: {
+        username,
+        authUserId: user.authUserId,
+        googleAccountId: user.googleAccountId,
+        email: user.email,
+        updatedAt: timestamp,
+      },
     })
     .run();
 
@@ -965,7 +1011,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
   const url = new URL(request.url);
   const user = await requireUser(request, env);
-  await applyUsername(db, user);
+  await ensureUserProfile(db, user);
 
   if (request.method === "GET" && url.pathname === "/api/session") {
     return json({ user });
@@ -1029,6 +1075,18 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
+    const auth = createAuth(env, request);
+
+    if (url.pathname === "/api/auth/error") {
+      const redirectURL = new URL("/auth/error", url.origin);
+      redirectURL.search = url.search;
+      return Response.redirect(redirectURL.toString(), 302);
+    }
+
+    if (url.pathname.startsWith("/api/auth/")) {
+      await ensureSchema(database(env));
+      return auth.handler(request);
+    }
 
     if (url.pathname.startsWith("/api/")) {
       try {

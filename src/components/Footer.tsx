@@ -29,7 +29,7 @@ export function Footer() {
             Smotu
           </p>
           <p className="mt-2 max-w-xs leading-6">
-            Une réadaptation du grand Smotu, le seul et l'unique.
+            Une réadaptation du grand Smotu, selon codex et claude code.
           </p>
         </div>
 
@@ -64,9 +64,6 @@ export function Footer() {
           >
             Voir le projet sur GitHub
           </a>
-          <p className="mt-2 leading-6 text-[#565758]">
-            Cinq lettres, six essais, propositions libres.
-          </p>
         </div>
       </div>
       {rulesOpen ? <RulesModal onClose={() => setRulesOpen(false)} /> : null}
