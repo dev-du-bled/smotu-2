@@ -15,7 +15,7 @@
     {
       "binding": "DB",
       "database_name": "smotu-db",
-      "database_id": "3a05f746-7d46-4827-9053-347386621209",
+      "database_id": "1b81ee18-227a-45db-ac89-9a9425a139d2"
       "migrations_dir": "migrations",
       "migrations_pattern": "migrations/*/migration.sql"
     }
