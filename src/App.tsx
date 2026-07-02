@@ -86,49 +86,15 @@ function SignedInPlayRoute({
 }
 
 function EndlessRoute({
-  authLoading,
-  onSignIn,
   signedIn,
   token,
 }: {
-  authLoading: boolean;
-  onSignIn: () => void | Promise<void>;
   signedIn: boolean;
-  token?: string;
-}) {
-  if (!signedIn) {
-    return (
-      <EndlessPage
-        authLoading={authLoading}
-        game={undefined}
-        isStarting={false}
-        playProps={undefined}
-        signedIn={false}
-        startRound={() => undefined}
-        onSignIn={onSignIn}
-      />
-    );
-  }
-
-  return <SignedInEndlessRoute token={token} onSignIn={onSignIn} />;
-}
-
-function SignedInEndlessRoute({
-  onSignIn,
-  token,
-}: {
-  onSignIn: () => void | Promise<void>;
   token?: string;
 }) {
   const endless = useEndlessGame(token);
 
-  return (
-    <EndlessPage
-      {...endless}
-      signedIn
-      onSignIn={onSignIn}
-    />
-  );
+  return <EndlessPage {...endless} signedIn={signedIn} />;
 }
 
 function LeaderboardRoute({
@@ -218,6 +184,7 @@ function SignedInProfileRoute({
     <ProfilePage
       auth={auth}
       loading={profile.loading}
+      refetch={profile.refetch}
       stats={profile.data}
       signedIn
       onSignIn={onSignIn}
@@ -260,14 +227,7 @@ export function App() {
               />
               <Route
                 path="/endless"
-                element={
-                  <EndlessRoute
-                    authLoading={auth.loading}
-                    signedIn={signedIn}
-                    token={token}
-                    onSignIn={signIn}
-                  />
-                }
+                element={<EndlessRoute signedIn={signedIn} token={token} />}
               />
               <Route
                 path="/leaderboard"

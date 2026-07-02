@@ -1,9 +1,10 @@
 import type { UseShooAuthResult } from "@shoojs/react";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { ProfileStats } from "../../shared/game";
 import { AuthRequired } from "../components/AuthRequired";
-import { Button, Panel, SectionKicker, Skeleton } from "../components/ui";
+import { apiJson } from "../lib/api";
+import { Button, Input, Panel, SectionKicker, Skeleton } from "../components/ui";
 
 function StatBox({
   label,
@@ -20,8 +21,8 @@ function StatBox({
   );
 }
 
-function displayName(auth: UseShooAuthResult, stats: ProfileStats): string {
-  return auth.claims?.name || stats.userName || "Joueur Smotu";
+function displayName(stats: ProfileStats): string {
+  return stats.userName || "Joueur Smotu";
 }
 
 function displayEmail(auth: UseShooAuthResult): string {
@@ -63,11 +64,72 @@ function ProfileAvatar({ name, picture }: { name: string; picture: string }) {
   );
 }
 
+function UsernameForm({
+  currentName,
+  token,
+  onSaved,
+}: {
+  currentName: string;
+  token: string;
+  onSaved: () => void;
+}) {
+  const [value, setValue] = useState(currentName);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+
+    try {
+      await apiJson("/api/profile/username", token, {
+        method: "POST",
+        body: JSON.stringify({ username: value }),
+      });
+      setMessage("Pseudo enregistré.");
+      onSaved();
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : "Échec de l'enregistrement.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="space-y-2" onSubmit={save}>
+      <label className="text-[#818384]" htmlFor="username">
+        Pseudo public
+      </label>
+      <Input
+        className="w-full text-base font-semibold normal-case"
+        id="username"
+        maxLength={20}
+        name="username"
+        placeholder="Ton pseudo"
+        value={value}
+        onChange={(event) => setValue(event.currentTarget.value)}
+      />
+      <Button
+        className="w-full"
+        disabled={saving}
+        size="sm"
+        type="submit"
+        variant="success"
+      >
+        {saving ? "Enregistrement..." : "Enregistrer le pseudo"}
+      </Button>
+      {message ? <p className="text-xs text-[#818384]">{message}</p> : null}
+    </form>
+  );
+}
+
 export function ProfilePage({
   auth,
   authLoading = false,
   loading,
   onSignIn,
+  refetch,
   stats,
   signedIn,
 }: {
@@ -75,6 +137,7 @@ export function ProfilePage({
   authLoading?: boolean;
   loading: boolean;
   onSignIn: () => void | Promise<void>;
+  refetch?: () => void;
   stats: ProfileStats;
   signedIn: boolean;
 }) {
@@ -103,8 +166,9 @@ export function ProfilePage({
         minute: "2-digit",
       }).format(new Date(stats.lastScoredAt))
     : "Aucun score";
-  const name = displayName(auth, stats);
+  const name = displayName(stats);
   const picture = displayPicture(auth);
+  const token = auth.identity.token;
 
   return (
     <div className="mx-auto grid min-h-[inherit] max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[360px_1fr]">
@@ -118,6 +182,15 @@ export function ProfilePage({
         </div>
 
         <div className="space-y-3 text-sm">
+          {token ? (
+            <div className="rounded-md border border-[#2f3033] p-3">
+              <UsernameForm
+                currentName={stats.userName}
+                token={token}
+                onSaved={() => refetch?.()}
+              />
+            </div>
+          ) : null}
           <div className="rounded-md border border-[#2f3033] p-3">
             <p className="text-[#818384]">Google</p>
             <p className="mt-1 truncate font-semibold text-[#d7dadc]">
