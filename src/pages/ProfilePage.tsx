@@ -50,14 +50,6 @@ function displayPicture(user: AuthUser | undefined): string {
   return user?.image || "";
 }
 
-function shortUserId(userId: string | undefined): string {
-  if (!userId) {
-    return "Session inconnue";
-  }
-
-  return `${userId.slice(0, 8)}...${userId.slice(-6)}`;
-}
-
 function ProfileAvatar({ name, picture }: { name: string; picture: string }) {
   const [failed, setFailed] = useState(false);
   const initial = name.slice(0, 1).toUpperCase();
@@ -274,12 +266,6 @@ export function ProfilePage({
             <p className="text-muted-foreground">Compte</p>
             <p className="mt-1 truncate font-semibold text-subtle-foreground">
               {displayEmail(user)}
-            </p>
-          </div>
-          <div className="rounded-md border border-border p-3">
-            <p className="text-muted-foreground">Identifiant Smotu</p>
-            <p className="mt-1 font-mono text-xs font-semibold text-subtle-foreground">
-              {shortUserId(stats.userId)}
             </p>
           </div>
         </div>
