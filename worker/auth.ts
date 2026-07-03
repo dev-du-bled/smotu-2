@@ -10,7 +10,6 @@ export type Env = {
   BETTER_AUTH_URL?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
-  GOOGLE_SECRET_ID?: string;
 };
 
 export function createAuth(env: Env, request: Request) {
@@ -32,7 +31,7 @@ export function createAuth(env: Env, request: Request) {
     socialProviders: {
       google: {
         clientId: env.GOOGLE_CLIENT_ID || "",
-        clientSecret: env.GOOGLE_CLIENT_SECRET || env.GOOGLE_SECRET_ID || "",
+        clientSecret: env.GOOGLE_CLIENT_SECRET || "",
       },
     },
     emailAndPassword: {
