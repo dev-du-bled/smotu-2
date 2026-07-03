@@ -1,5 +1,5 @@
 import type { GlobalLeaderboardEntry, LeaderboardSet } from "../../shared/game";
-import { PointsAmount } from "./ui";
+import { PointsAmount, Skeleton } from "./ui";
 
 type BoardKey = keyof LeaderboardSet;
 
@@ -29,6 +29,27 @@ function scoreForBoard(entry: GlobalLeaderboardEntry, board: BoardKey): number {
   return entry.totalScore;
 }
 
+// Or / argent / bronze pour les trois premiers du classement.
+const PODIUM_BADGE = [
+  "bg-[#f6b100] text-black",
+  "bg-[#c9ced6] text-black",
+  "bg-[#cd7f32] text-white",
+] as const;
+
+const PODIUM_ROW = [
+  "border-[#f6b100]/60 bg-[#f6b100]/10",
+  "border-[#c9ced6]/60 bg-[#c9ced6]/15",
+  "border-[#cd7f32]/55 bg-[#cd7f32]/10",
+] as const;
+
+function badgeClass(index: number): string {
+  return PODIUM_BADGE[index] ?? "bg-primary text-primary-foreground";
+}
+
+function rowClass(index: number): string {
+  return PODIUM_ROW[index] ?? "border-border bg-card";
+}
+
 function LeaderboardAvatar({
   entry,
   index,
@@ -54,7 +75,11 @@ function LeaderboardAvatar({
           />
         ) : null}
       </div>
-      <span className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border-2 border-card bg-primary text-xs font-black text-primary-foreground">
+      <span
+        className={`absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border-2 border-card text-xs font-black ${badgeClass(
+          index,
+        )}`}
+      >
         {index + 1}
       </span>
     </div>
@@ -65,25 +90,58 @@ function ScoreDivider() {
   return <span className="size-1.5 rounded-full bg-secondary" aria-hidden="true" />;
 }
 
+function LeaderboardRowSkeleton({ large }: { large: boolean }) {
+  return (
+    <li
+      className={`flex items-center gap-3 rounded-md border border-border bg-card ${
+        large ? "p-4" : "p-3"
+      }`}
+    >
+      <div className="relative size-12 shrink-0">
+        <Skeleton className="size-12 rounded-md" />
+        <Skeleton className="absolute -bottom-1 -right-1 size-6 rounded-full border-2 border-card" />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-3 w-52 max-w-full" />
+      </div>
+      <Skeleton className={large ? "h-7 w-16" : "h-6 w-12"} />
+    </li>
+  );
+}
+
 export function LeaderboardList({
   board = "global",
   emptyLabel = "Aucun score pour le moment.",
   leaderboard,
   large = false,
+  loading = false,
 }: {
   board?: BoardKey;
   emptyLabel?: string;
   leaderboard: GlobalLeaderboardEntry[];
   large?: boolean;
+  loading?: boolean;
 }) {
+  if (loading && leaderboard.length === 0) {
+    return (
+      <ol className="space-y-2">
+        {Array.from({ length: large ? 6 : 3 }, (_, index) => (
+          <LeaderboardRowSkeleton key={index} large={large} />
+        ))}
+      </ol>
+    );
+  }
+
   return (
     <ol className="space-y-2">
       {leaderboard.length ? (
         leaderboard.map((entry, index) => (
           <li
-            className={`flex items-center gap-3 rounded-md border border-border bg-card ${
-              large ? "p-4" : "p-3"
-            }`}
+            className={`flex items-center gap-3 rounded-md border ${rowClass(
+              index,
+            )} ${large ? "p-4" : "p-3"}`}
             key={entry.userId}
           >
             <LeaderboardAvatar entry={entry} index={index} />

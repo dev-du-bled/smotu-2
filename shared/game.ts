@@ -842,9 +842,24 @@ export function getMastermindFeedback(
   return { exact, present };
 }
 
+// Dévalorisation à la perte du mode libre : perdre (ou abandonner) une manche coûte
+// plus cher que le meilleur gain possible pour la même longueur. Sans ça, on pouvait
+// farmer des smotucoins en spammant des manches et n'en gagner qu'une sur dix.
+const ENDLESS_LOSS_PENALTY_BY_LENGTH: Record<WordLengthOption, number> = {
+  4: 300,
+  5: 375,
+  6: 450,
+  7: 525,
+  8: 600,
+} as const;
+
 export function getEndlessScore(attemptNumber: number, wordLength = WORD_LENGTH): number {
   const scores = ENDLESS_SCORES_BY_LENGTH[normalizeWordLength(wordLength)];
   return scores[attemptNumber - 1] ?? 0;
+}
+
+export function getEndlessLossPenalty(wordLength = WORD_LENGTH): number {
+  return ENDLESS_LOSS_PENALTY_BY_LENGTH[normalizeWordLength(wordLength)];
 }
 
 export function getScoreForMode(

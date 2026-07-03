@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { prefetchResource } from "../lib/api";
 import { Button, LogoMark, PointsAmount, Skeleton } from "./ui";
 
 type HeaderProps = {
@@ -9,6 +10,38 @@ type HeaderProps = {
   points: number;
   signedIn: boolean;
 };
+
+// Précharge (débounce) la donnée d'une page au survol/focus d'un lien, pour que
+// la navigation trouve un cache déjà chaud plutôt qu'un skeleton.
+function usePrefetchOnHover(paths: readonly string[], enabled = true) {
+  const timer = useRef<number | undefined>(undefined);
+  const key = paths.join("|");
+
+  const cancel = useCallback(() => {
+    window.clearTimeout(timer.current);
+  }, []);
+
+  useEffect(() => cancel, [cancel]);
+
+  const start = useCallback(() => {
+    if (!enabled) {
+      return;
+    }
+    cancel();
+    timer.current = window.setTimeout(() => {
+      for (const path of key.split("|")) {
+        prefetchResource(path);
+      }
+    }, 120);
+  }, [cancel, enabled, key]);
+
+  return {
+    onMouseEnter: start,
+    onFocus: start,
+    onMouseLeave: cancel,
+    onBlur: cancel,
+  };
+}
 
 function navClass(active: boolean, block = false): string {
   return `${block ? "block w-full" : ""} rounded-md px-3 py-2 text-sm font-bold transition ${
@@ -188,6 +221,8 @@ export function Header({
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const leaderboardPrefetch = usePrefetchOnHover(["/api/leaderboards"]);
+  const profilePrefetch = usePrefetchOnHover(["/api/profile"], signedIn);
 
   useEffect(() => {
     if (!mobileOpen) {
@@ -234,12 +269,14 @@ export function Header({
           <NavLink
             className={({ isActive }) => navClass(isActive)}
             to="/leaderboard"
+            {...leaderboardPrefetch}
           >
             Classement
           </NavLink>
           <NavLink
             className={({ isActive }) => navClass(isActive)}
             to="/profile"
+            {...profilePrefetch}
           >
             Profil
           </NavLink>
@@ -305,6 +342,7 @@ export function Header({
                 className={({ isActive }) => navClass(isActive, true)}
                 to="/leaderboard"
                 onClick={() => setMobileOpen(false)}
+                {...leaderboardPrefetch}
               >
                 Classement
               </NavLink>
@@ -312,6 +350,7 @@ export function Header({
                 className={({ isActive }) => navClass(isActive, true)}
                 to="/profile"
                 onClick={() => setMobileOpen(false)}
+                {...profilePrefetch}
               >
                 Profil
               </NavLink>

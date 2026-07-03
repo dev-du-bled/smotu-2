@@ -323,15 +323,23 @@ export function ProfilePage({
         <div className="grid gap-4 md:grid-cols-2">
           <Panel className="space-y-4">
             <SectionKicker>Mot du jour</SectionKicker>
-            <PointsAmount
-              className="text-4xl font-black"
-              iconClassName="size-8"
-              value={stats.dailyScore}
-            />
-            <p className="text-sm text-muted-foreground">
-              {stats.dailySolved}{" "}
-              {stats.dailySolved > 1 ? "victoires" : "victoire"} quotidienne.
-            </p>
+            {loading ? (
+              <Skeleton className="h-10 w-28" />
+            ) : (
+              <PointsAmount
+                className="text-4xl font-black"
+                iconClassName="size-8"
+                value={stats.dailyScore}
+              />
+            )}
+            {loading ? (
+              <Skeleton className="h-4 w-40" />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {stats.dailySolved}{" "}
+                {stats.dailySolved > 1 ? "victoires" : "victoire"} quotidienne.
+              </p>
+            )}
             <Link
               className="inline-flex h-10 items-center justify-center rounded-md bg-success px-4 text-sm font-bold uppercase tracking-wide text-success-foreground transition hover:bg-success-hover"
               to="/play"
@@ -342,15 +350,23 @@ export function ProfilePage({
 
           <Panel className="space-y-4">
             <SectionKicker>Mode libre</SectionKicker>
-            <PointsAmount
-              className="text-4xl font-black"
-              iconClassName="size-8"
-              value={stats.endlessScore}
-            />
-            <p className="text-sm text-muted-foreground">
-              {stats.endlessSolved}{" "}
-              {stats.endlessSolved > 1 ? "victoires" : "victoire"} libres.
-            </p>
+            {loading ? (
+              <Skeleton className="h-10 w-28" />
+            ) : (
+              <PointsAmount
+                className="text-4xl font-black"
+                iconClassName="size-8"
+                value={stats.endlessScore}
+              />
+            )}
+            {loading ? (
+              <Skeleton className="h-4 w-40" />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {stats.endlessSolved}{" "}
+                {stats.endlessSolved > 1 ? "victoires" : "victoire"} libres.
+              </p>
+            )}
             <Link
               className="inline-flex h-10 items-center justify-center rounded-md bg-warning px-4 text-sm font-bold uppercase tracking-wide text-warning-foreground transition hover:bg-warning-hover"
               to="/endless"
@@ -361,15 +377,23 @@ export function ProfilePage({
 
           <Panel className="space-y-4">
             <SectionKicker>Mastermind</SectionKicker>
-            <PointsAmount
-              className="text-4xl font-black"
-              iconClassName="size-8"
-              value={stats.mastermindScore}
-            />
-            <p className="text-sm text-muted-foreground">
-              {stats.mastermindSolved}{" "}
-              {stats.mastermindSolved > 1 ? "victoires" : "victoire"} Mastermind.
-            </p>
+            {loading ? (
+              <Skeleton className="h-10 w-28" />
+            ) : (
+              <PointsAmount
+                className="text-4xl font-black"
+                iconClassName="size-8"
+                value={stats.mastermindScore}
+              />
+            )}
+            {loading ? (
+              <Skeleton className="h-4 w-40" />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {stats.mastermindSolved}{" "}
+                {stats.mastermindSolved > 1 ? "victoires" : "victoire"} Mastermind.
+              </p>
+            )}
             <Link
               className="inline-flex h-10 items-center justify-center rounded-md bg-purple px-4 text-sm font-bold uppercase tracking-wide text-purple-foreground transition hover:bg-purple-hover"
               to="/mastermind"

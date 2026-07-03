@@ -4,6 +4,7 @@ import {
   MAX_ATTEMPTS,
   WORD_LENGTH,
   WORD_LENGTH_OPTIONS,
+  getEndlessLossPenalty,
   getPattern,
   getScoreForMode,
   isKnownWord,
@@ -166,6 +167,8 @@ export function useEndlessGame(signedIn: boolean) {
       if (solved) {
         setCelebrationKey(`${game.gameId}-${attempt.id}-${Date.now()}`);
         notifyScore(attempt.score);
+      } else if (failed) {
+        notifyScore(-getEndlessLossPenalty(game.wordLength));
       }
       return;
     }
@@ -189,6 +192,8 @@ export function useEndlessGame(signedIn: boolean) {
       if (!game.solved && winningAttempt) {
         setCelebrationKey(`${nextGame.gameId}-${winningAttempt.id}-${Date.now()}`);
         notifyScore(winningAttempt.score);
+      } else if (game.status === "active" && nextGame.status === "failed") {
+        notifyScore(-getEndlessLossPenalty(nextGame.wordLength));
       }
     } catch (reason) {
       setInputValue(guess);
@@ -218,6 +223,7 @@ export function useEndlessGame(signedIn: boolean) {
     }
 
     setIsAbandoning(true);
+    const abandonedWordLength = game.wordLength;
 
     try {
       gameResource.setData(
@@ -225,6 +231,7 @@ export function useEndlessGame(signedIn: boolean) {
           method: "POST",
         }),
       );
+      notifyScore(-getEndlessLossPenalty(abandonedWordLength));
     } catch (reason) {
       setLocalError(
         reason instanceof Error ? reason.message : "Impossible d'abandonner.",
@@ -255,6 +262,7 @@ export function useEndlessGame(signedIn: boolean) {
       game,
       inputValue,
       localError,
+      lossPenalty: getEndlessLossPenalty(game.wordLength),
       pendingGuess,
       progress,
       rows,

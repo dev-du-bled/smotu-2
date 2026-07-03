@@ -21,6 +21,7 @@ import { MastermindPage } from "./pages/MastermindPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PlayPage } from "./pages/PlayPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { clearApiCache } from "./lib/api";
 import { authClient, type AuthUser } from "./lib/auth";
 
 type EmailAuthInput = {
@@ -79,6 +80,7 @@ function HomeRoute({
       bestScore={leaderboard.data[0]?.totalScore ?? 0}
       game={daily.game}
       leaderboardCount={leaderboard.data.length}
+      leaderboardLoading={leaderboard.loading}
     />
   );
 }
@@ -151,6 +153,7 @@ function LeaderboardRoute({
   return (
     <LeaderboardPage
       leaderboards={leaderboards.data}
+      loading={leaderboards.loading}
       signedIn={signedIn}
       onSignIn={onSignIn}
     />
@@ -248,6 +251,7 @@ export function App() {
     await session.refetch();
   };
   const signOut = async () => {
+    clearApiCache();
     await authClient.signOut();
   };
 
@@ -269,8 +273,8 @@ export function App() {
         (event as CustomEvent<{ score?: number }>).detail?.score ?? 0,
       );
 
-      if (score > 0) {
-        setHeaderPoints((current) => current + score);
+      if (score !== 0) {
+        setHeaderPoints((current) => Math.max(0, current + score));
       }
 
       if (signedIn) {

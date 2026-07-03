@@ -44,10 +44,12 @@ const BOARDS: Array<{
 
 export function LeaderboardPage({
   leaderboards,
+  loading = false,
   signedIn,
 }: {
   authLoading?: boolean;
   leaderboards: LeaderboardSet;
+  loading?: boolean;
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
 }) {
@@ -83,6 +85,7 @@ export function LeaderboardPage({
             emptyLabel={board.emptyLabel}
             large
             leaderboard={leaderboards[activeBoard]}
+            loading={loading}
           />
         </div>
       </section>

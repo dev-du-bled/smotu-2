@@ -12,6 +12,7 @@ export type GameBoardProps = {
   game: GameState;
   inputValue: string;
   localError: string;
+  lossPenalty?: number;
   onBackspace: () => void;
   onInput: (value: string) => void;
   onLetter: (letter: string) => void;
@@ -31,6 +32,7 @@ function statusText(
   game: GameState,
   pendingGuess: string,
   solvedAttempt?: Attempt,
+  lossPenalty?: number,
 ): ReactNode {
   const remaining = game.maxAttempts - game.attempts.length;
 
@@ -51,6 +53,18 @@ function statusText(
     );
   }
   if (game.over) {
+    if (lossPenalty && lossPenalty > 0) {
+      return (
+        <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
+          Partie terminée. Le mot était {game.answer}. Malus:
+          <PointsAmount
+            className="font-black text-destructive"
+            iconClassName="size-4"
+            value={-lossPenalty}
+          />
+        </span>
+      );
+    }
     return `Partie terminée. Le mot était ${game.answer}.`;
   }
   return `${remaining} ${remaining > 1 ? "essais restants" : "essai restant"}.`;
@@ -110,6 +124,7 @@ export function GameBoard({
   game,
   inputValue,
   localError,
+  lossPenalty,
   onBackspace,
   onLetter,
   onSubmit,
@@ -196,7 +211,7 @@ export function GameBoard({
       </div>
 
       <p className="min-h-6 text-center text-sm font-semibold text-subtle-foreground">
-        {localError || statusText(game, pendingGuess, solvedAttempt)}
+        {localError || statusText(game, pendingGuess, solvedAttempt, lossPenalty)}
       </p>
 
       {import.meta.env.DEV ? (

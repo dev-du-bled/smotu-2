@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { GameState } from "../../shared/game";
-import { Panel, PointsAmount, SectionKicker } from "../components/ui";
+import { Panel, PointsAmount, SectionKicker, Skeleton } from "../components/ui";
 
 function formatDateKey(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -20,10 +20,12 @@ export function HomePage({
   bestScore,
   game,
   leaderboardCount,
+  leaderboardLoading = false,
 }: {
   bestScore: number;
   game: GameState;
   leaderboardCount: number;
+  leaderboardLoading?: boolean;
 }) {
   const attemptsLabel = game.attempts.length > 1 ? "essais" : "essai";
   const modes = [
@@ -100,20 +102,28 @@ export function HomePage({
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
               Top score
             </p>
-            <PointsAmount
-              className="mt-1 h-10 text-4xl font-black leading-none"
-              iconClassName="size-8"
-              valueClassName="h-10"
-              value={bestScore}
-            />
+            {leaderboardLoading ? (
+              <Skeleton className="mt-1 h-10 w-28" />
+            ) : (
+              <PointsAmount
+                className="mt-1 h-10 text-4xl font-black leading-none"
+                iconClassName="size-8"
+                valueClassName="h-10"
+                value={bestScore}
+              />
+            )}
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
               Joueurs
             </p>
-            <p className="mt-1 font-mono text-4xl font-black leading-none">
-              {leaderboardCount}
-            </p>
+            {leaderboardLoading ? (
+              <Skeleton className="mt-1 h-10 w-16" />
+            ) : (
+              <p className="mt-1 font-mono text-4xl font-black leading-none">
+                {leaderboardCount}
+              </p>
+            )}
           </div>
         </div>
 
