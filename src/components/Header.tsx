@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Button, LogoMark, Skeleton } from "./ui";
+import { Button, LogoMark, PointsAmount, Skeleton } from "./ui";
 
 type HeaderProps = {
   loading: boolean;
   onSignIn: () => void | Promise<void>;
   onSignOut: () => void | Promise<void>;
+  points: number;
   signedIn: boolean;
 };
 
 function navClass(active: boolean, block = false): string {
   return `${block ? "block w-full" : ""} rounded-md px-3 py-2 text-sm font-bold transition ${
     active
-      ? "bg-[#f8f8f8] text-[#121213]"
-      : "text-[#d7dadc] hover:bg-[#272729]"
+      ? "bg-primary text-primary-foreground"
+      : "text-subtle-foreground hover:bg-muted"
   }`;
 }
 
@@ -113,14 +114,14 @@ function GameModeDropdown() {
 
       {open ? (
         <div
-          className="absolute left-0 top-11 z-20 w-52 rounded-lg border border-[#3a3a3c] bg-[#18191b] p-1 shadow-xl"
+          className="absolute left-0 top-11 z-20 w-52 rounded-lg border border-input bg-card p-1 shadow-xl"
           role="menu"
         >
           <Link
             className={`block rounded-md px-3 py-2 text-sm font-bold transition ${
               location.pathname === "/play"
-                ? "bg-[#538d4e] text-white"
-                : "text-[#d7dadc] hover:bg-[#272729]"
+                ? "bg-success text-success-foreground"
+                : "text-subtle-foreground hover:bg-muted"
             }`}
             role="menuitem"
             to="/play"
@@ -131,8 +132,8 @@ function GameModeDropdown() {
           <Link
             className={`mt-1 block rounded-md px-3 py-2 text-sm font-bold transition ${
               location.pathname === "/endless"
-                ? "bg-[#b59f3b] text-white"
-                : "text-[#d7dadc] hover:bg-[#272729]"
+                ? "bg-warning text-warning-foreground"
+                : "text-subtle-foreground hover:bg-muted"
             }`}
             role="menuitem"
             to="/endless"
@@ -143,8 +144,8 @@ function GameModeDropdown() {
           <Link
             className={`mt-1 block rounded-md px-3 py-2 text-sm font-bold transition ${
               location.pathname === "/mastermind"
-                ? "bg-[#a855f7] text-white"
-                : "text-[#d7dadc] hover:bg-[#272729]"
+                ? "bg-purple text-purple-foreground"
+                : "text-subtle-foreground hover:bg-muted"
             }`}
             role="menuitem"
             to="/mastermind"
@@ -158,10 +159,30 @@ function GameModeDropdown() {
   );
 }
 
+function HeaderPoints({ points, mobile = false }: { points: number; mobile?: boolean }) {
+  const exactPoints = points.toLocaleString("en-US");
+
+  return (
+    <div
+      aria-label={`${exactPoints} smotucoin`}
+      className={`group relative flex ${mobile ? "h-10" : "h-9"} items-center justify-center rounded-md ${mobile ? "bg-muted" : "border border-border bg-card"} px-2.5 text-sm font-black text-foreground`}
+      tabIndex={0}
+    >
+      <PointsAmount value={points} />
+      <span
+        className={`pointer-events-none absolute ${mobile ? "left-1/2 top-[calc(100%+8px)] -translate-x-1/2" : "right-0 top-[calc(100%+8px)]"} z-40 whitespace-nowrap rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-black text-foreground opacity-0 shadow-xl transition-opacity group-hover:opacity-100 group-focus-within:opacity-100`}
+      >
+        {exactPoints} smotucoin
+      </span>
+    </div>
+  );
+}
+
 export function Header({
   loading,
   onSignIn,
   onSignOut,
+  points,
   signedIn,
 }: HeaderProps) {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
@@ -188,7 +209,7 @@ export function Header({
   }, [mobileOpen]);
 
   return (
-    <header className="h-[var(--header-height)] border-b border-[#3a3a3c]">
+    <header className="h-(--header-height) border-b border-input">
       <div
         className="relative mx-auto flex h-full max-w-6xl items-center justify-between gap-3 px-4"
         ref={mobileMenuRef}
@@ -203,7 +224,7 @@ export function Header({
         </Link>
 
         <nav
-          className="hidden max-w-full rounded-lg bg-[#18191b] p-1 md:flex"
+          className="hidden max-w-full rounded-lg bg-card p-1 md:flex"
           aria-label="Navigation principale"
         >
           <NavLink className={({ isActive }) => navClass(isActive)} to="/">
@@ -224,7 +245,8 @@ export function Header({
           </NavLink>
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-2 md:flex">
+          <HeaderPoints points={points} />
           <AuthAction
             loading={loading}
             signedIn={signedIn}
@@ -235,7 +257,7 @@ export function Header({
         </div>
 
         <button
-          className="grid size-10 place-items-center rounded-md bg-[#18191b] text-[#d7dadc] transition hover:bg-[#272729] md:hidden"
+          className="grid size-10 place-items-center rounded-md bg-card text-subtle-foreground transition hover:bg-muted md:hidden"
           type="button"
           aria-expanded={mobileOpen}
           aria-label="Ouvrir la navigation"
@@ -249,7 +271,7 @@ export function Header({
         </button>
 
         {mobileOpen ? (
-          <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-30 rounded-lg border border-[#3a3a3c] bg-[#18191b] p-2 shadow-xl md:hidden">
+          <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-30 rounded-lg border border-input bg-card p-2 shadow-xl md:hidden">
             <nav className="grid gap-1" aria-label="Navigation mobile">
               <NavLink
                 className={({ isActive }) => navClass(isActive, true)}
@@ -294,7 +316,8 @@ export function Header({
                 Profil
               </NavLink>
             </nav>
-            <div className="mt-2 border-t border-[#2f3033] pt-2">
+            <div className="mt-2 grid gap-2 border-t border-border pt-2">
+              <HeaderPoints mobile points={points} />
               <AuthAction
                 className="w-full"
                 loading={loading}

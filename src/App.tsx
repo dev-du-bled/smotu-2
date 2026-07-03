@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
@@ -10,7 +11,6 @@ import {
 import { useEndlessGame } from "./game/use-endless-game";
 import { useMastermindGame } from "./game/use-mastermind-game";
 import { emptyProfileStats, useProfileStats } from "./game/use-profile";
-import { emptyLeaderboards } from "./game/state";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { AuthErrorPage } from "./pages/AuthErrorPage";
 import { AuthPage } from "./pages/AuthPage";
@@ -72,7 +72,7 @@ function HomeRoute({
   onSignIn: () => void | Promise<void>;
 }) {
   const daily = useDailyGame(enabled);
-  const leaderboard = useGlobalLeaderboard(enabled);
+  const leaderboard = useGlobalLeaderboard(true);
 
   return (
     <HomePage
@@ -84,7 +84,6 @@ function HomeRoute({
 }
 
 function PlayRoute({
-  authLoading,
   enabled,
   onSignIn,
   signedIn,
@@ -94,33 +93,12 @@ function PlayRoute({
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
 }) {
-  if (!signedIn) {
-    return (
-      <PlayPage
-        authLoading={authLoading}
-        playProps={undefined}
-        signedIn={false}
-        onSignIn={onSignIn}
-      />
-    );
-  }
-
-  return <SignedInPlayRoute enabled={enabled} onSignIn={onSignIn} />;
-}
-
-function SignedInPlayRoute({
-  enabled,
-  onSignIn,
-}: {
-  enabled: boolean;
-  onSignIn: () => void | Promise<void>;
-}) {
   const daily = useDailyGame(enabled);
 
   return (
     <PlayPage
       playProps={daily.playProps}
-      signedIn
+      signedIn={signedIn}
       onSignIn={onSignIn}
     />
   );
@@ -147,52 +125,19 @@ function MastermindRoute({
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
 }) {
-  if (!signedIn) {
-    return (
-      <MastermindPage
-        authLoading={authLoading}
-        canSubmit={false}
-        game={undefined}
-        guess={[]}
-        isStarting={false}
-        localError=""
-        pendingGuess={false}
-        progress={0}
-        signedIn={false}
-        addColor={() => undefined}
-        clearGuess={() => undefined}
-        removeColor={() => undefined}
-        startRound={() => undefined}
-        onSignIn={onSignIn}
-        onSubmit={() => undefined}
-      />
-    );
-  }
-
-  return <SignedInMastermindRoute enabled={enabled} onSignIn={onSignIn} />;
-}
-
-function SignedInMastermindRoute({
-  enabled,
-  onSignIn,
-}: {
-  enabled: boolean;
-  onSignIn: () => void | Promise<void>;
-}) {
   const mastermind = useMastermindGame(enabled);
 
   return (
     <MastermindPage
       {...mastermind}
-      signedIn
+      authLoading={authLoading}
+      signedIn={signedIn}
       onSignIn={onSignIn}
     />
   );
 }
 
 function LeaderboardRoute({
-  authLoading,
-  enabled,
   onSignIn,
   signedIn,
 }: {
@@ -201,33 +146,12 @@ function LeaderboardRoute({
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
 }) {
-  if (!signedIn) {
-    return (
-      <LeaderboardPage
-        authLoading={authLoading}
-        leaderboards={emptyLeaderboards}
-        signedIn={false}
-        onSignIn={onSignIn}
-      />
-    );
-  }
-
-  return <SignedInLeaderboardRoute enabled={enabled} onSignIn={onSignIn} />;
-}
-
-function SignedInLeaderboardRoute({
-  enabled,
-  onSignIn,
-}: {
-  enabled: boolean;
-  onSignIn: () => void | Promise<void>;
-}) {
-  const leaderboards = useLeaderboards(enabled);
+  const leaderboards = useLeaderboards(true);
 
   return (
     <LeaderboardPage
       leaderboards={leaderboards.data}
-      signedIn
+      signedIn={signedIn}
       onSignIn={onSignIn}
     />
   );
@@ -302,6 +226,8 @@ export function App() {
   const session = authClient.useSession();
   const user = session.data?.user;
   const signedIn = Boolean(user);
+  const headerStats = useProfileStats(signedIn, user?.id);
+  const [headerPoints, setHeaderPoints] = useState(0);
   const signIn = useSignIn();
   const signInWithEmail = async ({ email, password }: EmailAuthInput) => {
     const response = await authClient.signIn.email({ email, password });
@@ -325,12 +251,44 @@ export function App() {
     await authClient.signOut();
   };
 
+  useEffect(() => {
+    if (signedIn) {
+      setHeaderPoints(headerStats.data.totalScore);
+    }
+  }, [headerStats.data.totalScore, signedIn]);
+
+  useEffect(() => {
+    if (!signedIn) {
+      setHeaderPoints(0);
+    }
+  }, [signedIn]);
+
+  useEffect(() => {
+    function onScore(event: Event) {
+      const score = Number(
+        (event as CustomEvent<{ score?: number }>).detail?.score ?? 0,
+      );
+
+      if (score > 0) {
+        setHeaderPoints((current) => current + score);
+      }
+
+      if (signedIn) {
+        void headerStats.refetch();
+      }
+    }
+
+    window.addEventListener("smotu:score", onScore);
+    return () => window.removeEventListener("smotu:score", onScore);
+  }, [headerStats, signedIn]);
+
   return (
     <BrowserRouter>
       <Shell>
         <Surface>
           <Header
             loading={session.isPending}
+            points={headerPoints}
             signedIn={signedIn}
             onSignIn={signIn}
             onSignOut={signOut}

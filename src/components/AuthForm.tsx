@@ -63,18 +63,18 @@ export function AuthForm({
         Continuer avec Google
       </Button>
 
-      <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-wide text-[#818384]">
-        <span className="h-px flex-1 bg-[#2f3033]" />
+      <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
         <span>Email</span>
-        <span className="h-px flex-1 bg-[#2f3033]" />
+        <span className="h-px flex-1 bg-border" />
       </div>
 
-      <div className="grid grid-cols-2 rounded-md bg-[#272729] p-1">
+      <div className="grid grid-cols-2 rounded-md bg-muted p-1">
         <button
           className={`rounded px-3 py-2 text-sm font-bold transition ${
             mode === "sign-in"
-              ? "bg-[#f8f8f8] text-[#121213]"
-              : "text-[#d7dadc] hover:bg-[#3a3a3c]"
+              ? "bg-primary text-primary-foreground"
+              : "text-subtle-foreground hover:bg-secondary"
           }`}
           type="button"
           onClick={() => {
@@ -87,8 +87,8 @@ export function AuthForm({
         <button
           className={`rounded px-3 py-2 text-sm font-bold transition ${
             mode === "sign-up"
-              ? "bg-[#f8f8f8] text-[#121213]"
-              : "text-[#d7dadc] hover:bg-[#3a3a3c]"
+              ? "bg-primary text-primary-foreground"
+              : "text-subtle-foreground hover:bg-secondary"
           }`}
           type="button"
           onClick={() => {
@@ -146,7 +146,7 @@ export function AuthForm({
               : "Créer le compte"}
         </Button>
         {message ? (
-          <p className="text-center text-sm font-semibold text-[#f87171]">
+          <p className="text-center text-sm font-semibold text-destructive">
             {message}
           </p>
         ) : null}

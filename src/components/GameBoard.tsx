@@ -1,12 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
-import {
-  WORD_LENGTH,
-  type Attempt,
-  type GameState,
-  type TileState,
-} from "../../shared/game";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { type Attempt, type GameState, type TileState } from "../../shared/game";
 import { ConfettiBurst } from "./ConfettiBurst";
-import { KeyCap, WordTile } from "./ui";
+import { KeyCap, PointsAmount, WordTile } from "./ui";
 
 const KEY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
 
@@ -27,16 +22,16 @@ export type GameBoardProps = {
   states: Record<string, TileState>;
 };
 
-function wordLetters(value: string): string[] {
+function wordLetters(value: string, wordLength: number): string[] {
   const list = value.split("");
-  return Array.from({ length: WORD_LENGTH }, (_, index) => list[index] ?? "");
+  return Array.from({ length: wordLength }, (_, index) => list[index] ?? "");
 }
 
 function statusText(
   game: GameState,
   pendingGuess: string,
   solvedAttempt?: Attempt,
-): string {
+): ReactNode {
   const remaining = game.maxAttempts - game.attempts.length;
 
   if (pendingGuess) {
@@ -44,7 +39,16 @@ function statusText(
   }
   if (game.solved) {
     const attempts = solvedAttempt?.attemptNumber ?? 0;
-    return `Trouvé en ${attempts} ${attempts > 1 ? "essais" : "essai"}. Score: ${solvedAttempt?.score ?? 0}.`;
+    return (
+      <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
+        Trouvé en {attempts} {attempts > 1 ? "essais" : "essai"}. Score:
+        <PointsAmount
+          className="font-black"
+          iconClassName="size-4"
+          value={solvedAttempt?.score ?? 0}
+        />
+      </span>
+    );
   }
   if (game.over) {
     return `Partie terminée. Le mot était ${game.answer}.`;
@@ -69,7 +73,7 @@ function Keyboard({
         <div className="flex justify-center gap-1.5" key={row}>
           {rowIndex === 2 ? (
             <button
-              className="h-12 rounded bg-[#818384] px-3 text-xs font-black uppercase text-white"
+              className="h-12 rounded bg-success px-3 text-xs font-black uppercase text-success-foreground hover:bg-success-hover"
               type="button"
               onClick={onEnter}
             >
@@ -87,7 +91,7 @@ function Keyboard({
           ))}
           {rowIndex === 2 ? (
             <button
-              className="h-12 rounded bg-[#818384] px-3 text-xs font-black uppercase text-white"
+              className="h-12 rounded bg-orange px-3 text-xs font-black uppercase text-orange-foreground hover:bg-orange-hover"
               type="button"
               onClick={onBackspace}
             >
@@ -115,6 +119,7 @@ export function GameBoard({
   states,
 }: GameBoardProps) {
   const [debugCelebrationKey, setDebugCelebrationKey] = useState("");
+  const wordLength = game.wordLength;
 
   // Capture le clavier physique: on saisit directement dans la grille, sans zone de texte.
   useEffect(() => {
@@ -163,15 +168,16 @@ export function GameBoard({
           {rows.map((attempt, rowIndex) => {
             const pending = attempt?.id === "pending";
             const rowLetters = attempt
-              ? wordLetters(attempt.guess)
+              ? wordLetters(attempt.guess, wordLength)
               : rowIndex === activeRow
-                ? wordLetters(inputValue)
-                : Array.from({ length: WORD_LENGTH }, () => "");
+                ? wordLetters(inputValue, wordLength)
+                : Array.from({ length: wordLength }, () => "");
 
             return (
               <div
-                className="grid grid-cols-5 gap-1.5"
+                className="grid gap-1.5"
                 key={attempt?.id ?? `empty-${rowIndex}`}
+                style={{ gridTemplateColumns: `repeat(${wordLength}, minmax(0, 1fr))` }}
               >
                 {rowLetters.map((letter, index) => (
                   <WordTile
@@ -189,13 +195,13 @@ export function GameBoard({
         </div>
       </div>
 
-      <p className="min-h-6 text-center text-sm font-semibold text-[#d7dadc]">
+      <p className="min-h-6 text-center text-sm font-semibold text-subtle-foreground">
         {localError || statusText(game, pendingGuess, solvedAttempt)}
       </p>
 
       {import.meta.env.DEV ? (
         <button
-          className="rounded-md border border-dashed border-[#f97316]/60 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[#f97316] transition hover:border-[#f97316] hover:bg-[#f97316]/10"
+          className="rounded-md border border-dashed border-orange/60 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-orange transition hover:border-orange hover:bg-orange/10"
           type="button"
           onClick={() => setDebugCelebrationKey(`debug-${Date.now()}`)}
         >

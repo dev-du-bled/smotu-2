@@ -1,4 +1,5 @@
 export const WORD_LENGTH = 5;
+export const WORD_LENGTH_OPTIONS = [4, 5, 6, 7, 8] as const;
 export const MAX_ATTEMPTS = 6;
 export const MASTERMIND_CODE_LENGTH = 4;
 export const MASTERMIND_MAX_ATTEMPTS = 8;
@@ -16,7 +17,12 @@ export type MastermindColorId = (typeof MASTERMIND_COLORS)[number]["id"];
 
 export type TileState = "correct" | "present" | "absent";
 export type GameMode = "daily" | "endless" | "mastermind";
-export type EndlessGameStatus = "idle" | "active" | "solved" | "failed";
+export type EndlessGameStatus =
+  | "idle"
+  | "active"
+  | "solved"
+  | "failed"
+  | "abandoned";
 export type MastermindGameStatus = EndlessGameStatus;
 
 export type Attempt = {
@@ -71,10 +77,14 @@ export type MastermindGameState = {
 export type GlobalLeaderboardEntry = {
   userId: string;
   userName: string;
+  userImage?: string;
   totalScore: number;
   dailyScore: number;
   endlessScore: number;
   mastermindScore: number;
+  dailySolved: number;
+  endlessSolved: number;
+  mastermindSolved: number;
   gamesSolved: number;
   lastScoredAt: string;
 };
@@ -87,13 +97,105 @@ export type LeaderboardSet = {
 };
 
 export type ProfileStats = GlobalLeaderboardEntry & {
-  dailySolved: number;
-  endlessSolved: number;
-  mastermindSolved: number;
   rank: number | null;
 };
 
-export const WORDS = [
+export type WordLengthOption = (typeof WORD_LENGTH_OPTIONS)[number];
+
+export const WORDS_BY_LENGTH: Record<WordLengthOption, readonly string[]> = {
+  4: [
+    "AIDE",
+    "AILE",
+    "AUBE",
+    "AVIS",
+    "BAIN",
+    "BALE",
+    "BASE",
+    "BEAU",
+    "BLOC",
+    "BOIS",
+    "BORD",
+    "BOUT",
+    "BRAS",
+    "BRUN",
+    "CAFE",
+    "CAMP",
+    "CERF",
+    "CHAT",
+    "CHEF",
+    "CIEL",
+    "CLES",
+    "COIN",
+    "COLS",
+    "COUR",
+    "DENT",
+    "DOUX",
+    "DUEL",
+    "DUNE",
+    "EAUX",
+    "ECHO",
+    "EPEE",
+    "ETUI",
+    "FACE",
+    "FAIM",
+    "FEUX",
+    "FILM",
+    "FOND",
+    "FORT",
+    "FOUR",
+    "GARE",
+    "GOUT",
+    "GRIS",
+    "IDEE",
+    "ILET",
+    "JEUX",
+    "JOLI",
+    "JOUR",
+    "LENT",
+    "LION",
+    "LOIN",
+    "MAIN",
+    "MARS",
+    "MIDI",
+    "MIEL",
+    "MODE",
+    "MONT",
+    "MURS",
+    "NOIR",
+    "NOIX",
+    "NORD",
+    "NUIT",
+    "OURS",
+    "PAIN",
+    "PARC",
+    "PEAU",
+    "PIED",
+    "PLAN",
+    "PONT",
+    "PORT",
+    "PRIX",
+    "RANG",
+    "REVE",
+    "RIVE",
+    "ROBE",
+    "ROIS",
+    "ROUE",
+    "SANG",
+    "SEAU",
+    "SITE",
+    "SOIR",
+    "SOIN",
+    "SURE",
+    "TAXI",
+    "TOIT",
+    "TOUR",
+    "VENT",
+    "VERT",
+    "VIES",
+    "VIFS",
+    "VOEU",
+  ],
+  5: [
   "ABORD",
   "ACIER",
   "ADORE",
@@ -243,10 +345,369 @@ export const WORDS = [
   "VOTRE",
   "WAGON",
   "ZEBRE",
-] as const;
+  ],
+  6: [
+    "ABRITE",
+    "AGENCE",
+    "AIGUES",
+    "ALARME",
+    "AMICAL",
+    "ANCIEN",
+    "ANIMAL",
+    "APPELS",
+    "ARCADE",
+    "ARGENT",
+    "AVENIR",
+    "BAGAGE",
+    "BALCON",
+    "BATEAU",
+    "BESOIN",
+    "BIJOUX",
+    "BILLET",
+    "BOUTON",
+    "BRIQUE",
+    "BUREAU",
+    "CABANE",
+    "CADEAU",
+    "CAMION",
+    "CANARD",
+    "CARNET",
+    "CASQUE",
+    "CERCLE",
+    "CHALET",
+    "CHEMIN",
+    "CHIMIE",
+    "CINEMA",
+    "CITRON",
+    "CLIENT",
+    "CLOCHE",
+    "COLERE",
+    "COMPAS",
+    "COPAIN",
+    "COUPLE",
+    "CRAYON",
+    "CUISSE",
+    "DANGER",
+    "DEGATS",
+    "DEHORS",
+    "DETAIL",
+    "DOCILE",
+    "DOSAGE",
+    "DRAGON",
+    "ECLAIR",
+    "ECOLES",
+    "EFFORT",
+    "ENIGME",
+    "ESCALE",
+    "ESPOIR",
+    "ETOILE",
+    "FAMINE",
+    "FENTES",
+    "FIERTE",
+    "FLECHE",
+    "FLEUVE",
+    "FRAISE",
+    "GARAGE",
+    "GATEAU",
+    "GOMMER",
+    "GRILLE",
+    "GUIDER",
+    "HASARD",
+    "HEBDOS",
+    "HUMEUR",
+    "IMAGES",
+    "JARDIN",
+    "JUNGLE",
+    "LAMPES",
+    "LANCER",
+    "LETTRE",
+    "LIVRES",
+    "MACHIN",
+    "MAISON",
+    "MARCHE",
+    "MARQUE",
+    "MELONS",
+    "MIRAGE",
+    "MOMENT",
+    "MOTEUR",
+    "MUSCLE",
+    "NATURE",
+    "NIVEAU",
+    "NUANCE",
+    "OBJETS",
+    "ORANGE",
+    "PAROLE",
+    "PARTIE",
+    "PATRON",
+    "PILOTE",
+    "PLANER",
+    "PLANTE",
+    "POESIE",
+    "POLICE",
+    "POTEAU",
+    "PROJET",
+    "PUBLIC",
+    "RACINE",
+    "RAISON",
+    "RECORD",
+    "REFLET",
+    "REGARD",
+    "RESEAU",
+    "ROCHER",
+    "ROUTES",
+    "SALADE",
+    "SECRET",
+    "SIGNAL",
+    "SILICE",
+    "SOLEIL",
+    "SOMMET",
+    "SORBET",
+    "SOURCE",
+    "SOURIS",
+    "STUDIO",
+    "TABLES",
+    "TENNIS",
+    "TICKET",
+    "TOMATE",
+    "TRAVEE",
+    "TUNNEL",
+    "VALSES",
+    "VALEUR",
+    "VELOUR",
+    "VERGER",
+    "VOYAGE",
+  ],
+  7: [
+    "ABRICOT",
+    "ADRESSE",
+    "AFFAIRE",
+    "AGILITE",
+    "AMITIES",
+    "ANALYSE",
+    "ANCIENS",
+    "ARTICLE",
+    "ATELIER",
+    "AVENIRS",
+    "BAGAGES",
+    "BALANCE",
+    "BARRAGE",
+    "BATTEUR",
+    "BIBLIOS",
+    "BOUCLER",
+    "BRILLER",
+    "CABINET",
+    "CADEAUX",
+    "CAMERAS",
+    "CAPITAL",
+    "CARNETS",
+    "CARTONS",
+    "CASCADE",
+    "CHAISES",
+    "CHAMBRE",
+    "CHANTER",
+    "CHATEAU",
+    "CHEMINS",
+    "CIRCUIT",
+    "CLAVIER",
+    "COLLINE",
+    "CONSEIL",
+    "COURAGE",
+    "CUISINE",
+    "DESSERT",
+    "DIALECT",
+    "DOSSIER",
+    "ECRITES",
+    "ENFANTS",
+    "ENERGIE",
+    "EXEMPLE",
+    "FACTURE",
+    "FENETRE",
+    "FESTINS",
+    "FICHIER",
+    "FORMULE",
+    "GARCONS",
+    "GENERAL",
+    "HISTONE",
+    "HORIZON",
+    "IMAGINE",
+    "JARDINS",
+    "JOURNAL",
+    "LECTURE",
+    "LUMIERE",
+    "MAGASIN",
+    "MAISONS",
+    "MARCHER",
+    "MELANGE",
+    "MEMOIRE",
+    "METHODE",
+    "MISSION",
+    "MOTEURS",
+    "MUSIQUE",
+    "NOUVEAU",
+    "NUMEROS",
+    "OISEAUX",
+    "ORGANES",
+    "OUTILLE",
+    "PANIERS",
+    "PARADIS",
+    "PARFUMS",
+    "PARTAGE",
+    "PASSAGE",
+    "PAYSAGE",
+    "PISCINE",
+    "PLAFOND",
+    "PLAISIR",
+    "POISSON",
+    "PREMIER",
+    "PROBANT",
+    "QUARTES",
+    "RECETTE",
+    "REGARDS",
+    "RESEAUX",
+    "RIVIERE",
+    "ROCHERS",
+    "ROULANT",
+    "SALADES",
+    "SCIENCE",
+    "SEANCES",
+    "SEMAINE",
+    "SERVICE",
+    "SILENCE",
+    "SOCIETE",
+    "SOLDATS",
+    "SOURIRE",
+    "SOUTIEN",
+    "SURFACE",
+    "SYSTEME",
+    "TABLEAU",
+    "TERRAIN",
+    "TEXTURE",
+    "THEATRE",
+    "TRAFICS",
+    "TRAVAIL",
+    "TRESORS",
+    "VILLAGE",
+    "VOITURE",
+    "VOYAGER",
+  ],
+  8: [
+    "ABANDONS",
+    "ABSENCES",
+    "ACCIDENT",
+    "ADDITION",
+    "AEROPORT",
+    "AFFICHES",
+    "ANIMALES",
+    "APPAREIL",
+    "ATELIERS",
+    "AUTOMATE",
+    "BAGUETTE",
+    "BATIMENT",
+    "BOULANGE",
+    "BOUTIQUE",
+    "BRANCHES",
+    "CALENDES",
+    "CAMPAGNE",
+    "CAPITALE",
+    "CARTABLE",
+    "CHAMPION",
+    "CHANTIER",
+    "CHAPEAUX",
+    "CHOCOLAT",
+    "CINEASTE",
+    "CLAVIERS",
+    "COMEDIEN",
+    "CONSEILS",
+    "COULEURS",
+    "COURRIER",
+    "CUISINES",
+    "DECOUVRE",
+    "DESSINER",
+    "DISTANCE",
+    "DOCUMENT",
+    "ECRITURE",
+    "ELECTEUR",
+    "ENFANCES",
+    "ESCALIER",
+    "EXEMPLES",
+    "EXPLORER",
+    "FAMILLES",
+    "FESTIVAL",
+    "FICHIERS",
+    "FONCTION",
+    "FORMULES",
+    "FROMAGES",
+    "GARDIENS",
+    "GENERAUX",
+    "HABITUDE",
+    "HISTOIRE",
+    "HORIZONS",
+    "IMPRIMER",
+    "JARDINER",
+    "JOURNAUX",
+    "LECTURES",
+    "LOGICIEL",
+    "MAGASINS",
+    "MARCHAND",
+    "MATERIEL",
+    "MECANISE",
+    "MEMOIRES",
+    "MONTAGNE",
+    "MUSIQUES",
+    "NATIONAL",
+    "NATURELS",
+    "NOUVELLE",
+    "OBJECTIF",
+    "ORDINALE",
+    "OUVRAGES",
+    "PANIQUES",
+    "PARCOURS",
+    "PARTAGER",
+    "PASSAGES",
+    "PAYSAGES",
+    "PEINTURE",
+    "PERSONNE",
+    "PISCINES",
+    "PLAISIRS",
+    "POISSONS",
+    "PREMIERS",
+    "PROBLEME",
+    "QUESTION",
+    "RACONTES",
+    "RECETTES",
+    "REGARDER",
+    "RESERVES",
+    "RIVIERES",
+    "SALAIRES",
+    "SCIENCES",
+    "SEMAINES",
+    "SERVICES",
+    "SILENCES",
+    "SOCIETES",
+    "SOUVENIR",
+    "TABLEAUX",
+    "TELEPORT",
+    "TERRAINS",
+    "TEXTURES",
+    "THEATRES",
+    "TRAVAILS",
+    "VACANCES",
+    "VILLAGES",
+    "VOITURES",
+    "VOYAGEUR",
+  ],
+} as const;
+
+export const WORDS = WORDS_BY_LENGTH[WORD_LENGTH];
 
 const DAILY_SCORES = [900, 750, 600, 450, 300, 150] as const;
-const ENDLESS_SCORES = [360, 300, 240, 180, 120, 60] as const;
+const ENDLESS_SCORES_BY_LENGTH: Record<WordLengthOption, readonly number[]> = {
+  4: [280, 230, 180, 130, 80, 40],
+  5: [350, 290, 230, 170, 110, 50],
+  6: [420, 350, 280, 210, 140, 70],
+  7: [490, 410, 330, 250, 170, 90],
+  8: [560, 470, 380, 290, 200, 100],
+} as const;
 const MASTERMIND_SCORES = [560, 500, 440, 380, 320, 260, 200, 140] as const;
 
 function hashString(value: string): number {
@@ -260,13 +721,36 @@ function hashString(value: string): number {
   return hash >>> 0;
 }
 
-export function normalizeGuess(value: string): string {
+export function isWordLengthOption(value: number): value is WordLengthOption {
+  return WORD_LENGTH_OPTIONS.includes(value as WordLengthOption);
+}
+
+export function normalizeWordLength(value: unknown): WordLengthOption {
+  const parsed = Number(value);
+  return isWordLengthOption(parsed) ? parsed : WORD_LENGTH;
+}
+
+export function wordsForLength(wordLength: number): readonly string[] {
+  return isWordLengthOption(wordLength) ? WORDS_BY_LENGTH[wordLength] : WORDS;
+}
+
+export function randomWord(wordLength = WORD_LENGTH): string {
+  const words = wordsForLength(wordLength);
+  return words[Math.floor(Math.random() * words.length)];
+}
+
+export function isKnownWord(value: string, wordLength = WORD_LENGTH): boolean {
+  const guess = normalizeGuess(value, wordLength);
+  return wordsForLength(wordLength).includes(guess);
+}
+
+export function normalizeGuess(value: string, wordLength = WORD_LENGTH): string {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
     .replace(/[^A-Z]/g, "")
-    .slice(0, WORD_LENGTH);
+    .slice(0, wordLength);
 }
 
 export function isMastermindColorId(value: string): value is MastermindColorId {
@@ -287,12 +771,13 @@ export function getWordForDate(dateKey: string): string {
 }
 
 export function getPattern(guessValue: string, answerValue: string): TileState[] {
-  const guess = normalizeGuess(guessValue);
-  const answer = normalizeGuess(answerValue);
-  const pattern: TileState[] = Array.from({ length: WORD_LENGTH }, () => "absent");
+  const wordLength = answerValue.length || WORD_LENGTH;
+  const guess = normalizeGuess(guessValue, wordLength);
+  const answer = normalizeGuess(answerValue, wordLength);
+  const pattern: TileState[] = Array.from({ length: wordLength }, () => "absent");
   const remaining = new Map<string, number>();
 
-  for (let index = 0; index < WORD_LENGTH; index += 1) {
+  for (let index = 0; index < wordLength; index += 1) {
     const guessLetter = guess[index];
     const answerLetter = answer[index];
 
@@ -303,7 +788,7 @@ export function getPattern(guessValue: string, answerValue: string): TileState[]
     }
   }
 
-  for (let index = 0; index < WORD_LENGTH; index += 1) {
+  for (let index = 0; index < wordLength; index += 1) {
     if (pattern[index] === "correct") {
       continue;
     }
@@ -357,10 +842,22 @@ export function getMastermindFeedback(
   return { exact, present };
 }
 
-export function getScoreForMode(mode: GameMode, attemptNumber: number): number {
+export function getEndlessScore(attemptNumber: number, wordLength = WORD_LENGTH): number {
+  const scores = ENDLESS_SCORES_BY_LENGTH[normalizeWordLength(wordLength)];
+  return scores[attemptNumber - 1] ?? 0;
+}
+
+export function getScoreForMode(
+  mode: GameMode,
+  attemptNumber: number,
+  wordLength = WORD_LENGTH,
+): number {
+  if (mode === "endless") {
+    return getEndlessScore(attemptNumber, wordLength);
+  }
+
   const scores = {
     daily: DAILY_SCORES,
-    endless: ENDLESS_SCORES,
     mastermind: MASTERMIND_SCORES,
   }[mode];
 

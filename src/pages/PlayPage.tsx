@@ -1,9 +1,7 @@
-import { AuthRequired } from "../components/AuthRequired";
 import { GameBoard, type GameBoardProps } from "../components/GameBoard";
-import { ProgressStrip, SectionKicker } from "../components/ui";
+import { PointsAmount, ProgressStrip, SectionKicker } from "../components/ui";
 
 export function PlayPage({
-  authLoading = false,
   onSignIn,
   playProps,
   signedIn,
@@ -13,19 +11,8 @@ export function PlayPage({
   playProps?: GameBoardProps & { progress: number };
   signedIn: boolean;
 }) {
-  if (!signedIn || !playProps) {
-    return (
-      <AuthRequired
-        loading={authLoading}
-        title={
-          authLoading
-            ? "Vérification de ta session."
-            : "Connecte-toi pour jouer au mot du jour."
-        }
-        description="Le mot du jour garde une seule grille par compte et attribue les gros points au bon profil."
-        eyebrow="Mot du jour"
-      />
-    );
+  if (!playProps) {
+    return null;
   }
 
   return (
@@ -33,12 +20,18 @@ export function PlayPage({
       <div className="mx-auto mb-5 grid w-full max-w-xl gap-3">
         <div>
           <SectionKicker>Mot du jour</SectionKicker>
-          <p className="mt-1 text-sm font-semibold text-[#d7dadc]">
-            Une seule grille quotidienne · jusqu'à 900 points
+          <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-subtle-foreground">
+            Une seule grille quotidienne · jusqu'à
+            <PointsAmount className="font-black" iconClassName="size-4" value={900} />
           </p>
+          {!signedIn ? (
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">
+              Invité: ta partie ne compte pas au classement.
+            </p>
+          ) : null}
         </div>
         <div>
-          <div className="mb-2 flex items-center justify-between text-sm text-[#818384]">
+          <div className="mb-2 flex items-center justify-between text-sm text-muted-foreground">
             <span>Progression</span>
             <span>
               {playProps.game.attempts.length}/{playProps.game.maxAttempts}

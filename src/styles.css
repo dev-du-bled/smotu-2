@@ -1,29 +1,150 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-hover: var(--card-hover);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted-strong: var(--muted-strong);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-hover: var(--success-hover);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-muted: var(--warning-muted);
+  --color-orange: var(--orange);
+  --color-orange-foreground: var(--orange-foreground);
+  --color-orange-hover: var(--orange-hover);
+  --color-purple: var(--purple);
+  --color-purple-foreground: var(--purple-foreground);
+  --color-purple-hover: var(--purple-hover);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+}
+
 @layer base {
   :root {
     --header-height: 65px;
+    --background: #f5f6f8;
+    --foreground: #111318;
+    --card: #ffffff;
+    --card-foreground: #111318;
+    --card-hover: #eef0f3;
+    --popover: #ffffff;
+    --popover-foreground: #111318;
+    --primary: #111318;
+    --primary-foreground: #ffffff;
+    --secondary: #e6e8ed;
+    --secondary-foreground: #111318;
+    --secondary-hover: #d9dde5;
+    --muted: #eceef2;
+    --muted-foreground: #6b7280;
+    --muted-strong: #9ca3af;
+    --subtle-foreground: #3f4652;
+    --border: #d8dce3;
+    --input: #c8ced8;
+    --ring: #538d4e;
+    --success: #538d4e;
+    --success-foreground: #ffffff;
+    --success-hover: #477c43;
+    --warning: #b59f3b;
+    --warning-foreground: #ffffff;
+    --warning-hover: #9f8b31;
+    --warning-muted: #fff7da;
+    --orange: #f97316;
+    --orange-foreground: #ffffff;
+    --orange-hover: #df6410;
+    --purple: #a855f7;
+    --purple-foreground: #ffffff;
+    --purple-hover: #933ce7;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --overlay: rgb(21 23 21 / 0.38);
   }
 
   html,
   body,
   #root {
-    color-scheme: dark;
     min-height: 100%;
+  }
+
+  html {
+    color-scheme: light;
   }
 
   body {
     margin: 0;
     min-width: 320px;
-    background: #121213;
-    color: #f8f8f8;
+    background: var(--background);
+    color: var(--foreground);
     font-family:
       Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
       "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
   button,
   input {
     font: inherit;
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #121213;
+      --foreground: #f8f8f8;
+      --card: #18191b;
+      --card-foreground: #f8f8f8;
+      --card-hover: #242527;
+      --popover: #18191b;
+      --popover-foreground: #f8f8f8;
+      --primary: #f8f8f8;
+      --primary-foreground: #121213;
+      --secondary: #3a3a3c;
+      --secondary-foreground: #ffffff;
+      --secondary-hover: #4a4a4d;
+      --muted: #272729;
+      --muted-foreground: #818384;
+      --muted-strong: #565758;
+      --subtle-foreground: #d7dadc;
+      --border: #2f3033;
+      --input: #3a3a3c;
+      --ring: #d7dadc;
+      --success: #538d4e;
+      --success-foreground: #ffffff;
+      --success-hover: #5f9b59;
+      --warning: #b59f3b;
+      --warning-foreground: #ffffff;
+      --warning-hover: #c4ad46;
+      --warning-muted: #21180f;
+      --orange: #f97316;
+      --orange-foreground: #ffffff;
+      --orange-hover: #fb8a3d;
+      --purple: #a855f7;
+      --purple-foreground: #ffffff;
+      --purple-hover: #b86cff;
+      --destructive: #f87171;
+      --destructive-foreground: #121213;
+      --overlay: rgb(0 0 0 / 0.7);
+    }
+
+    html {
+      color-scheme: dark;
+    }
+  }
+
 }

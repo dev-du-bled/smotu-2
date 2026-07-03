@@ -1,13 +1,18 @@
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import {
   MASTERMIND_COLORS,
   type MastermindAttempt,
   type MastermindColorId,
   type MastermindGameState,
 } from "../../shared/game";
-import { AuthRequired } from "../components/AuthRequired";
 import { ConfettiBurst } from "../components/ConfettiBurst";
-import { Button, Panel, ProgressStrip, SectionKicker } from "../components/ui";
+import {
+  Button,
+  Panel,
+  PointsAmount,
+  ProgressStrip,
+  SectionKicker,
+} from "../components/ui";
 
 const COLOR_BY_ID = Object.fromEntries(
   MASTERMIND_COLORS.map((color) => [color.id, color]),
@@ -36,8 +41,8 @@ function ColorPeg({
       aria-label={label ?? colorMeta?.name ?? "Emplacement vide"}
       className={`${sizes[size]} inline-flex shrink-0 rounded-full border-2 ${
         empty
-          ? "border-dashed border-[#565758] bg-transparent"
-          : "border-white/20 shadow-[inset_0_-3px_0_rgba(0,0,0,0.24)]"
+          ? "border-dashed border-muted-strong bg-transparent"
+          : "border-foreground/20 shadow-[inset_0_-3px_0_rgba(0,0,0,0.24)]"
       }`}
       role="img"
       style={colorMeta && !empty ? { backgroundColor: colorMeta.hex } : undefined}
@@ -49,12 +54,12 @@ function FeedbackPegs({ exact, present }: { exact: number; present: number }) {
   const pegs = [
     ...Array.from({ length: exact }, (_, index) => ({
       key: `exact-${index}`,
-      className: "bg-[#f8f8f8]",
+      className: "bg-primary",
       label: "Bien place",
     })),
     ...Array.from({ length: present }, (_, index) => ({
       key: `present-${index}`,
-      className: "bg-[#b59f3b]",
+      className: "bg-warning",
       label: "Bonne couleur",
     })),
   ];
@@ -71,7 +76,7 @@ function FeedbackPegs({ exact, present }: { exact: number; present: number }) {
           <span
             aria-label={peg?.label ?? "Indice vide"}
             className={`size-3 rounded-full ${
-              peg?.className ?? "bg-[#3a3a3c]"
+              peg?.className ?? "bg-secondary"
             }`}
             key={peg?.key ?? `empty-${index}`}
           />
@@ -83,8 +88,8 @@ function FeedbackPegs({ exact, present }: { exact: number; present: number }) {
 
 function AttemptRow({ attempt }: { attempt: MastermindAttempt }) {
   return (
-    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-[#2f3033] bg-[#18191b] p-3">
-      <p className="w-8 font-mono text-sm font-black text-[#818384]">
+    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-border bg-card p-3">
+      <p className="w-8 font-mono text-sm font-black text-muted-foreground">
         {attempt.attemptNumber}
       </p>
       <div className="flex gap-2">
@@ -107,8 +112,8 @@ function AnswerReveal({ answer }: { answer: MastermindColorId[] }) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-[#f97316]/50 bg-[#21180f] p-3">
-      <p className="text-sm font-bold text-[#d7dadc]">Code secret</p>
+    <div className="flex items-center justify-between gap-3 rounded-md border border-orange/50 bg-warning-muted p-3">
+      <p className="text-sm font-bold text-subtle-foreground">Code secret</p>
       <div className="flex gap-2">
         {answer.map((color, index) => (
           <ColorPeg
@@ -123,7 +128,7 @@ function AnswerReveal({ answer }: { answer: MastermindColorId[] }) {
   );
 }
 
-function statusText(game: MastermindGameState, pendingGuess: boolean): string {
+function statusText(game: MastermindGameState, pendingGuess: boolean): ReactNode {
   const remaining = game.maxAttempts - game.attempts.length;
 
   if (pendingGuess) {
@@ -131,9 +136,16 @@ function statusText(game: MastermindGameState, pendingGuess: boolean): string {
   }
   if (game.solved) {
     const attempt = game.attempts.find((item) => item.solved);
-    return `Code trouvé en ${attempt?.attemptNumber ?? 0} essais. Score: ${
-      attempt?.score ?? 0
-    }.`;
+    return (
+      <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
+        Code trouvé en {attempt?.attemptNumber ?? 0} essais. Score:
+        <PointsAmount
+          className="font-black"
+          iconClassName="size-4"
+          value={attempt?.score ?? 0}
+        />
+      </span>
+    );
   }
   if (game.over) {
     return "Manche terminée. Le code secret est affiché.";
@@ -142,6 +154,7 @@ function statusText(game: MastermindGameState, pendingGuess: boolean): string {
 }
 
 export function MastermindPage({
+  abandonRound,
   addColor,
   authLoading = false,
   canSubmit,
@@ -149,6 +162,7 @@ export function MastermindPage({
   clearGuess,
   game,
   guess,
+  isAbandoning,
   isStarting,
   localError,
   onSignIn,
@@ -159,6 +173,7 @@ export function MastermindPage({
   signedIn,
   startRound,
 }: {
+  abandonRound: () => void | Promise<void>;
   addColor: (color: MastermindColorId) => void;
   authLoading?: boolean;
   canSubmit: boolean;
@@ -166,6 +181,7 @@ export function MastermindPage({
   clearGuess: () => void;
   game?: MastermindGameState;
   guess: MastermindColorId[];
+  isAbandoning: boolean;
   isStarting: boolean;
   localError: string;
   onSignIn: () => void | Promise<void>;
@@ -176,19 +192,11 @@ export function MastermindPage({
   signedIn: boolean;
   startRound: () => void | Promise<void>;
 }) {
-  if (!signedIn || !game) {
-    return (
-      <AuthRequired
-        loading={authLoading}
-        title={
-          authLoading
-            ? "Vérification de ta session."
-            : "Connecte-toi pour jouer au Mastermind."
-        }
-        description="Mastermind enregistre tes manches et ajoute tes points au classement global."
-        eyebrow="Mastermind"
-      />
-    );
+  void authLoading;
+  void onSignIn;
+
+  if (!game) {
+    return null;
   }
 
   if (game.status === "idle") {
@@ -197,7 +205,7 @@ export function MastermindPage({
         <Panel className="w-full space-y-5">
           <SectionKicker>Mastermind</SectionKicker>
           <h2 className="text-4xl font-black">Casse le code couleur.</h2>
-          <p className="text-[#d7dadc]">
+          <p className="text-subtle-foreground">
             Trouve une combinaison de quatre couleurs. Un pion blanc indique une
             couleur bien placée, un pion jaune une bonne couleur au mauvais
             endroit.
@@ -224,25 +232,44 @@ export function MastermindPage({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <SectionKicker>Mastermind</SectionKicker>
-            <p className="mt-1 text-sm font-semibold text-[#d7dadc]">
-              Manche #{game.gamesPlayed} · jusqu'à 560 points
+            <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-subtle-foreground">
+              Manche #{game.gamesPlayed} · jusqu'à
+              <PointsAmount className="font-black" iconClassName="size-4" value={560} />
             </p>
+            {!signedIn ? (
+              <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                Invité: cette manche ne compte pas au classement.
+              </p>
+            ) : null}
           </div>
-          {game.over ? (
-            <Button
-              disabled={isStarting}
-              size="sm"
-              type="button"
-              variant="secondary"
-              onClick={startRound}
-            >
-              {isStarting ? "Lancement..." : "Rejouer"}
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {!game.over ? (
+              <Button
+                disabled={isAbandoning || pendingGuess}
+                size="sm"
+                type="button"
+                variant="warning"
+                onClick={abandonRound}
+              >
+                {isAbandoning ? "Abandon..." : "Abandonner"}
+              </Button>
+            ) : null}
+            {game.over ? (
+              <Button
+                disabled={isStarting}
+                size="sm"
+                type="button"
+                variant="secondary"
+                onClick={startRound}
+              >
+                {isStarting ? "Lancement..." : "Rejouer"}
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <div>
-          <div className="mb-2 flex items-center justify-between text-sm text-[#818384]">
+          <div className="mb-2 flex items-center justify-between text-sm text-muted-foreground">
             <span>Progression</span>
             <span>
               {game.attempts.length}/{game.maxAttempts}
@@ -257,7 +284,7 @@ export function MastermindPage({
               <AttemptRow attempt={attempt} key={attempt.id} />
             ))
           ) : (
-            <div className="rounded-md border border-dashed border-[#3a3a3c] p-5 text-center text-sm text-[#818384]">
+            <div className="rounded-md border border-dashed border-input p-5 text-center text-sm text-muted-foreground">
               Aucune proposition pour le moment.
             </div>
           )}
@@ -268,7 +295,7 @@ export function MastermindPage({
         <Panel className="space-y-4">
           <div>
             <SectionKicker>Proposition</SectionKicker>
-            <p className="mt-2 text-sm text-[#818384]">
+            <p className="mt-2 text-sm text-muted-foreground">
               Choisis quatre couleurs, les doublons sont autorisés.
             </p>
           </div>
@@ -294,7 +321,7 @@ export function MastermindPage({
               {MASTERMIND_COLORS.map((color) => (
                 <button
                   aria-label={`Ajouter ${color.name}`}
-                  className="grid h-12 place-items-center rounded-md border border-[#3a3a3c] bg-[#272729] transition hover:border-white/60"
+                  className="grid h-12 place-items-center rounded-md border border-input bg-muted transition hover:border-foreground/60"
                   disabled={game.over || pendingGuess}
                   key={color.id}
                   type="button"
@@ -335,12 +362,12 @@ export function MastermindPage({
             </Button>
           </form>
 
-          <p className="min-h-6 text-center text-sm font-semibold text-[#d7dadc]">
+          <p className="min-h-6 text-center text-sm font-semibold text-subtle-foreground">
             {localError || statusText(game, pendingGuess)}
           </p>
         </Panel>
 
-        <AnswerReveal answer={game.answer} />
+        <AnswerReveal answer={game.over ? game.answer : []} />
       </aside>
     </div>
   );

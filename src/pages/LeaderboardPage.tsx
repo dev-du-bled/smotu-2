@@ -1,8 +1,7 @@
 import { useState } from "react";
 import type { LeaderboardSet } from "../../shared/game";
-import { AuthRequired } from "../components/AuthRequired";
 import { LeaderboardList } from "../components/LeaderboardList";
-import { Panel, SectionKicker } from "../components/ui";
+import { Panel, PointsAmount, SectionKicker } from "../components/ui";
 
 type BoardKey = keyof LeaderboardSet;
 
@@ -17,36 +16,34 @@ const BOARDS: Array<{
     key: "global",
     label: "Global",
     title: "Top global",
-    description: "Tous les points de l'app additionnés.",
+    description: "Le classement par le plus grands nombres de Smotucoins",
     emptyLabel: "Aucun score global pour le moment.",
   },
   {
     key: "daily",
     label: "Mot du jour",
     title: "Mot du jour",
-    description: "Le classement des victoires quotidiennes.",
+    description: "Le classement par nombre de victoires quotidiennes.",
     emptyLabel: "Aucun score sur le mot du jour pour le moment.",
   },
   {
     key: "endless",
     label: "Mode libre",
     title: "Mode libre",
-    description: "Les points gagnés sur les manches libres.",
+    description: "Le classement par nombre de manches libres gagnées.",
     emptyLabel: "Aucun score en mode libre pour le moment.",
   },
   {
     key: "mastermind",
     label: "Mastermind",
     title: "Mastermind",
-    description: "Les joueurs qui cassent le mieux les codes couleur.",
+    description: "Le classement par nombre de codes couleur trouvés.",
     emptyLabel: "Aucun score Mastermind pour le moment.",
   },
 ];
 
 export function LeaderboardPage({
-  authLoading = false,
   leaderboards,
-  onSignIn,
   signedIn,
 }: {
   authLoading?: boolean;
@@ -54,37 +51,23 @@ export function LeaderboardPage({
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
 }) {
+  void signedIn;
   const [activeBoard, setActiveBoard] = useState<BoardKey>("global");
   const board = BOARDS.find((item) => item.key === activeBoard) ?? BOARDS[0];
-
-  if (!signedIn) {
-    return (
-      <AuthRequired
-        loading={authLoading}
-        title={
-          authLoading
-            ? "Vérification de ta session."
-            : "Connecte-toi pour voir le classement."
-        }
-        description="Le classement global est lié à ton compte pour éviter les scores anonymes et additionner tes points."
-        eyebrow="Classement"
-      />
-    );
-  }
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1fr_320px]">
       <section>
         <SectionKicker>Classement</SectionKicker>
         <h2 className="mt-2 text-4xl font-black">{board.title}</h2>
-        <p className="mt-2 text-[#d7dadc]">{board.description}</p>
+        <p className="mt-2 text-subtle-foreground">{board.description}</p>
         <div className="mt-5 flex flex-wrap gap-2">
           {BOARDS.map((item) => (
             <button
               className={`rounded-md px-3 py-2 text-sm font-bold transition ${
                 item.key === activeBoard
-                  ? "bg-[#f8f8f8] text-[#121213]"
-                  : "bg-[#18191b] text-[#d7dadc] hover:bg-[#272729]"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-subtle-foreground hover:bg-muted"
               }`}
               key={item.key}
               type="button"
@@ -96,6 +79,7 @@ export function LeaderboardPage({
         </div>
         <div className="mt-6">
           <LeaderboardList
+            board={activeBoard}
             emptyLabel={board.emptyLabel}
             large
             leaderboard={leaderboards[activeBoard]}
@@ -104,10 +88,23 @@ export function LeaderboardPage({
       </section>
       <Panel className="h-fit">
         <SectionKicker>Score</SectionKicker>
-        <div className="mt-4 space-y-3 text-sm leading-6 text-[#d7dadc]">
-          <p>Le mot du jour rapporte jusqu'à 900 points.</p>
-          <p>Le mode libre rapporte jusqu'à 360 points par manche.</p>
-          <p>Mastermind rapporte jusqu'à 560 points par code trouvé.</p>
+        <div className="mt-4 space-y-3 text-sm leading-6 text-subtle-foreground">
+          <p className="flex flex-wrap items-center gap-1.5">
+            Le mot du jour rapporte jusqu'à
+            <PointsAmount className="font-black" iconClassName="size-4" value={900} />
+          </p>
+          <p className="flex flex-wrap items-center gap-1.5">
+            Le mode libre rapporte de
+            <PointsAmount className="font-black" iconClassName="size-4" value={280} />
+            à
+            <PointsAmount className="font-black" iconClassName="size-4" value={560} />
+            selon la longueur.
+          </p>
+          <p className="flex flex-wrap items-center gap-1.5">
+            Mastermind rapporte jusqu'à
+            <PointsAmount className="font-black" iconClassName="size-4" value={560} />
+            par code trouvé.
+          </p>
           <p>Le classement global additionne toutes les victoires de l'app.</p>
         </div>
       </Panel>

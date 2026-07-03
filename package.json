@@ -15,6 +15,7 @@
     "d1:migrate:remote": "wrangler d1 migrations apply smotu-db --remote"
   },
   "dependencies": {
+    "@better-auth/i18n": "^1.6.23",
     "better-auth": "^1.6.23",
     "canvas-confetti": "^1.9.4",
     "drizzle-orm": "^0.45.2",

@@ -1,31 +1,43 @@
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MAX_ATTEMPTS,
-  WORDS,
   WORD_LENGTH,
+  WORD_LENGTH_OPTIONS,
   getPattern,
   getScoreForMode,
+  isKnownWord,
   normalizeGuess,
+  normalizeWordLength,
+  randomWord,
   type Attempt,
   type EndlessGameState,
+  type WordLengthOption,
 } from "../../shared/game";
 import { apiJson, useApiResource } from "../lib/api";
 import { emptyEndlessGame, letterStates } from "./state";
 
 // Manche libre jouée entièrement côté navigateur pour les visiteurs non connectés.
 // ponytail: pas de persistance ni de classement pour l'anonyme (décidé), tout en state React.
-function newLocalRound(gamesPlayed: number): EndlessGameState {
+function newLocalRound(
+  gamesPlayed: number,
+  wordLength: WordLengthOption,
+): EndlessGameState {
   return {
     ...emptyEndlessGame,
     gameId: `local-${gamesPlayed + 1}`,
     dateKey: `Libre #${gamesPlayed + 1}`,
     status: "active",
     over: false,
-    answer: WORDS[Math.floor(Math.random() * WORDS.length)],
+    answer: randomWord(wordLength),
+    wordLength,
     gamesPlayed: gamesPlayed + 1,
     attempts: [],
   };
+}
+
+function notifyScore(score: number): void {
+  window.dispatchEvent(new CustomEvent("smotu:score", { detail: { score } }));
 }
 
 export function useEndlessGame(signedIn: boolean) {
@@ -40,8 +52,18 @@ export function useEndlessGame(signedIn: boolean) {
   const [localError, setLocalError] = useState("");
   const [celebrationKey, setCelebrationKey] = useState("");
   const [isStarting, setIsStarting] = useState(false);
+  const [isAbandoning, setIsAbandoning] = useState(false);
+  const [selectedWordLength, setSelectedWordLength] =
+    useState<WordLengthOption>(WORD_LENGTH);
 
   const game = signedIn ? gameResource.data : localGame;
+
+  useEffect(() => {
+    if (game.status === "active") {
+      setSelectedWordLength(normalizeWordLength(game.wordLength));
+    }
+  }, [game.status, game.wordLength]);
+
   const visibleAttempts = pendingGuess
     ? [
         ...game.attempts,
@@ -67,17 +89,19 @@ export function useEndlessGame(signedIn: boolean) {
   const progress = Math.round((game.attempts.length / game.maxAttempts) * 100);
   const canSubmit =
     game.status === "active" &&
-    inputValue.length === WORD_LENGTH &&
+    inputValue.length === game.wordLength &&
     !game.over &&
     !pendingGuess;
 
-  async function startRound() {
+  async function startRound(wordLength = selectedWordLength) {
+    const nextWordLength = normalizeWordLength(wordLength);
     setInputValue("");
     setPendingGuess("");
     setLocalError("");
+    setSelectedWordLength(nextWordLength);
 
     if (!signedIn) {
-      setLocalGame((current) => newLocalRound(current.gamesPlayed));
+      setLocalGame((current) => newLocalRound(current.gamesPlayed, nextWordLength));
       return;
     }
 
@@ -87,6 +111,7 @@ export function useEndlessGame(signedIn: boolean) {
       gameResource.setData(
         await apiJson<EndlessGameState>("/api/game/endless/start", {
           method: "POST",
+          body: JSON.stringify({ wordLength: nextWordLength }),
         }),
       );
     } catch (reason) {
@@ -100,13 +125,17 @@ export function useEndlessGame(signedIn: boolean) {
 
   async function onSubmit(event?: FormEvent) {
     event?.preventDefault();
-    const guess = normalizeGuess(inputValue);
+    const guess = normalizeGuess(inputValue, game.wordLength);
 
     if (game.status !== "active") {
       setLocalError("Lance une manche libre avant de proposer un mot.");
       return;
     }
-    if (guess.length !== WORD_LENGTH || game.over || pendingGuess) {
+    if (guess.length !== game.wordLength || game.over || pendingGuess) {
+      return;
+    }
+    if (!isKnownWord(guess, game.wordLength)) {
+      setLocalError("Ce mot n'est pas dans le dictionnaire.");
       return;
     }
 
@@ -120,7 +149,9 @@ export function useEndlessGame(signedIn: boolean) {
         pattern: getPattern(guess, game.answer),
         attemptNumber,
         solved,
-        score: solved ? getScoreForMode("endless", attemptNumber) : 0,
+        score: solved
+          ? getScoreForMode("endless", attemptNumber, game.wordLength)
+          : 0,
         createdAt: new Date().toISOString(),
       };
       setLocalError("");
@@ -134,6 +165,7 @@ export function useEndlessGame(signedIn: boolean) {
       }));
       if (solved) {
         setCelebrationKey(`${game.gameId}-${attempt.id}-${Date.now()}`);
+        notifyScore(attempt.score);
       }
       return;
     }
@@ -156,6 +188,7 @@ export function useEndlessGame(signedIn: boolean) {
 
       if (!game.solved && winningAttempt) {
         setCelebrationKey(`${nextGame.gameId}-${winningAttempt.id}-${Date.now()}`);
+        notifyScore(winningAttempt.score);
       }
     } catch (reason) {
       setInputValue(guess);
@@ -167,12 +200,54 @@ export function useEndlessGame(signedIn: boolean) {
     }
   }
 
+  async function abandonRound() {
+    if (game.status !== "active" || game.over || pendingGuess || isAbandoning) {
+      return;
+    }
+
+    setLocalError("");
+    setInputValue("");
+    setPendingGuess("");
+
+    if (!signedIn) {
+      setLocalGame((current) => ({
+        ...emptyEndlessGame,
+        gamesPlayed: current.gamesPlayed,
+      }));
+      return;
+    }
+
+    setIsAbandoning(true);
+
+    try {
+      gameResource.setData(
+        await apiJson<EndlessGameState>("/api/game/endless/abandon", {
+          method: "POST",
+        }),
+      );
+    } catch (reason) {
+      setLocalError(
+        reason instanceof Error ? reason.message : "Impossible d'abandonner.",
+      );
+    } finally {
+      setIsAbandoning(false);
+    }
+  }
+
   return {
     error: gameResource.error,
     game,
+    isAbandoning,
     isStarting,
     loading: gameResource.loading,
+    selectedWordLength,
+    setSelectedWordLength: (wordLength: WordLengthOption) => {
+      setSelectedWordLength(wordLength);
+      setInputValue((value) => normalizeGuess(value, wordLength));
+    },
+    abandonRound,
     startRound,
+    wordLengthOptions: WORD_LENGTH_OPTIONS,
     playProps: {
       activeRow,
       canSubmit,
@@ -191,11 +266,11 @@ export function useEndlessGame(signedIn: boolean) {
       },
       onInput: (value: string) => {
         setLocalError("");
-        setInputValue(normalizeGuess(value));
+        setInputValue(normalizeGuess(value, game.wordLength));
       },
       onLetter: (letter: string) => {
         setLocalError("");
-        setInputValue((value) => normalizeGuess(`${value}${letter}`));
+        setInputValue((value) => normalizeGuess(`${value}${letter}`, game.wordLength));
       },
       onSubmit,
     },

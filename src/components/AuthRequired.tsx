@@ -26,12 +26,12 @@ export function AuthRequired({
       <Panel className="w-full space-y-5">
         <SectionKicker>{eyebrow}</SectionKicker>
         <h2 className="text-4xl font-black">{title}</h2>
-        <p className="text-[#d7dadc]">{description}</p>
+        <p className="text-subtle-foreground">{description}</p>
         {loading ? (
           <Skeleton className="mx-auto h-12 w-52" />
         ) : (
           <Link
-            className="mx-auto inline-flex h-12 items-center justify-center rounded-md bg-[#538d4e] px-5 text-base font-bold uppercase tracking-wide text-white transition hover:bg-[#5f9b59]"
+            className="mx-auto inline-flex h-12 items-center justify-center rounded-md bg-success px-5 text-base font-bold uppercase tracking-wide text-success-foreground transition hover:bg-success-hover"
             to={authTarget(location.pathname, location.search)}
           >
             {actionLabel}

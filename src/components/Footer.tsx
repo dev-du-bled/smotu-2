@@ -4,7 +4,7 @@ import { RulesModal } from "./RulesModal";
 
 function FooterLink({ children, to }: { children: string; to: string }) {
   return (
-    <Link className="block py-1.5 transition hover:text-white" to={to}>
+    <Link className="block py-1.5 transition hover:text-foreground" to={to}>
       {children}
     </Link>
   );
@@ -12,7 +12,7 @@ function FooterLink({ children, to }: { children: string; to: string }) {
 
 function FooterTitle({ children }: { children: string }) {
   return (
-    <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#565758]">
+    <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-strong">
       {children}
     </p>
   );
@@ -22,10 +22,10 @@ export function Footer() {
   const [rulesOpen, setRulesOpen] = useState(false);
 
   return (
-    <footer className="border-t border-[#2f3033]">
-      <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-7 px-4 py-8 text-sm text-[#818384] sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+    <footer className="border-t border-border">
+      <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-7 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="max-w-xs sm:min-w-52">
-          <p className="text-lg font-black uppercase tracking-[0.08em] text-white">
+          <p className="text-lg font-black uppercase tracking-[0.08em] text-foreground">
             Smotu
           </p>
           <p className="mt-2 max-w-xs leading-6">
@@ -50,14 +50,14 @@ export function Footer() {
         <div className="sm:min-w-48">
           <FooterTitle>Aide</FooterTitle>
           <button
-            className="block py-1.5 text-left transition hover:text-white"
+            className="block py-1.5 text-left transition hover:text-foreground"
             type="button"
             onClick={() => setRulesOpen(true)}
           >
             Règles du jeu
           </button>
           <a
-            className="block py-1.5 transition hover:text-white"
+            className="block py-1.5 transition hover:text-foreground"
             href="https://github.com/dev-du-bled/smotu-2"
             rel="noreferrer"
             target="_blank"

@@ -40,7 +40,7 @@ export function AuthPage({
         <div className="text-center">
           <SectionKicker>Compte</SectionKicker>
           <h2 className="mt-2 text-4xl font-black">Connexion</h2>
-          <p className="mt-2 text-[#d7dadc]">
+          <p className="mt-2 text-subtle-foreground">
             Connecte-toi avec Google ou avec un email pour enregistrer tes
             scores.
           </p>
@@ -63,7 +63,7 @@ export function AuthPage({
         </Panel>
 
         <Link
-          className="text-center text-sm font-semibold text-[#818384] transition hover:text-[#d7dadc]"
+          className="text-center text-sm font-semibold text-muted-foreground transition hover:text-subtle-foreground"
           to="/"
         >
           Retour à l'accueil

@@ -1,22 +1,39 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { ProfileStats } from "../../shared/game";
 import { AuthRequired } from "../components/AuthRequired";
 import { apiJson } from "../lib/api";
 import type { AuthUser } from "../lib/auth";
-import { Button, Input, Panel, SectionKicker, Skeleton } from "../components/ui";
+import {
+  Button,
+  Input,
+  Panel,
+  PointsAmount,
+  SectionKicker,
+  Skeleton,
+} from "../components/ui";
 
 function StatBox({
+  points = false,
   label,
   value,
 }: {
+  points?: boolean;
   label: string;
   value: number | string;
 }) {
   return (
-    <div className="rounded-md bg-[#272729] p-4">
-      <p className="font-mono text-3xl font-black">{value}</p>
-      <p className="mt-1 text-sm text-[#818384]">{label}</p>
+    <div className="rounded-md bg-muted p-4">
+      {points ? (
+        <PointsAmount
+          className="text-3xl font-black"
+          iconClassName="size-7"
+          value={value}
+        />
+      ) : (
+        <p className="font-mono text-3xl font-black">{value}</p>
+      )}
+      <p className="mt-1 text-sm text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -49,7 +66,7 @@ function ProfileAvatar({ name, picture }: { name: string; picture: string }) {
     return (
       <img
         alt={`Photo de profil de ${name}`}
-        className="size-16 shrink-0 rounded-md border-2 border-[#f97316]/70 bg-[#272729] object-cover"
+        className="size-16 shrink-0 rounded-md border-2 border-orange/70 bg-muted object-cover"
         referrerPolicy="no-referrer"
         src={picture}
         onError={() => setFailed(true)}
@@ -58,7 +75,7 @@ function ProfileAvatar({ name, picture }: { name: string; picture: string }) {
   }
 
   return (
-    <div className="grid size-16 shrink-0 place-items-center rounded-md border-2 border-[#f97316]/70 bg-[#538d4e] text-4xl font-black text-white">
+    <div className="grid size-16 shrink-0 place-items-center rounded-md border-2 border-orange/70 bg-success text-4xl font-black text-success-foreground">
       {initial}
     </div>
   );
@@ -71,21 +88,33 @@ function UsernameForm({
   currentName: string;
   onSaved: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(currentName);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const trimmedValue = value.trim();
+  const unchanged = trimmedValue === currentName.trim();
+
+  useEffect(() => {
+    setValue(currentName);
+  }, [currentName]);
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    if (!trimmedValue || unchanged) {
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
     try {
       await apiJson("/api/profile/username", {
         method: "POST",
-        body: JSON.stringify({ username: value }),
+        body: JSON.stringify({ username: trimmedValue }),
       });
-      setMessage("Pseudo enregistré.");
+      setEditing(false);
+      setMessage("Pseudo mis à jour.");
       onSaved();
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : "Échec de l'enregistrement.");
@@ -94,10 +123,47 @@ function UsernameForm({
     }
   }
 
+  if (!editing) {
+    return (
+      <div className="space-y-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            Pseudo public
+          </p>
+          <p className="mt-1 truncate text-lg font-black text-foreground">
+            {currentName}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-muted-foreground">
+            Visible dans le classement.
+          </p>
+        </div>
+        <Button
+          className="w-full"
+          size="sm"
+          type="button"
+          variant="secondary"
+          onClick={() => {
+            setValue(currentName);
+            setMessage("");
+            setEditing(true);
+          }}
+        >
+          Modifier le pseudo
+        </Button>
+        {message ? (
+          <p className="text-xs font-semibold text-success">{message}</p>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <form className="space-y-2" onSubmit={save}>
-      <label className="text-[#818384]" htmlFor="username">
-        Pseudo public
+    <form className="space-y-3" onSubmit={save}>
+      <label
+        className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground"
+        htmlFor="username"
+      >
+        Nouveau pseudo
       </label>
       <Input
         className="w-full text-base font-semibold normal-case"
@@ -108,16 +174,32 @@ function UsernameForm({
         value={value}
         onChange={(event) => setValue(event.currentTarget.value)}
       />
-      <Button
-        className="w-full"
-        disabled={saving}
-        size="sm"
-        type="submit"
-        variant="success"
-      >
-        {saving ? "Enregistrement..." : "Enregistrer le pseudo"}
-      </Button>
-      {message ? <p className="text-xs text-[#818384]">{message}</p> : null}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button
+          disabled={saving || !trimmedValue || unchanged}
+          size="sm"
+          type="submit"
+          variant="success"
+        >
+          {saving ? "Enregistrement..." : "Enregistrer"}
+        </Button>
+        <Button
+          disabled={saving}
+          size="sm"
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            setValue(currentName);
+            setMessage("");
+            setEditing(false);
+          }}
+        >
+          Annuler
+        </Button>
+      </div>
+      {message ? (
+        <p className="text-xs font-semibold text-destructive">{message}</p>
+      ) : null}
     </form>
   );
 }
@@ -181,22 +263,22 @@ export function ProfilePage({
 
         <div className="space-y-3 text-sm">
           {signedIn ? (
-            <div className="rounded-md border border-[#2f3033] p-3">
+            <div className="rounded-md border border-border p-3">
               <UsernameForm
                 currentName={stats.userName}
                 onSaved={() => refetch?.()}
               />
             </div>
           ) : null}
-          <div className="rounded-md border border-[#2f3033] p-3">
-            <p className="text-[#818384]">Compte</p>
-            <p className="mt-1 truncate font-semibold text-[#d7dadc]">
+          <div className="rounded-md border border-border p-3">
+            <p className="text-muted-foreground">Compte</p>
+            <p className="mt-1 truncate font-semibold text-subtle-foreground">
               {displayEmail(user)}
             </p>
           </div>
-          <div className="rounded-md border border-[#2f3033] p-3">
-            <p className="text-[#818384]">Identifiant Smotu</p>
-            <p className="mt-1 font-mono text-xs font-semibold text-[#d7dadc]">
+          <div className="rounded-md border border-border p-3">
+            <p className="text-muted-foreground">Identifiant Smotu</p>
+            <p className="mt-1 font-mono text-xs font-semibold text-subtle-foreground">
               {shortUserId(stats.userId)}
             </p>
           </div>
@@ -216,7 +298,7 @@ export function ProfilePage({
         <div>
           <SectionKicker>Score</SectionKicker>
           <h3 className="mt-2 text-4xl font-black">Tableau personnel</h3>
-          <p className="mt-2 max-w-2xl text-[#d7dadc]">
+          <p className="mt-2 max-w-2xl text-subtle-foreground">
             Les points viennent du mot du jour et du mode libre. Le classement
             utilise le total de toutes tes victoires.
           </p>
@@ -231,7 +313,7 @@ export function ProfilePage({
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatBox label="Score total" value={stats.totalScore} />
+            <StatBox label="Score total" points value={stats.totalScore} />
             <StatBox label="Rang global" value={rank} />
             <StatBox label="Victoires" value={stats.gamesSolved} />
             <StatBox label="Dernier score" value={lastScore} />
@@ -241,13 +323,17 @@ export function ProfilePage({
         <div className="grid gap-4 md:grid-cols-2">
           <Panel className="space-y-4">
             <SectionKicker>Mot du jour</SectionKicker>
-            <p className="font-mono text-4xl font-black">{stats.dailyScore}</p>
-            <p className="text-sm text-[#818384]">
+            <PointsAmount
+              className="text-4xl font-black"
+              iconClassName="size-8"
+              value={stats.dailyScore}
+            />
+            <p className="text-sm text-muted-foreground">
               {stats.dailySolved}{" "}
               {stats.dailySolved > 1 ? "victoires" : "victoire"} quotidienne.
             </p>
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-md bg-[#538d4e] px-4 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#5f9b59]"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-success px-4 text-sm font-bold uppercase tracking-wide text-success-foreground transition hover:bg-success-hover"
               to="/play"
             >
               Jouer
@@ -256,28 +342,36 @@ export function ProfilePage({
 
           <Panel className="space-y-4">
             <SectionKicker>Mode libre</SectionKicker>
-            <p className="font-mono text-4xl font-black">{stats.endlessScore}</p>
-            <p className="text-sm text-[#818384]">
+            <PointsAmount
+              className="text-4xl font-black"
+              iconClassName="size-8"
+              value={stats.endlessScore}
+            />
+            <p className="text-sm text-muted-foreground">
               {stats.endlessSolved}{" "}
               {stats.endlessSolved > 1 ? "victoires" : "victoire"} libres.
             </p>
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-md bg-[#b59f3b] px-4 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#c4ad46]"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-warning px-4 text-sm font-bold uppercase tracking-wide text-warning-foreground transition hover:bg-warning-hover"
               to="/endless"
             >
-              Lancer
+              Jouer
             </Link>
           </Panel>
 
           <Panel className="space-y-4">
             <SectionKicker>Mastermind</SectionKicker>
-            <p className="font-mono text-4xl font-black">{stats.mastermindScore}</p>
-            <p className="text-sm text-[#818384]">
+            <PointsAmount
+              className="text-4xl font-black"
+              iconClassName="size-8"
+              value={stats.mastermindScore}
+            />
+            <p className="text-sm text-muted-foreground">
               {stats.mastermindSolved}{" "}
               {stats.mastermindSolved > 1 ? "victoires" : "victoire"} Mastermind.
             </p>
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-md bg-[#a855f7] px-4 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#b86cff]"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-purple px-4 text-sm font-bold uppercase tracking-wide text-purple-foreground transition hover:bg-purple-hover"
               to="/mastermind"
             >
               Jouer
