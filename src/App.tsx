@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { Shell, Surface } from "./components/ui";
@@ -29,6 +29,49 @@ type EmailAuthInput = {
   name?: string;
   password: string;
 };
+
+const DEFAULT_TITLE = "Smotu — le mot à deviner avec classement global";
+const DEFAULT_DESCRIPTION =
+  "Smotu, le mot à deviner avec classement global. Trois modes de jeu : le mot du jour, le mode libre et Mastermind.";
+
+const ROUTE_META: Record<string, { title: string; description?: string }> = {
+  "/": { title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION },
+  "/play": {
+    title: "Mot du jour — Smotu",
+    description: "Devine le mot du jour sur Smotu : une grille par jour, points à la clé.",
+  },
+  "/endless": {
+    title: "Mode libre — Smotu",
+    description: "Enchaîne les manches en mode libre sur Smotu et grimpe au classement.",
+  },
+  "/mastermind": {
+    title: "Mastermind — Smotu",
+    description: "Casse le code couleur du Mastermind de Smotu et marque des points.",
+  },
+  "/leaderboard": {
+    title: "Classement — Smotu",
+    description: "Le classement global de Smotu : les meilleurs scores tous modes confondus.",
+  },
+  "/profile": { title: "Profil — Smotu" },
+  "/auth": { title: "Connexion — Smotu" },
+};
+
+function RouteMeta() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const meta = ROUTE_META[location.pathname];
+    document.title = meta?.title ?? DEFAULT_TITLE;
+
+    const description = meta?.description ?? DEFAULT_DESCRIPTION;
+    const tag = document.querySelector('meta[name="description"]');
+    if (tag) {
+      tag.setAttribute("content", description);
+    }
+  }, [location.pathname]);
+
+  return null;
+}
 
 function safeAuthReturnTo(value: string | null): string | null {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
@@ -288,6 +331,7 @@ export function App() {
 
   return (
     <BrowserRouter>
+      <RouteMeta />
       <Shell>
         <Surface>
           <Header
