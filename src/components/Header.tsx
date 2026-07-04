@@ -223,6 +223,7 @@ export function Header({
   const [mobileOpen, setMobileOpen] = useState(false);
   const leaderboardPrefetch = usePrefetchOnHover(["/api/leaderboards"]);
   const profilePrefetch = usePrefetchOnHover(["/api/profile"], signedIn);
+  const shopPrefetch = usePrefetchOnHover(["/api/shop"], signedIn);
 
   useEffect(() => {
     if (!mobileOpen) {
@@ -266,6 +267,13 @@ export function Header({
             Accueil
           </NavLink>
           <GameModeDropdown />
+          <NavLink
+            className={({ isActive }) => navClass(isActive)}
+            to="/shop"
+            {...shopPrefetch}
+          >
+            Boutique
+          </NavLink>
           <NavLink
             className={({ isActive }) => navClass(isActive)}
             to="/leaderboard"
@@ -337,6 +345,14 @@ export function Header({
                 onClick={() => setMobileOpen(false)}
               >
                 Mastermind
+              </NavLink>
+              <NavLink
+                className={({ isActive }) => navClass(isActive, true)}
+                to="/shop"
+                onClick={() => setMobileOpen(false)}
+                {...shopPrefetch}
+              >
+                Boutique
               </NavLink>
               <NavLink
                 className={({ isActive }) => navClass(isActive, true)}

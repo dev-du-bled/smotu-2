@@ -878,3 +878,288 @@ export function getScoreForMode(
 
   return scores[attemptNumber - 1] ?? 0;
 }
+
+export type ShopCategory = "theme" | "avatar" | "confetti" | "cosmetic" | "hint";
+export type ShopItemId =
+  | "badge-flamme"
+  | "badge-couronne"
+  | "badge-onyx"
+  | "badge-oracle"
+  | "badge-saphir"
+  | "badge-comete"
+  | "avatar-renard"
+  | "avatar-hibou"
+  | "avatar-dragon"
+  | "avatar-robot"
+  | "avatar-astronaute"
+  | "avatar-slime"
+  | "theme-neon"
+  | "theme-foret"
+  | "theme-ocean"
+  | "theme-sakura"
+  | "theme-minuit"
+  | "theme-volcan"
+  | "confetti-classic"
+  | "confetti-etoiles"
+  | "confetti-smotucoins"
+  | "confetti-feux-artifice"
+  | "confetti-galaxie"
+  | "confetti-pluie-or"
+  | "hint-letter-pack"
+  | "hint-position-pack"
+  | "hint-mastermind-pack";
+
+export type ShopItem = {
+  id: ShopItemId;
+  name: string;
+  description: string;
+  category: ShopCategory;
+  price: number;
+  repeatable: boolean;
+};
+
+export type ShopPurchase = {
+  id: string;
+  itemId: ShopItemId;
+  quantity: number;
+  spent: number;
+  createdAt: string;
+};
+
+export type ShopInventory = {
+  balance: number;
+  lifetimeEarned: number;
+  lifetimeSpent: number;
+  purchases: ShopPurchase[];
+  ownedItemIds: ShopItemId[];
+  hintLetterCount: number;
+  hintPositionCount: number;
+  hintMastermindCount: number;
+};
+
+export type ShopState = {
+  items: ShopItem[];
+  inventory: ShopInventory;
+};
+
+// Économie boutique: les petits cosmétiques coûtent environ une bonne victoire
+// quotidienne, les thèmes premium demandent plusieurs jours, et les indices
+// restent assez chers pour ne pas casser la boucle de scoring.
+export const SHOP_ITEMS: ShopItem[] = [
+  {
+    id: "badge-flamme",
+    name: "Badge Flamme",
+    description: "Un badge de profil pour afficher une série brûlante.",
+    category: "cosmetic",
+    price: 750,
+    repeatable: false,
+  },
+  {
+    id: "badge-saphir",
+    name: "Badge Saphir",
+    description: "Un badge froid et brillant pour les joueurs réguliers.",
+    category: "cosmetic",
+    price: 950,
+    repeatable: false,
+  },
+  {
+    id: "badge-comete",
+    name: "Badge Comète",
+    description: "Une marque rare pour les remontées éclairs au classement.",
+    category: "cosmetic",
+    price: 1300,
+    repeatable: false,
+  },
+  {
+    id: "badge-couronne",
+    name: "Badge Couronne",
+    description: "Un cosmétique premium pour les joueurs installés au classement.",
+    category: "cosmetic",
+    price: 1800,
+    repeatable: false,
+  },
+  {
+    id: "badge-onyx",
+    name: "Badge Onyx",
+    description: "Un badge sombre pour les spécialistes du mode libre.",
+    category: "cosmetic",
+    price: 2100,
+    repeatable: false,
+  },
+  {
+    id: "badge-oracle",
+    name: "Badge Oracle",
+    description: "Le badge des joueurs qui semblent deviner avant tout le monde.",
+    category: "cosmetic",
+    price: 3200,
+    repeatable: false,
+  },
+  {
+    id: "avatar-renard",
+    name: "Avatar Renard",
+    description: "Un avatar malin pour les solveurs qui optimisent chaque essai.",
+    category: "avatar",
+    price: 850,
+    repeatable: false,
+  },
+  {
+    id: "avatar-hibou",
+    name: "Avatar Hibou",
+    description: "Un avatar nocturne pour les joueurs patients et méthodiques.",
+    category: "avatar",
+    price: 1050,
+    repeatable: false,
+  },
+  {
+    id: "avatar-slime",
+    name: "Avatar Slime",
+    description: "Un petit compagnon gélatineux pour détendre les défaites.",
+    category: "avatar",
+    price: 1250,
+    repeatable: false,
+  },
+  {
+    id: "avatar-robot",
+    name: "Avatar Robot",
+    description: "Un portrait mécanique pour les cerveaux algorithmiques.",
+    category: "avatar",
+    price: 1600,
+    repeatable: false,
+  },
+  {
+    id: "avatar-astronaute",
+    name: "Avatar Astronaute",
+    description: "Un avatar spatial pour explorer les mots les plus improbables.",
+    category: "avatar",
+    price: 2200,
+    repeatable: false,
+  },
+  {
+    id: "avatar-dragon",
+    name: "Avatar Dragon",
+    description: "Un avatar légendaire réservé aux gros coffres de smotucoins.",
+    category: "avatar",
+    price: 3600,
+    repeatable: false,
+  },
+  {
+    id: "theme-foret",
+    name: "Thème Forêt",
+    description: "Une ambiance verte et calme pour les sessions longues.",
+    category: "theme",
+    price: 1400,
+    repeatable: false,
+  },
+  {
+    id: "theme-ocean",
+    name: "Thème Océan",
+    description: "Des bleus profonds pour garder la tête froide.",
+    category: "theme",
+    price: 1600,
+    repeatable: false,
+  },
+  {
+    id: "theme-sakura",
+    name: "Thème Sakura",
+    description: "Une palette rose et douce pour célébrer les victoires propres.",
+    category: "theme",
+    price: 1900,
+    repeatable: false,
+  },
+  {
+    id: "theme-neon",
+    name: "Thème Néon",
+    description: "Une signature visuelle flashy pour les profils qui claquent.",
+    category: "theme",
+    price: 2400,
+    repeatable: false,
+  },
+  {
+    id: "theme-minuit",
+    name: "Thème Minuit",
+    description: "Un thème très sombre pour les chasseurs de mots nocturnes.",
+    category: "theme",
+    price: 2800,
+    repeatable: false,
+  },
+  {
+    id: "theme-volcan",
+    name: "Thème Volcan",
+    description: "Un thème chaud et agressif pour les séries explosives.",
+    category: "theme",
+    price: 3400,
+    repeatable: false,
+  },
+  {
+    id: "confetti-classic",
+    name: "Confetti Classique",
+    description: "Une animation de victoire plus dense et plus festive.",
+    category: "confetti",
+    price: 650,
+    repeatable: false,
+  },
+  {
+    id: "confetti-etoiles",
+    name: "Confetti Étoiles",
+    description: "Des étoiles qui tombent quand le dernier essai est parfait.",
+    category: "confetti",
+    price: 900,
+    repeatable: false,
+  },
+  {
+    id: "confetti-smotucoins",
+    name: "Pluie de Smotucoins",
+    description: "Une pluie de pièces pour les victoires les plus rentables.",
+    category: "confetti",
+    price: 1350,
+    repeatable: false,
+  },
+  {
+    id: "confetti-feux-artifice",
+    name: "Feux d'artifice",
+    description: "Une explosion de couleurs pour les résolutions en peu d'essais.",
+    category: "confetti",
+    price: 1800,
+    repeatable: false,
+  },
+  {
+    id: "confetti-galaxie",
+    name: "Confetti Galaxie",
+    description: "Un burst cosmique pour les victoires vraiment stellaires.",
+    category: "confetti",
+    price: 2300,
+    repeatable: false,
+  },
+  {
+    id: "confetti-pluie-or",
+    name: "Pluie d'or",
+    description: "L'effet le plus luxueux pour transformer une victoire en jackpot.",
+    category: "confetti",
+    price: 3100,
+    repeatable: false,
+  },
+  {
+    id: "hint-letter-pack",
+    name: "Pack indice lettre x3",
+    description: "Trois indices qui révèlent une lettre présente dans une grille de mots.",
+    category: "hint",
+    price: 1200,
+    repeatable: true,
+  },
+  {
+    id: "hint-position-pack",
+    name: "Pack indice position x2",
+    description: "Deux indices plus forts qui révèlent une lettre bien placée.",
+    category: "hint",
+    price: 1700,
+    repeatable: true,
+  },
+  {
+    id: "hint-mastermind-pack",
+    name: "Pack indice Mastermind x2",
+    description: "Deux aides dédiées aux codes couleur les plus coriaces.",
+    category: "hint",
+    price: 1500,
+    repeatable: true,
+  },
+];

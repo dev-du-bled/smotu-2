@@ -28,6 +28,10 @@ import {
   type MastermindGameState,
   type MastermindGameStatus,
   type ProfileStats,
+  SHOP_ITEMS,
+  type ShopInventory,
+  type ShopItemId,
+  type ShopState,
   type TileState,
 } from "../shared/game";
 import {
@@ -35,6 +39,7 @@ import {
   endlessGames as endlessGamesTable,
   users as usersTable,
   mastermindGames as mastermindGamesTable,
+  shopPurchases as shopPurchasesTable,
   type StoredDailyGame,
   type StoredEndlessGame,
   type StoredMastermindGame,
@@ -71,6 +76,8 @@ const schemaStatements = [
   "CREATE INDEX IF NOT EXISTS endless_games_user_status_idx ON endless_games (user_id, status, created_at)",
   "CREATE TABLE IF NOT EXISTS mastermind_games (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, answer TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active', score INTEGER NOT NULL DEFAULT 0, attempts TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
   "CREATE INDEX IF NOT EXISTS mastermind_games_user_status_idx ON mastermind_games (user_id, status, created_at)",
+  "CREATE TABLE IF NOT EXISTS shop_purchases (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, item_id TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 1, spent INTEGER NOT NULL, created_at TEXT NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS shop_purchases_user_idx ON shop_purchases (user_id, created_at)",
 ];
 
 const migrationStatements = [
@@ -256,7 +263,7 @@ async function migrateAttemptsToGames(db: Db): Promise<void> {
     };
     const byDay = new Map<string, DailyBucket>();
     for (const row of rows) {
-      const key = `${row.user_id} ${row.date_key}`;
+      const key = `${row.user_id}${row.date_key}`;
       const bucket =
         byDay.get(key) ??
         ({
@@ -1320,6 +1327,108 @@ async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
   };
 }
 
+function normalizeShopItemId(value: unknown): ShopItemId | undefined {
+  return SHOP_ITEMS.find((item) => item.id === value)?.id;
+}
+
+function hintCounts(purchases: { itemId: string; quantity: number }[]) {
+  let hintLetterCount = 0;
+  let hintPositionCount = 0;
+  let hintMastermindCount = 0;
+
+  for (const purchase of purchases) {
+    if (purchase.itemId === "hint-letter-pack") {
+      hintLetterCount += purchase.quantity * 3;
+    }
+    if (purchase.itemId === "hint-position-pack") {
+      hintPositionCount += purchase.quantity * 2;
+    }
+    if (purchase.itemId === "hint-mastermind-pack") {
+      hintMastermindCount += purchase.quantity * 2;
+    }
+  }
+
+  return { hintLetterCount, hintPositionCount, hintMastermindCount };
+}
+
+async function shopInventory(db: Db, user: AuthUser): Promise<ShopInventory> {
+  const stats = await profileStats(db, user);
+  const rows = await db
+    .select({
+      id: shopPurchasesTable.id,
+      itemId: shopPurchasesTable.itemId,
+      quantity: shopPurchasesTable.quantity,
+      spent: shopPurchasesTable.spent,
+      createdAt: shopPurchasesTable.createdAt,
+    })
+    .from(shopPurchasesTable)
+    .where(eq(shopPurchasesTable.userId, user.userId))
+    .orderBy(desc(shopPurchasesTable.createdAt))
+    .all();
+  const lifetimeSpent = rows.reduce((total, row) => total + row.spent, 0);
+  const ownedItemIds = Array.from(
+    new Set(
+      rows
+        .map((row) => normalizeShopItemId(row.itemId))
+        .filter((itemId): itemId is ShopItemId => Boolean(itemId)),
+    ),
+  );
+
+  return {
+    balance: Math.max(0, stats.totalScore - lifetimeSpent),
+    lifetimeEarned: stats.totalScore,
+    lifetimeSpent,
+    purchases: rows.map((row) => ({
+      id: row.id,
+      itemId: normalizeShopItemId(row.itemId) ?? "badge-flamme",
+      quantity: row.quantity,
+      spent: row.spent,
+      createdAt: row.createdAt,
+    })),
+    ownedItemIds,
+    ...hintCounts(rows),
+  };
+}
+
+async function shopState(db: Db, user: AuthUser): Promise<ShopState> {
+  return { items: SHOP_ITEMS, inventory: await shopInventory(db, user) };
+}
+
+async function buyShopItem(
+  db: Db,
+  user: AuthUser,
+  rawItemId: unknown,
+): Promise<ShopState> {
+  const itemId = normalizeShopItemId(rawItemId);
+  const item = SHOP_ITEMS.find((candidate) => candidate.id === itemId);
+
+  if (!item) {
+    throw new Error("Article boutique introuvable.");
+  }
+
+  const inventory = await shopInventory(db, user);
+  if (!item.repeatable && inventory.ownedItemIds.includes(item.id)) {
+    throw new Error("Cet article est déjà dans ton inventaire.");
+  }
+  if (inventory.balance < item.price) {
+    throw new Error("Solde de smotucoins insuffisant.");
+  }
+
+  await db
+    .insert(shopPurchasesTable)
+    .values({
+      id: crypto.randomUUID(),
+      userId: user.userId,
+      itemId: item.id,
+      quantity: 1,
+      spent: item.price,
+      createdAt: now(),
+    })
+    .run();
+
+  return shopState(db, user);
+}
+
 async function requestBody(request: Request): Promise<Record<string, unknown>> {
   if (!request.body) {
     return {};
@@ -1358,6 +1467,15 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   if (request.method === "POST" && url.pathname === "/api/profile/username") {
     const body = await requestBody(request);
     return json(await setUsername(db, user, String(body.username ?? "")));
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/shop") {
+    return json(await shopState(db, user));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/shop/buy") {
+    const body = await requestBody(request);
+    return json(await buyShopItem(db, user, body.itemId));
   }
 
   if (request.method === "GET" && url.pathname === "/api/game/daily") {
