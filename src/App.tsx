@@ -11,6 +11,7 @@ import {
 import { useEndlessGame } from "./game/use-endless-game";
 import { useMastermindGame } from "./game/use-mastermind-game";
 import { emptyProfileStats, useProfileStats } from "./game/use-profile";
+import { useShop } from "./game/use-shop";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { AuthErrorPage } from "./pages/AuthErrorPage";
 import { AdminPage } from "./pages/AdminPage";
@@ -22,6 +23,7 @@ import { MastermindPage } from "./pages/MastermindPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PlayPage } from "./pages/PlayPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { ShopPage } from "./pages/ShopPage";
 import { clearApiCache } from "./lib/api";
 import { authClient, type AuthUser } from "./lib/auth";
 
@@ -49,6 +51,7 @@ const ROUTE_META: Record<string, { title: string; description?: string }> = {
     title: "Mastermind — Smotu",
     description: "Casse le code couleur du Mastermind de Smotu et marque des points.",
   },
+  "/shop": { title: "Boutique — Smotu", description: "Dépense tes smotucoins contre des cosmétiques et des indices." },
   "/leaderboard": {
     title: "Classement — Smotu",
     description: "Le classement global de Smotu : les meilleurs scores tous modes confondus.",
@@ -180,6 +183,28 @@ function MastermindRoute({
       authLoading={authLoading}
       signedIn={signedIn}
       onSignIn={onSignIn}
+    />
+  );
+}
+
+function ShopRoute({
+  authLoading,
+  enabled,
+  signedIn,
+}: {
+  authLoading: boolean;
+  enabled: boolean;
+  signedIn: boolean;
+}) {
+  const shop = useShop(enabled);
+
+  return (
+    <ShopPage
+      authLoading={authLoading}
+      buy={shop.buy}
+      loading={shop.loading}
+      shop={shop.data}
+      signedIn={signedIn}
     />
   );
 }
@@ -383,6 +408,16 @@ export function App() {
                     enabled={signedIn}
                     signedIn={signedIn}
                     onSignIn={signIn}
+                  />
+                }
+              />
+              <Route
+                path="/shop"
+                element={
+                  <ShopRoute
+                    authLoading={session.isPending}
+                    enabled={signedIn}
+                    signedIn={signedIn}
                   />
                 }
               />

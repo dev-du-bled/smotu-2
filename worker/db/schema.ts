@@ -54,6 +54,19 @@ export const endlessGames = sqliteTable(
   ],
 );
 
+export const shopPurchases = sqliteTable(
+  "shop_purchases",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    itemId: text("item_id").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    spent: integer("spent").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("shop_purchases_user_idx").on(table.userId, table.createdAt)],
+);
+
 export const mastermindGames = sqliteTable(
   "mastermind_games",
   {
@@ -79,6 +92,7 @@ export const mastermindGames = sqliteTable(
   ],
 );
 
+export type StoredShopPurchase = typeof shopPurchases.$inferSelect;
 export type StoredUser = typeof users.$inferSelect;
 export type StoredDailyGame = typeof dailyGames.$inferSelect;
 export type StoredEndlessGame = typeof endlessGames.$inferSelect;
