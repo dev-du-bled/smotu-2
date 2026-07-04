@@ -21,11 +21,13 @@ export function HomePage({
   game,
   leaderboardCount,
   leaderboardLoading = false,
+  signedIn = false,
 }: {
   bestScore: number;
   game: GameState;
   leaderboardCount: number;
   leaderboardLoading?: boolean;
+  signedIn?: boolean;
 }) {
   const attemptsLabel = game.attempts.length > 1 ? "essais" : "essai";
   const modes = [
@@ -83,6 +85,14 @@ export function HomePage({
           >
             Voir le classement
           </Link>
+          {signedIn ? (
+            <Link
+              className="inline-flex h-12 items-center justify-center rounded-md border border-input bg-card px-5 text-base font-bold uppercase tracking-wide text-subtle-foreground transition hover:bg-muted"
+              to="/admin"
+            >
+              Panel admin
+            </Link>
+          ) : null}
         </div>
       </section>
 

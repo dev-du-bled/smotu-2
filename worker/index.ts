@@ -48,6 +48,9 @@ type AuthUser = {
   googleAccountId?: string;
   name: string;
   picture?: string;
+  role?: string | null;
+  sessionId: string;
+  sessionToken: string;
   userId: string;
 };
 
@@ -58,8 +61,8 @@ function database(env: Env) {
 type Db = ReturnType<typeof database>;
 
 const schemaStatements = [
-  'CREATE TABLE IF NOT EXISTS "user" (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, emailVerified INTEGER NOT NULL DEFAULT 0, image TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL)',
-  'CREATE TABLE IF NOT EXISTS "session" (id TEXT PRIMARY KEY, expiresAt INTEGER NOT NULL, token TEXT NOT NULL UNIQUE, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, ipAddress TEXT, userAgent TEXT, userId TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE)',
+  'CREATE TABLE IF NOT EXISTS "user" (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, emailVerified INTEGER NOT NULL DEFAULT 0, image TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, role TEXT DEFAULT \'user\', banned INTEGER DEFAULT 0, banReason TEXT, banExpires INTEGER)',
+  'CREATE TABLE IF NOT EXISTS "session" (id TEXT PRIMARY KEY, expiresAt INTEGER NOT NULL, token TEXT NOT NULL UNIQUE, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, ipAddress TEXT, userAgent TEXT, userId TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE, impersonatedBy TEXT)',
   'CREATE TABLE IF NOT EXISTS "account" (id TEXT PRIMARY KEY, accountId TEXT NOT NULL, providerId TEXT NOT NULL, userId TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE, accessToken TEXT, refreshToken TEXT, idToken TEXT, accessTokenExpiresAt INTEGER, refreshTokenExpiresAt INTEGER, scope TEXT, password TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL)',
   'CREATE UNIQUE INDEX IF NOT EXISTS account_provider_account_idx ON "account" (providerId, accountId)',
   'CREATE TABLE IF NOT EXISTS "verification" (id TEXT PRIMARY KEY, identifier TEXT NOT NULL, value TEXT NOT NULL, expiresAt INTEGER NOT NULL, createdAt INTEGER, updatedAt INTEGER)',
@@ -78,6 +81,11 @@ const migrationStatements = [
   "ALTER TABLE users ADD COLUMN auth_user_id TEXT",
   "ALTER TABLE endless_games ADD COLUMN attempts TEXT NOT NULL DEFAULT '[]'",
   "ALTER TABLE mastermind_games ADD COLUMN attempts TEXT NOT NULL DEFAULT '[]'",
+  'ALTER TABLE "user" ADD COLUMN role TEXT DEFAULT \'user\'',
+  'ALTER TABLE "user" ADD COLUMN banned INTEGER DEFAULT 0',
+  'ALTER TABLE "user" ADD COLUMN banReason TEXT',
+  'ALTER TABLE "user" ADD COLUMN banExpires INTEGER',
+  'ALTER TABLE "session" ADD COLUMN impersonatedBy TEXT',
   // Colonnes de `users` jamais lues (email est déjà dans la table d'auth,
   // google_account_id est dérivable de `account`).
   "ALTER TABLE users DROP COLUMN google_account_id",
@@ -342,7 +350,43 @@ async function requireUser(request: Request, env: Env): Promise<AuthUser> {
     name: fallbackName(session.user.name, session.user.email, userId),
     email: session.user.email,
     picture: session.user.image ?? undefined,
+    role: "role" in session.user ? String(session.user.role ?? "") : undefined,
+    sessionId: session.session.id,
+    sessionToken: session.session.token,
   };
+}
+
+function configuredAdminUserIds(env: Env): Set<string> {
+  return new Set(
+    (env.ADMIN_USER_IDS ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+}
+
+async function requireAdmin(
+  request: Request,
+  env: Env,
+  db: Db,
+): Promise<AuthUser> {
+  const user = await requireUser(request, env);
+  const configuredAdmins = configuredAdminUserIds(env);
+  const row = await db
+    .select({ role: authUser.role })
+    .from(authUser)
+    .where(eq(authUser.id, user.authUserId))
+    .get();
+  const role = row?.role ?? user.role ?? "user";
+
+  if (role !== "admin" && !configuredAdmins.has(user.authUserId)) {
+    throw new Response(JSON.stringify({ error: "Admin requis." }), {
+      status: 403,
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+    });
+  }
+
+  return { ...user, role };
 }
 
 // Remplace le nom Google par le username choisi (public partout), et crée le
@@ -1320,6 +1364,28 @@ async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
   };
 }
 
+async function adminOverview(user: AuthUser) {
+  const dateKey = todayKey();
+
+  return {
+    currentUser: {
+      id: user.authUserId,
+      email: user.email ?? "",
+      name: user.name,
+      role: user.role ?? "admin",
+    },
+    currentSession: {
+      id: user.sessionId,
+      token: user.sessionToken,
+    },
+    today: {
+      dateKey,
+      word: getWordForDate(dateKey),
+      wordLength: WORD_LENGTH,
+    },
+  };
+}
+
 async function requestBody(request: Request): Promise<Record<string, unknown>> {
   if (!request.body) {
     return {};
@@ -1342,6 +1408,12 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
   if (request.method === "GET" && url.pathname === "/api/leaderboard/global") {
     return json(await globalLeaderboard(db));
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/admin/overview") {
+    const adminUser = await requireAdmin(request, env, db);
+    await ensureUserProfile(db, adminUser);
+    return json(await adminOverview(adminUser));
   }
 
   const user = await requireUser(request, env);

@@ -1,6 +1,7 @@
 import { i18n } from "@better-auth/i18n";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
 import { drizzle } from "drizzle-orm/d1";
 import { authSchema } from "./db/auth-schema";
 
@@ -11,6 +12,7 @@ export type Env = {
   BETTER_AUTH_URL?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  ADMIN_USER_IDS?: string;
 };
 
 const frenchAuthErrors = {
@@ -69,6 +71,13 @@ const frenchAuthErrors = {
   VERIFICATION_EMAIL_NOT_ENABLED: "La vérification par email n'est pas activée.",
 };
 
+function adminUserIds(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
 export function createAuth(env: Env, request: Request) {
   const origin = env.BETTER_AUTH_URL || new URL(request.url).origin;
   const requestOrigin = request.headers.get("origin");
@@ -101,6 +110,9 @@ export function createAuth(env: Env, request: Request) {
         translations: {
           fr: frenchAuthErrors,
         },
+      }),
+      admin({
+        adminUserIds: adminUserIds(env.ADMIN_USER_IDS),
       }),
     ],
     trustedOrigins: (incomingRequest) => [

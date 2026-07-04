@@ -7,7 +7,13 @@ type BaseProps = {
   className?: string;
 };
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "success" | "warning";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "success"
+  | "warning"
+  | "destructive";
 type ButtonSize = "sm" | "md" | "lg";
 
 function formatCompactNumber(value: number | string): string {
@@ -88,6 +94,8 @@ export function Button({
     ghost: "bg-transparent text-subtle-foreground hover:bg-muted",
     success: "bg-success text-success-foreground hover:bg-success-hover",
     warning: "bg-warning text-warning-foreground hover:bg-warning-hover",
+    destructive:
+      "bg-destructive text-destructive-foreground hover:bg-destructive",
   };
   const sizes: Record<ButtonSize, string> = {
     sm: "h-9 px-3 text-sm",

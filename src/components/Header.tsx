@@ -4,10 +4,12 @@ import { prefetchResource } from "../lib/api";
 import { Button, LogoMark, PointsAmount, Skeleton } from "./ui";
 
 type HeaderProps = {
+  isAdmin: boolean;
   loading: boolean;
   onSignIn: () => void | Promise<void>;
   onSignOut: () => void | Promise<void>;
   points: number;
+  pointsLoading: boolean;
   signedIn: boolean;
 };
 
@@ -192,7 +194,23 @@ function GameModeDropdown() {
   );
 }
 
-function HeaderPoints({ points, mobile = false }: { points: number; mobile?: boolean }) {
+function HeaderPoints({
+  loading = false,
+  points,
+  mobile = false,
+}: {
+  loading?: boolean;
+  points: number;
+  mobile?: boolean;
+}) {
+  if (loading) {
+    return (
+      <Skeleton
+        className={`${mobile ? "h-10 w-full" : "h-9 w-24"} rounded-md`}
+      />
+    );
+  }
+
   const exactPoints = points.toLocaleString("en-US");
 
   return (
@@ -212,10 +230,12 @@ function HeaderPoints({ points, mobile = false }: { points: number; mobile?: boo
 }
 
 export function Header({
+  isAdmin,
   loading,
   onSignIn,
   onSignOut,
   points,
+  pointsLoading,
   signedIn,
 }: HeaderProps) {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
@@ -223,6 +243,7 @@ export function Header({
   const [mobileOpen, setMobileOpen] = useState(false);
   const leaderboardPrefetch = usePrefetchOnHover(["/api/leaderboards"]);
   const profilePrefetch = usePrefetchOnHover(["/api/profile"], signedIn);
+  const adminPrefetch = usePrefetchOnHover(["/api/admin/overview"], isAdmin);
 
   useEffect(() => {
     if (!mobileOpen) {
@@ -280,10 +301,19 @@ export function Header({
           >
             Profil
           </NavLink>
+          {isAdmin ? (
+            <NavLink
+              className={({ isActive }) => navClass(isActive)}
+              to="/admin"
+              {...adminPrefetch}
+            >
+              Admin
+            </NavLink>
+          ) : null}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <HeaderPoints points={points} />
+          <HeaderPoints loading={pointsLoading} points={points} />
           <AuthAction
             loading={loading}
             signedIn={signedIn}
@@ -354,9 +384,19 @@ export function Header({
               >
                 Profil
               </NavLink>
+              {isAdmin ? (
+                <NavLink
+                  className={({ isActive }) => navClass(isActive, true)}
+                  to="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  {...adminPrefetch}
+                >
+                  Admin
+                </NavLink>
+              ) : null}
             </nav>
             <div className="mt-2 grid gap-2 border-t border-border pt-2">
-              <HeaderPoints mobile points={points} />
+              <HeaderPoints mobile loading={pointsLoading} points={points} />
               <AuthAction
                 className="w-full"
                 loading={loading}

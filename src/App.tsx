@@ -13,6 +13,7 @@ import { useMastermindGame } from "./game/use-mastermind-game";
 import { emptyProfileStats, useProfileStats } from "./game/use-profile";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { AuthErrorPage } from "./pages/AuthErrorPage";
+import { AdminPage } from "./pages/AdminPage";
 import { AuthPage } from "./pages/AuthPage";
 import { EndlessPage } from "./pages/EndlessPage";
 import { HomePage } from "./pages/HomePage";
@@ -53,6 +54,7 @@ const ROUTE_META: Record<string, { title: string; description?: string }> = {
     description: "Le classement global de Smotu : les meilleurs scores tous modes confondus.",
   },
   "/profile": { title: "Profil — Smotu" },
+  "/admin": { title: "Admin — Smotu" },
   "/auth": { title: "Connexion — Smotu" },
 };
 
@@ -124,6 +126,7 @@ function HomeRoute({
       game={daily.game}
       leaderboardCount={leaderboard.data.length}
       leaderboardLoading={leaderboard.loading}
+      signedIn={enabled}
     />
   );
 }
@@ -268,10 +271,19 @@ function SignedInProfileRoute({
   );
 }
 
+function authUserRole(user: AuthUser | undefined): string {
+  if (user && "role" in user) {
+    return String(user.role ?? "");
+  }
+
+  return "";
+}
+
 export function App() {
   const session = authClient.useSession();
   const user = session.data?.user;
   const signedIn = Boolean(user);
+  const isAdmin = authUserRole(user) === "admin";
   const headerStats = useProfileStats(signedIn, user?.id);
   const [headerPoints, setHeaderPoints] = useState(0);
   const signIn = useSignIn();
@@ -335,13 +347,15 @@ export function App() {
       <Shell>
         <Surface>
           <Header
+            isAdmin={isAdmin}
             loading={session.isPending}
             points={headerPoints}
+            pointsLoading={signedIn && headerStats.loading}
             signedIn={signedIn}
             onSignIn={signIn}
             onSignOut={signOut}
           />
-          <div className="min-h-[calc(100dvh_-_var(--header-height))]">
+          <div className="min-h-[calc(100dvh-var(--header-height))]">
             <Routes>
               <Route
                 path="/"
@@ -394,6 +408,15 @@ export function App() {
                     onSignIn={signIn}
                     onSignOut={signOut}
                     user={user}
+                  />
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <AdminPage
+                    authLoading={session.isPending}
+                    signedIn={signedIn}
                   />
                 }
               />
