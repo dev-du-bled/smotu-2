@@ -21,13 +21,11 @@ export function HomePage({
   game,
   leaderboardCount,
   leaderboardLoading = false,
-  signedIn = false,
 }: {
   bestScore: number;
   game: GameState;
   leaderboardCount: number;
   leaderboardLoading?: boolean;
-  signedIn?: boolean;
 }) {
   const attemptsLabel = game.attempts.length > 1 ? "essais" : "essai";
   const modes = [
@@ -80,19 +78,17 @@ export function HomePage({
             Mode libre
           </Link>
           <Link
+            className="inline-flex h-12 items-center justify-center rounded-md bg-purple px-5 text-base font-bold uppercase tracking-wide text-purple-foreground transition hover:bg-purple-hover"
+            to="/mastermind"
+          >
+            Mastermind
+          </Link>
+          <Link
             className="inline-flex h-12 items-center justify-center rounded-md bg-secondary px-5 text-base font-bold uppercase tracking-wide text-secondary-foreground transition hover:bg-secondary-hover"
             to="/leaderboard"
           >
             Voir le classement
           </Link>
-          {signedIn ? (
-            <Link
-              className="inline-flex h-12 items-center justify-center rounded-md border border-input bg-card px-5 text-base font-bold uppercase tracking-wide text-subtle-foreground transition hover:bg-muted"
-              to="/admin"
-            >
-              Panel admin
-            </Link>
-          ) : null}
         </div>
       </section>
 

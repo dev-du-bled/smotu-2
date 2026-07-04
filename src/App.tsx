@@ -126,7 +126,6 @@ function HomeRoute({
       game={daily.game}
       leaderboardCount={leaderboard.data.length}
       leaderboardLoading={leaderboard.loading}
-      signedIn={enabled}
     />
   );
 }
