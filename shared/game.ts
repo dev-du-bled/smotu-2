@@ -1,3 +1,5 @@
+import { VALID_WORDS_BY_LENGTH } from "./word-bank";
+
 export const WORD_LENGTH = 5;
 export const WORD_LENGTH_OPTIONS = [4, 5, 6, 7, 8] as const;
 export const MAX_ATTEMPTS = 6;
@@ -101,6 +103,14 @@ export type ProfileStats = GlobalLeaderboardEntry & {
 };
 
 export type WordLengthOption = (typeof WORD_LENGTH_OPTIONS)[number];
+
+const VALID_WORD_SETS_BY_LENGTH: Record<WordLengthOption, ReadonlySet<string>> = {
+  4: new Set(VALID_WORDS_BY_LENGTH[4]),
+  5: new Set(VALID_WORDS_BY_LENGTH[5]),
+  6: new Set(VALID_WORDS_BY_LENGTH[6]),
+  7: new Set(VALID_WORDS_BY_LENGTH[7]),
+  8: new Set(VALID_WORDS_BY_LENGTH[8]),
+};
 
 export const WORDS_BY_LENGTH: Record<WordLengthOption, readonly string[]> = {
   4: [
@@ -734,6 +744,10 @@ export function wordsForLength(wordLength: number): readonly string[] {
   return isWordLengthOption(wordLength) ? WORDS_BY_LENGTH[wordLength] : WORDS;
 }
 
+export function validWordsForLength(wordLength: number): readonly string[] {
+  return isWordLengthOption(wordLength) ? VALID_WORDS_BY_LENGTH[wordLength] : VALID_WORDS_BY_LENGTH[WORD_LENGTH];
+}
+
 export function randomWord(wordLength = WORD_LENGTH): string {
   const words = wordsForLength(wordLength);
   return words[Math.floor(Math.random() * words.length)];
@@ -741,11 +755,13 @@ export function randomWord(wordLength = WORD_LENGTH): string {
 
 export function isKnownWord(value: string, wordLength = WORD_LENGTH): boolean {
   const guess = normalizeGuess(value, wordLength);
-  return wordsForLength(wordLength).includes(guess);
+  return isWordLengthOption(wordLength) && VALID_WORD_SETS_BY_LENGTH[wordLength].has(guess);
 }
 
 export function normalizeGuess(value: string, wordLength = WORD_LENGTH): string {
   return value
+    .replace(/[œŒ]/g, "oe")
+    .replace(/[æÆ]/g, "ae")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()

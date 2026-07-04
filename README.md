@@ -16,7 +16,8 @@ jour et la satisfaction de gratter des points quand le mot tombe enfin.
   nom de compte, y compris au classement.
 - **Classement global**: les points des deux modes sont additionnés.
 - **Profil joueur**: score, rang, victoires et photo Google quand disponible.
-- **Propositions libres**: aucun dictionnaire ne bloque les mots saisis.
+- **Dictionnaire étendu**: les propositions sont validées sur une grande banque
+  de mots français, proche de l'expérience Wordle.
 - **Interface responsive**: dark theme, header mobile, footer classique et
   modale de règles.
 - **Déploiement simple**: une app React servie par Cloudflare Workers avec D1 en
