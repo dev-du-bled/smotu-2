@@ -259,6 +259,7 @@ export function useEndlessGame(signedIn: boolean) {
       activeRow,
       canSubmit,
       celebrationKey,
+      debugAnswer: game.answer || undefined,
       game,
       inputValue,
       localError,

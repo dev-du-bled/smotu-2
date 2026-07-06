@@ -4,11 +4,21 @@ import {
   Button,
   Input,
   Panel,
+  PointsAmount,
   SectionKicker,
   Skeleton,
 } from "../components/ui";
+import {
+  ColorPeg,
+  MastermindBoard,
+  WordBoard,
+} from "../components/GameReplay";
 import { apiJson, clearApiCache } from "../lib/api";
 import { authClient } from "../lib/auth";
+import {
+  type AdminUserGame,
+  type AdminUserGamesData,
+} from "../../shared/game";
 
 type AdminOverview = {
   currentUser: {
@@ -98,6 +108,112 @@ function errorMessage(value: unknown): string {
   return "Action impossible.";
 }
 
+const MODE_LABELS: Record<AdminUserGame["mode"], string> = {
+  daily: "Quotidien",
+  endless: "Libre",
+  mastermind: "Mastermind",
+};
+
+const STATUS_LABELS: Record<AdminUserGame["status"], string> = {
+  solved: "Résolu",
+  failed: "Échoué",
+  abandoned: "Abandonné",
+  active: "En cours",
+};
+
+const STATUS_CLASS: Record<AdminUserGame["status"], string> = {
+  solved: "bg-success text-success-foreground",
+  failed: "bg-destructive text-destructive-foreground",
+  abandoned: "bg-warning text-warning-foreground",
+  active: "bg-muted-strong text-foreground",
+};
+
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds <= 0) {
+    return "—";
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes === 0) {
+    return `${seconds} s`;
+  }
+  return `${minutes} min ${seconds.toString().padStart(2, "0")} s`;
+}
+
+function GameCard({ game }: { game: AdminUserGame }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-md border border-border bg-muted">
+      <button
+        aria-expanded={open}
+        className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left"
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="rounded-md bg-card px-2 py-1 text-xs font-black uppercase tracking-wide">
+          {MODE_LABELS[game.mode]}
+        </span>
+        <span className="font-mono text-lg font-black uppercase tracking-wide">
+          {game.mode === "mastermind" ? (
+            <span className="inline-flex gap-1.5 align-middle">
+              {(game.answerColors ?? []).map((color, index) => (
+                <ColorPeg color={color} key={index} size="sm" />
+              ))}
+            </span>
+          ) : (
+            game.answer
+          )}
+        </span>
+        <span
+          className={`rounded-md px-2 py-1 text-xs font-black uppercase ${STATUS_CLASS[game.status]}`}
+        >
+          {STATUS_LABELS[game.status]}
+        </span>
+        <span className="text-sm font-semibold text-muted-foreground">
+          {game.attemptCount} / {game.maxAttempts} essais
+        </span>
+        <span className="text-sm font-semibold text-muted-foreground">
+          {formatDuration(game.durationMs)}
+        </span>
+        <PointsAmount
+          className={`ml-auto text-sm font-black ${
+            game.score > 0
+              ? "text-success"
+              : game.score < 0
+                ? "text-destructive"
+                : "text-muted-foreground"
+          }`}
+          iconClassName="size-4"
+          value={game.score}
+        />
+        <span className="text-xs font-bold text-muted-foreground">
+          {open ? "▲" : "▼"}
+        </span>
+      </button>
+      {open ? (
+        <div className="space-y-3 border-t border-border px-4 py-3">
+          <p className="text-xs font-semibold text-muted-foreground">
+            {formatDate(game.createdAt)}
+          </p>
+          {game.mode === "mastermind" ? (
+            <MastermindBoard attempts={game.mastermindAttempts ?? []} />
+          ) : (
+            <div className="max-w-[220px]">
+              <WordBoard
+                attempts={game.attempts}
+                maxAttempts={game.maxAttempts}
+                wordLength={game.answer.length || 5}
+              />
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function Stat({
   label,
   loading,
@@ -141,6 +257,9 @@ export function AdminPage({
   const [sessions, setSessions] = useState<AdminSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsError, setSessionsError] = useState("");
+  const [games, setGames] = useState<AdminUserGame[]>([]);
+  const [gamesLoading, setGamesLoading] = useState(false);
+  const [gamesError, setGamesError] = useState("");
 
   const isAdmin = Boolean(overview);
   const page = Math.floor(offset / PAGE_SIZE) + 1;
@@ -222,6 +341,27 @@ export function AdminPage({
     }
   }, [selectedUser]);
 
+  const loadGames = useCallback(async (user = selectedUser) => {
+    if (!user) {
+      setGames([]);
+      return;
+    }
+
+    setGamesLoading(true);
+    setGamesError("");
+
+    try {
+      const data = await apiJson<AdminUserGamesData>(
+        `/api/admin/user-games?userId=${encodeURIComponent(user.id)}`,
+      );
+      setGames(data.games);
+    } catch (reason) {
+      setGamesError(errorMessage(reason));
+    } finally {
+      setGamesLoading(false);
+    }
+  }, [selectedUser]);
+
   useEffect(() => {
     if (!signedIn) {
       setOverview(null);
@@ -266,6 +406,10 @@ export function AdminPage({
   useEffect(() => {
     if (selectedUser) {
       void loadSessions(selectedUser);
+      void loadGames(selectedUser);
+    } else {
+      setGames([]);
+      setGamesError("");
     }
   }, [selectedUserId]);
 
@@ -493,6 +637,55 @@ export function AdminPage({
           {message ? (
             <p className="text-sm font-semibold text-muted-foreground">{message}</p>
           ) : null}
+        </Panel>
+
+        <Panel className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <SectionKicker>Historique</SectionKicker>
+              <h3 className="mt-2 text-2xl font-black">
+                Dernières parties
+                {selectedUser ? ` · ${selectedUser.name}` : ""}
+              </h3>
+            </div>
+            {selectedUser ? (
+              <Button
+                disabled={gamesLoading}
+                size="sm"
+                type="button"
+                variant="secondary"
+                onClick={() => void loadGames(selectedUser)}
+              >
+                Sync
+              </Button>
+            ) : null}
+          </div>
+
+          {!selectedUser ? (
+            <p className="text-sm text-muted-foreground">
+              Sélectionne un utilisateur pour voir ses dernières parties.
+            </p>
+          ) : gamesLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+            </div>
+          ) : gamesError ? (
+            <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+              {gamesError}
+            </p>
+          ) : games.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aucune partie enregistrée pour cet utilisateur.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {games.map((game) => (
+                <GameCard game={game} key={game.id} />
+              ))}
+            </div>
+          )}
         </Panel>
       </section>
 
