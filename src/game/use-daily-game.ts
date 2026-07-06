@@ -168,6 +168,7 @@ export function useDailyGame(enabled: boolean) {
       activeRow,
       canSubmit,
       celebrationKey,
+      debugAnswer: game.answer || getWordForDate(game.dateKey),
       game,
       inputValue,
       localError,

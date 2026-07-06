@@ -218,10 +218,12 @@ export function WordTile({
   active,
   children,
   pending,
+  size = "md",
   state,
 }: BaseProps & {
   active?: boolean;
   pending?: boolean;
+  size?: "sm" | "md";
   state?: TileState;
 }) {
   let stateClass = "border-input bg-transparent text-foreground";
@@ -238,6 +240,11 @@ export function WordTile({
     stateClass = "border-muted-strong bg-transparent text-foreground";
   }
 
+  const textClass =
+    size === "sm"
+      ? "text-sm sm:text-base"
+      : "text-[1.65rem] sm:text-[2rem]";
+
   return (
     <div
       className={cn(
@@ -245,7 +252,12 @@ export function WordTile({
         stateClass,
       )}
     >
-      <span className="grid size-full place-items-center text-[1.65rem] font-black uppercase leading-none sm:text-[2rem]">
+      <span
+        className={cn(
+          "grid size-full place-items-center font-black uppercase leading-none",
+          textClass,
+        )}
+      >
         {children}
       </span>
     </div>
