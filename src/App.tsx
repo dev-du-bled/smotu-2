@@ -18,14 +18,18 @@ import { AdminPage } from "./pages/AdminPage";
 import { AuthPage } from "./pages/AuthPage";
 import { EndlessPage } from "./pages/EndlessPage";
 import { HomePage } from "./pages/HomePage";
+import { InventoryPage } from "./pages/InventoryPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { MastermindPage } from "./pages/MastermindPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { PlayerProfilePage } from "./pages/PlayerProfilePage";
+import { PlayersPage } from "./pages/PlayersPage";
 import { PlayPage } from "./pages/PlayPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { ShopPage } from "./pages/ShopPage";
-import { clearApiCache } from "./lib/api";
+import { apiJson, clearApiCache } from "./lib/api";
 import { authClient, type AuthUser } from "./lib/auth";
+import type { ShopItemId } from "../shared/game";
 
 type EmailAuthInput = {
   email: string;
@@ -52,9 +56,17 @@ const ROUTE_META: Record<string, { title: string; description?: string }> = {
     description: "Casse le code couleur du Mastermind de Smotu et marque des points.",
   },
   "/shop": { title: "Boutique — Smotu", description: "Dépense tes smotucoins contre des cosmétiques et des indices." },
+  "/inventory": {
+    title: "Inventaire — Smotu",
+    description: "Retrouve et équipe les cosmétiques débloqués avec tes smotucoins.",
+  },
   "/leaderboard": {
     title: "Classement — Smotu",
     description: "Le classement global de Smotu : les meilleurs scores tous modes confondus.",
+  },
+  "/players": {
+    title: "Joueurs — Smotu",
+    description: "Recherche de profils publics et demandes d'amis sur Smotu.",
   },
   "/profile": { title: "Profil — Smotu" },
   "/admin": { title: "Admin — Smotu" },
@@ -65,7 +77,14 @@ function RouteMeta() {
   const location = useLocation();
 
   useEffect(() => {
-    const meta = ROUTE_META[location.pathname];
+    const meta =
+      ROUTE_META[location.pathname] ??
+      (location.pathname.startsWith("/players/")
+        ? {
+            title: "Profil joueur — Smotu",
+            description: "Profil public d'un joueur Smotu.",
+          }
+        : undefined);
     document.title = meta?.title ?? DEFAULT_TITLE;
 
     const description = meta?.description ?? DEFAULT_DESCRIPTION;
@@ -125,20 +144,22 @@ function HomeRoute({
 
   return (
     <HomePage
-      bestScore={leaderboard.data[0]?.totalScore ?? 0}
       game={daily.game}
       leaderboardCount={leaderboard.data.length}
       leaderboardLoading={leaderboard.loading}
+      topPlayer={leaderboard.data[0] ?? null}
     />
   );
 }
 
 function PlayRoute({
+  confettiSkin,
   enabled,
   onSignIn,
   signedIn,
 }: {
   authLoading: boolean;
+  confettiSkin?: ShopItemId;
   enabled: boolean;
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
@@ -148,6 +169,7 @@ function PlayRoute({
   return (
     <PlayPage
       playProps={daily.playProps}
+      confettiSkin={confettiSkin}
       signedIn={signedIn}
       onSignIn={onSignIn}
     />
@@ -155,22 +177,26 @@ function PlayRoute({
 }
 
 function EndlessRoute({
+  confettiSkin,
   signedIn,
 }: {
+  confettiSkin?: ShopItemId;
   signedIn: boolean;
 }) {
   const endless = useEndlessGame(signedIn);
 
-  return <EndlessPage {...endless} signedIn={signedIn} />;
+  return <EndlessPage {...endless} confettiSkin={confettiSkin} signedIn={signedIn} />;
 }
 
 function MastermindRoute({
   authLoading,
+  confettiSkin,
   enabled,
   onSignIn,
   signedIn,
 }: {
   authLoading: boolean;
+  confettiSkin?: ShopItemId;
   enabled: boolean;
   onSignIn: () => void | Promise<void>;
   signedIn: boolean;
@@ -181,6 +207,7 @@ function MastermindRoute({
     <MastermindPage
       {...mastermind}
       authLoading={authLoading}
+      confettiSkin={confettiSkin}
       signedIn={signedIn}
       onSignIn={onSignIn}
     />
@@ -202,6 +229,29 @@ function ShopRoute({
     <ShopPage
       authLoading={authLoading}
       buy={shop.buy}
+      equip={shop.equip}
+      loading={shop.loading}
+      shop={shop.data}
+      signedIn={signedIn}
+    />
+  );
+}
+
+function InventoryRoute({
+  authLoading,
+  enabled,
+  signedIn,
+}: {
+  authLoading: boolean;
+  enabled: boolean;
+  signedIn: boolean;
+}) {
+  const shop = useShop(enabled);
+
+  return (
+    <InventoryPage
+      authLoading={authLoading}
+      equip={shop.equip}
       loading={shop.loading}
       shop={shop.data}
       signedIn={signedIn}
@@ -309,6 +359,7 @@ export function App() {
   const signedIn = Boolean(user);
   const isAdmin = authUserRole(user) === "admin";
   const headerStats = useProfileStats(signedIn, user?.id);
+  const publicAvatar = headerStats.data.publicAvatar;
   const [headerPoints, setHeaderPoints] = useState(0);
   const signIn = useSignIn();
   const signInWithEmail = async ({ email, password }: EmailAuthInput) => {
@@ -333,12 +384,22 @@ export function App() {
     clearApiCache();
     await authClient.signOut();
   };
+  const changeTheme = async (itemId: ShopItemId) => {
+    if (!signedIn) {
+      return;
+    }
+    await apiJson("/api/shop/equip", {
+      method: "POST",
+      body: JSON.stringify({ slot: "theme", itemId }),
+    });
+    await headerStats.refetch();
+  };
 
   useEffect(() => {
     if (signedIn) {
-      setHeaderPoints(headerStats.data.totalScore);
+      setHeaderPoints(headerStats.data.inventory.balance);
     }
-  }, [headerStats.data.totalScore, signedIn]);
+  }, [headerStats.data.inventory.balance, signedIn]);
 
   useEffect(() => {
     if (!signedIn) {
@@ -347,18 +408,14 @@ export function App() {
   }, [signedIn]);
 
   useEffect(() => {
-    function onScore(event: Event) {
-      const score = Number(
-        (event as CustomEvent<{ score?: number }>).detail?.score ?? 0,
-      );
-
-      if (score !== 0) {
-        setHeaderPoints((current) => Math.max(0, current + score));
+    function onScore() {
+      // Le solde ne dérive plus du score (récompenses fixes par victoire) : on
+      // laisse le refetch serveur mettre la valeur à jour. Les hooks émettent
+      // aussi cet event en partie locale (visiteur déconnecté) : rien à faire.
+      if (!signedIn) {
+        return;
       }
-
-      if (signedIn) {
-        void headerStats.refetch();
-      }
+      void headerStats.refetch();
     }
 
     window.addEventListener("smotu:score", onScore);
@@ -368,14 +425,17 @@ export function App() {
   return (
     <BrowserRouter>
       <RouteMeta />
-      <Shell>
+      <Shell themeId={signedIn ? publicAvatar.themeId : undefined}>
         <Surface>
           <Header
             isAdmin={isAdmin}
             loading={session.isPending}
+            onThemeChange={changeTheme}
+            ownedThemeIds={headerStats.data.inventory.ownedThemeIds}
             points={headerPoints}
             pointsLoading={signedIn && headerStats.loading}
             signedIn={signedIn}
+            themeId={publicAvatar.themeId}
             onSignIn={signIn}
             onSignOut={signOut}
           />
@@ -390,6 +450,7 @@ export function App() {
                 element={
                   <PlayRoute
                     authLoading={session.isPending}
+                    confettiSkin={signedIn ? publicAvatar.confettiId : undefined}
                     enabled={signedIn}
                     signedIn={signedIn}
                     onSignIn={signIn}
@@ -398,13 +459,19 @@ export function App() {
               />
               <Route
                 path="/endless"
-                element={<EndlessRoute signedIn={signedIn} />}
+                element={
+                  <EndlessRoute
+                    confettiSkin={signedIn ? publicAvatar.confettiId : undefined}
+                    signedIn={signedIn}
+                  />
+                }
               />
               <Route
                 path="/mastermind"
                 element={
                   <MastermindRoute
                     authLoading={session.isPending}
+                    confettiSkin={signedIn ? publicAvatar.confettiId : undefined}
                     enabled={signedIn}
                     signedIn={signedIn}
                     onSignIn={signIn}
@@ -422,6 +489,16 @@ export function App() {
                 }
               />
               <Route
+                path="/inventory"
+                element={
+                  <InventoryRoute
+                    authLoading={session.isPending}
+                    enabled={signedIn}
+                    signedIn={signedIn}
+                  />
+                }
+              />
+              <Route
                 path="/leaderboard"
                 element={
                   <LeaderboardRoute
@@ -429,6 +506,24 @@ export function App() {
                     enabled={signedIn}
                     signedIn={signedIn}
                     onSignIn={signIn}
+                  />
+                }
+              />
+              <Route
+                path="/players"
+                element={
+                  <PlayersPage
+                    authLoading={session.isPending}
+                    signedIn={signedIn}
+                  />
+                }
+              />
+              <Route
+                path="/players/:playerId"
+                element={
+                  <PlayerProfilePage
+                    authLoading={session.isPending}
+                    signedIn={signedIn}
                   />
                 }
               />

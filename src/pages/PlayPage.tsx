@@ -1,12 +1,15 @@
+import type { ShopItemId } from "../../shared/game";
 import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import { PointsAmount, ProgressStrip, SectionKicker } from "../components/ui";
 
 export function PlayPage({
+  confettiSkin,
   onSignIn,
   playProps,
   signedIn,
 }: {
   authLoading?: boolean;
+  confettiSkin?: ShopItemId;
   onSignIn: () => void | Promise<void>;
   playProps?: GameBoardProps & { progress: number };
   signedIn: boolean;
@@ -40,7 +43,7 @@ export function PlayPage({
           <ProgressStrip value={playProps.progress} />
         </div>
       </div>
-      <GameBoard {...playProps} />
+      <GameBoard {...playProps} confettiSkin={confettiSkin} />
     </div>
   );
 }

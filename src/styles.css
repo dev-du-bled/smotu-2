@@ -39,6 +39,9 @@
 
 @layer base {
   :root {
+    /* Courbe d'entrée franche pour les menus et modales : démarre vite pour
+       donner un retour immédiat, puis se pose (jamais d'ease-in sur l'UI). */
+    --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
     --header-height: 65px;
     --background: #f5f6f8;
     --foreground: #111318;
@@ -103,8 +106,158 @@
     font: inherit;
   }
 
+}
+
+@layer components {
+  .smotu-avatar {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    perspective: 620px;
+    transform-style: preserve-3d;
+  }
+
+  .smotu-avatar__canvas {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+    border-radius: 24%;
+  }
+
+  .smotu-avatar__canvas canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .smotu-avatar__rank {
+    position: absolute;
+    right: -6%;
+    bottom: -6%;
+    display: grid;
+    width: 38%;
+    height: 38%;
+    place-items: center;
+    border: 0.18em solid var(--card);
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  [data-smotu-theme="theme-foret"] {
+    --background: #eef6ef;
+    --card: #ffffff;
+    --card-hover: #e1ecdf;
+    --primary: #244d36;
+    --primary-foreground: #ffffff;
+    --secondary: #dce9d8;
+    --secondary-foreground: #203426;
+    --secondary-hover: #cee0c8;
+    --muted: #e5eee3;
+    --subtle-foreground: #34483b;
+    --border: #c8d8c4;
+    --input: #b9cfb5;
+    --ring: #2f855a;
+    --success: #2f855a;
+    --success-hover: #28724d;
+  }
+
+  [data-smotu-theme="theme-ocean"] {
+    --background: #edf9fb;
+    --card: #ffffff;
+    --card-hover: #dff2f5;
+    --primary: #075985;
+    --primary-foreground: #ffffff;
+    --secondary: #cffafe;
+    --secondary-foreground: #164e63;
+    --secondary-hover: #a5f3fc;
+    --muted: #dff7fb;
+    --subtle-foreground: #285366;
+    --border: #b6e6ee;
+    --input: #8fd7e4;
+    --ring: #0ea5e9;
+    --success: #0f766e;
+    --success-hover: #115e59;
+  }
+
+  [data-smotu-theme="theme-sakura"] {
+    --background: #fff3f6;
+    --card: #ffffff;
+    --card-hover: #fde7ee;
+    --primary: #9d174d;
+    --primary-foreground: #ffffff;
+    --secondary: #fce7f3;
+    --secondary-foreground: #831843;
+    --secondary-hover: #fbcfe8;
+    --muted: #feecef;
+    --subtle-foreground: #6f3145;
+    --border: #f5c7d4;
+    --input: #f0aec2;
+    --ring: #db2777;
+    --success: #be185d;
+    --success-hover: #9d174d;
+    --warning: #f97316;
+    --warning-hover: #ea580c;
+  }
+
+  [data-smotu-theme="theme-neon"] {
+    color-scheme: dark;
+    --background: #10131d;
+    --foreground: #f8fafc;
+    --card: #171b29;
+    --card-foreground: #f8fafc;
+    --card-hover: #20263a;
+    --primary: #22d3ee;
+    --primary-foreground: #07111f;
+    --secondary: #312e81;
+    --secondary-foreground: #ffffff;
+    --secondary-hover: #3730a3;
+    --muted: #22283a;
+    --muted-foreground: #9aa8c7;
+    --muted-strong: #64748b;
+    --subtle-foreground: #d9e4ff;
+    --border: #30384f;
+    --input: #46506b;
+    --ring: #22d3ee;
+    --success: #14b8a6;
+    --success-hover: #2dd4bf;
+    --warning: #a855f7;
+    --warning-hover: #c084fc;
+  }
+
+  [data-smotu-theme="theme-minuit"] {
+    color-scheme: dark;
+    --background: #0f1014;
+    --foreground: #f6f7fb;
+    --card: #171820;
+    --card-foreground: #f6f7fb;
+    --card-hover: #21232c;
+    --primary: #e5e7eb;
+    --primary-foreground: #111318;
+    --secondary: #2f3340;
+    --secondary-foreground: #ffffff;
+    --secondary-hover: #3b4050;
+    --muted: #252832;
+    --muted-foreground: #9ca3af;
+    --muted-strong: #6b7280;
+    --subtle-foreground: #d7dadc;
+    --border: #30333d;
+    --input: #424756;
+    --ring: #a855f7;
+    --success: #538d4e;
+    --success-hover: #5f9b59;
+    --warning: #b59f3b;
+    --warning-hover: #c4ad46;
+  }
+
   @media (prefers-color-scheme: dark) {
-    :root {
+    [data-smotu-theme="theme-auto"] {
+      color-scheme: dark;
       --background: #121213;
       --foreground: #f8f8f8;
       --card: #18191b;
@@ -141,10 +294,121 @@
       --destructive-foreground: #121213;
       --overlay: rgb(0 0 0 / 0.7);
     }
-
-    html {
-      color-scheme: dark;
-    }
   }
 
+  [data-smotu-theme="theme-volcan"] {
+    --background: #fff6ed;
+    --card: #fffaf5;
+    --card-hover: #ffe8d3;
+    --primary: #7f1d1d;
+    --primary-foreground: #ffffff;
+    --secondary: #fed7aa;
+    --secondary-foreground: #7c2d12;
+    --secondary-hover: #fdba74;
+    --muted: #ffead7;
+    --subtle-foreground: #6b2e1a;
+    --border: #f6c49c;
+    --input: #efad78;
+    --ring: #dc2626;
+    --success: #f97316;
+    --success-hover: #ea580c;
+    --warning: #b45309;
+    --warning-hover: #92400e;
+  }
+
+  [data-smotu-theme="theme-obsidienne"] {
+    color-scheme: dark;
+    --background: #0a0a0c;
+    --foreground: #fafafa;
+    --card: #131316;
+    --card-foreground: #fafafa;
+    --card-hover: #1c1c21;
+    --popover: #131316;
+    --popover-foreground: #fafafa;
+    --primary: #f59e0b;
+    --primary-foreground: #1c1300;
+    --secondary: #26262c;
+    --secondary-foreground: #ffffff;
+    --secondary-hover: #333339;
+    --muted: #1b1b1f;
+    --muted-foreground: #8f9099;
+    --muted-strong: #5b5c66;
+    --subtle-foreground: #d6d7de;
+    --border: #26262c;
+    --input: #3a3a42;
+    --ring: #f59e0b;
+    --success: #538d4e;
+    --success-hover: #5f9b59;
+    --warning: #b59f3b;
+    --warning-hover: #c4ad46;
+    --warning-muted: #201a08;
+    --overlay: rgb(0 0 0 / 0.72);
+  }
+
+  [data-smotu-theme="theme-arctique"] {
+    --background: #eef7fa;
+    --card: #ffffff;
+    --card-hover: #ddeef4;
+    --primary: #0e7490;
+    --primary-foreground: #ffffff;
+    --secondary: #d7eef5;
+    --secondary-foreground: #155e75;
+    --secondary-hover: #c2e5ef;
+    --muted: #e2f1f6;
+    --subtle-foreground: #2b5563;
+    --border: #bfe0ea;
+    --input: #9fd0de;
+    --ring: #0891b2;
+    --success: #0e7490;
+    --success-hover: #155e75;
+  }
+
+  [data-smotu-theme="theme-royal"] {
+    --background: #f6f4fc;
+    --card: #ffffff;
+    --card-hover: #ece7f9;
+    --primary: #6d28d9;
+    --primary-foreground: #ffffff;
+    --secondary: #ede9fe;
+    --secondary-foreground: #4c1d95;
+    --secondary-hover: #ddd6fe;
+    --muted: #efecf8;
+    --subtle-foreground: #443463;
+    --border: #d9d0f0;
+    --input: #c3b4e8;
+    --ring: #7c3aed;
+    --success: #6d28d9;
+    --success-hover: #5b21b6;
+    --warning: #b45309;
+    --warning-hover: #92400e;
+  }
+
+  [data-smotu-theme="theme-crepuscule"] {
+    color-scheme: dark;
+    --background: #12101f;
+    --foreground: #f3f2fa;
+    --card: #1a1730;
+    --card-foreground: #f3f2fa;
+    --card-hover: #241f42;
+    --popover: #1a1730;
+    --popover-foreground: #f3f2fa;
+    --primary: #818cf8;
+    --primary-foreground: #0d0b1a;
+    --secondary: #2d2752;
+    --secondary-foreground: #ffffff;
+    --secondary-hover: #383166;
+    --muted: #221d40;
+    --muted-foreground: #9a95bd;
+    --muted-strong: #615c85;
+    --subtle-foreground: #d8d5ea;
+    --border: #2d2752;
+    --input: #3e3670;
+    --ring: #818cf8;
+    --success: #538d4e;
+    --success-hover: #5f9b59;
+    --warning: #b59f3b;
+    --warning-hover: #c4ad46;
+    --warning-muted: #1d1830;
+    --overlay: rgb(0 0 0 / 0.72);
+  }
 }

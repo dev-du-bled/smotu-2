@@ -268,7 +268,7 @@ export function AdminPage({
   const [gamesError, setGamesError] = useState("");
 
   const isAdmin = Boolean(overview);
-  // Affiche le pseudo Smotu si l'utilisateur en a choisi un, sinon le nom Google.
+  // L'admin peut lire les comptes auth, mais l'identité publique reste le pseudo Smotu.
   const displayName = (user: AdminUser) => profileNames[user.id] ?? user.name;
   const page = Math.floor(offset / PAGE_SIZE) + 1;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -326,7 +326,7 @@ export function AdminPage({
             );
             setProfileNames((previous) => ({ ...previous, ...nameData.names }));
           } catch {
-            // Non bloquant : on retombe sur le nom Google.
+            // Non bloquant : on retombe sur le nom du compte auth dans le panel admin.
           }
         }
       } catch (reason) {

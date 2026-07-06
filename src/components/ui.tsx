@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "../lib/utils";
 import type { TileState } from "../../shared/game";
@@ -49,9 +50,16 @@ function formatCompactNumber(value: number | string): string {
   return `${sign}${roundedValue}${unit.suffix}`;
 }
 
-export function Shell({ children, className }: BaseProps) {
+export function Shell({
+  children,
+  className,
+  themeId,
+}: BaseProps & { themeId?: string }) {
   return (
-    <main className={cn("min-h-dvh bg-background text-foreground", className)}>
+    <main
+      className={cn("min-h-dvh bg-background text-foreground", className)}
+      data-smotu-theme={themeId}
+    >
       {children}
     </main>
   );
@@ -75,6 +83,154 @@ export function Panel({ children, className }: BaseProps) {
     >
       {children}
     </section>
+  );
+}
+
+// Menu déroulant générique, accessible : ferme au clic extérieur et à Escape.
+export function Dropdown({
+  align = "left",
+  children,
+  className,
+  trigger,
+  triggerClassName,
+}: {
+  align?: "left" | "right";
+  children: ReactNode | ((close: () => void) => ReactNode);
+  className?: string;
+  trigger: ReactNode | ((open: boolean) => ReactNode);
+  triggerClassName?: string | ((open: boolean) => string);
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const container = containerRef.current;
+
+      if (!container || container.contains(event.target as Node)) {
+        return;
+      }
+
+      setOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className={
+          typeof triggerClassName === "function"
+            ? triggerClassName(open)
+            : triggerClassName
+        }
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+      >
+        {typeof trigger === "function" ? trigger(open) : trigger}
+      </button>
+
+      {open ? (
+        <div
+          className={cn(
+            "absolute top-full z-20 mt-2 rounded-lg border border-input bg-card p-1 shadow-xl",
+            // Entrée ancrée au déclencheur : scale depuis l'origine du trigger,
+            // jamais depuis le centre. Sortie instantanée (les menus se ferment sec).
+            "transition-[opacity,scale] duration-150 ease-(--ease-out-strong) starting:opacity-0 motion-safe:starting:scale-95",
+            align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left",
+            className,
+          )}
+          role="menu"
+        >
+          {typeof children === "function" ? children(close) : children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Fenêtre modale générique, centrée : ferme à Escape et au clic sur l'overlay.
+export function Modal({
+  children,
+  footer,
+  onClose,
+  open,
+  title,
+}: {
+  children: ReactNode;
+  footer?: ReactNode;
+  onClose: () => void;
+  open: boolean;
+  title: string;
+}) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, open]);
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center p-4 transition-opacity duration-200 starting:opacity-0"
+      style={{ background: "var(--overlay)" }}
+      onClick={onClose}
+    >
+      {/* Une modale scale depuis le centre : elle n'est ancrée à aucun trigger. */}
+      <div
+        aria-modal="true"
+        className="flex max-h-[85dvh] w-full max-w-2xl flex-col rounded-lg border border-border bg-card shadow-xl transition-[opacity,scale] duration-200 ease-(--ease-out-strong) starting:opacity-0 motion-safe:starting:scale-[0.97]"
+        role="dialog"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-4 border-b border-border p-4">
+          <h2 className="text-lg font-black">{title}</h2>
+          <button
+            aria-label="Fermer"
+            className="relative grid size-8 shrink-0 place-items-center rounded-md text-subtle-foreground transition-[background-color,scale] active:scale-[0.96] hover:bg-muted after:absolute after:-inset-1.5"
+            type="button"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="overflow-y-auto p-4">{children}</div>
+        {footer ? (
+          <div className="border-t border-border p-4">{footer}</div>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -106,7 +262,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-md font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-strong hover:cursor-pointer",
+        "inline-flex items-center justify-center rounded-md font-bold uppercase tracking-wide transition enabled:active:scale-[0.96] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-strong hover:cursor-pointer",
         variants[variant],
         sizes[size],
         className,
@@ -285,7 +441,9 @@ export function KeyCap({
   return (
     <button
       className={cn(
-        "grid h-12 min-w-8 place-items-center rounded px-2 text-xs font-black uppercase sm:min-w-10",
+        // Pas de transition de couleur : le feedback du jeu doit rester sec.
+        // Seul le press a un retour tactile.
+        "grid h-12 min-w-8 place-items-center rounded px-2 text-xs font-black uppercase transition-[scale] duration-100 active:scale-[0.96] sm:min-w-10",
         stateClass,
       )}
       type="button"

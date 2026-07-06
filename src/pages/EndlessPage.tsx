@@ -1,6 +1,7 @@
 import {
   getScoreForMode,
   type EndlessGameState,
+  type ShopItemId,
   type WordLengthOption,
 } from "../../shared/game";
 import { GameBoard, type GameBoardProps } from "../components/GameBoard";
@@ -14,6 +15,7 @@ import {
 
 export function EndlessPage({
   abandonRound,
+  confettiSkin,
   game,
   isAbandoning,
   isStarting,
@@ -25,6 +27,7 @@ export function EndlessPage({
   wordLengthOptions,
 }: {
   abandonRound: () => void | Promise<void>;
+  confettiSkin?: ShopItemId;
   game: EndlessGameState;
   isAbandoning: boolean;
   isStarting: boolean;
@@ -154,7 +157,7 @@ export function EndlessPage({
           <ProgressStrip value={playProps.progress} />
         </div>
       </div>
-      <GameBoard {...playProps} />
+      <GameBoard {...playProps} confettiSkin={confettiSkin} />
     </div>
   );
 }

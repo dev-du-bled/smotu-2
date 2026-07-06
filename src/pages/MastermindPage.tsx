@@ -3,6 +3,7 @@ import {
   MASTERMIND_COLORS,
   type MastermindColorId,
   type MastermindGameState,
+  type ShopItemId,
 } from "../../shared/game";
 import { ConfettiBurst } from "../components/ConfettiBurst";
 import {
@@ -71,6 +72,7 @@ export function MastermindPage({
   authLoading = false,
   canSubmit,
   celebrationKey,
+  confettiSkin,
   clearGuess,
   game,
   guess,
@@ -90,6 +92,7 @@ export function MastermindPage({
   authLoading?: boolean;
   canSubmit: boolean;
   celebrationKey?: string;
+  confettiSkin?: ShopItemId;
   clearGuess: () => void;
   game?: MastermindGameState;
   guess: MastermindColorId[];
@@ -138,7 +141,7 @@ export function MastermindPage({
 
   return (
     <div className="mx-auto grid min-h-[inherit] max-w-6xl gap-6 px-4 py-5 lg:grid-cols-[1fr_360px]">
-      <ConfettiBurst burstKey={celebrationKey} />
+      <ConfettiBurst burstKey={celebrationKey} skin={confettiSkin} />
 
       <section className="mx-auto w-full max-w-xl space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
