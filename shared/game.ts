@@ -102,6 +102,37 @@ export type ProfileStats = GlobalLeaderboardEntry & {
   rank: number | null;
 };
 
+export type AdminGameStatus =
+  | "solved"
+  | "failed"
+  | "abandoned"
+  | "active";
+
+// Vue admin d'une partie jouée par un utilisateur : le mot (ou code) à trouver,
+// les coups, la durée et les smotucoins gagnés/perdus. Les coups gardent leur
+// forme d'origine (`Attempt` pour les mots, `MastermindAttempt` pour le code).
+export type AdminUserGame = {
+  id: string;
+  mode: GameMode;
+  answer: string;
+  answerColors?: MastermindColorId[];
+  status: AdminGameStatus;
+  solved: boolean;
+  score: number;
+  attemptCount: number;
+  maxAttempts: number;
+  durationMs: number;
+  createdAt: string;
+  updatedAt: string;
+  attempts: Attempt[];
+  mastermindAttempts?: MastermindAttempt[];
+};
+
+export type AdminUserGamesData = {
+  userId: string | null;
+  games: AdminUserGame[];
+};
+
 export type WordLengthOption = (typeof WORD_LENGTH_OPTIONS)[number];
 
 const VALID_WORD_SETS_BY_LENGTH: Record<WordLengthOption, ReadonlySet<string>> = {

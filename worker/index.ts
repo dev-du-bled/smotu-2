@@ -24,11 +24,13 @@ import {
   type GlobalLeaderboardEntry,
   type LeaderboardSet,
   type MastermindAttempt,
-  type MastermindColorId,
   type MastermindGameState,
   type MastermindGameStatus,
   type ProfileStats,
   type TileState,
+  type AdminGameStatus,
+  type AdminUserGame,
+  type AdminUserGamesData,
 } from "../shared/game";
 import {
   dailyGames as dailyGamesTable,
@@ -661,7 +663,10 @@ function toEndlessGameState(
     wordLength: game.answer.length,
     solved,
     over: status !== "active",
-    answer: status === "active" ? "" : game.answer,
+    // On masque le mot tant que la manche est active pour ne pas le divulguer.
+    // En dev (`import.meta.env.DEV`, remplacé par `false` au build de prod) on le
+    // révèle pour l'aide au debug affichée dans le plateau.
+    answer: status === "active" && !(import.meta as any).env?.DEV ? "" : game.answer,
     status,
     gamesPlayed: played,
   };
@@ -1364,6 +1369,154 @@ async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
   };
 }
 
+const ADMIN_GAMES_LIMIT = 15;
+
+function durationMs(createdAt: string, updatedAt: string): number {
+  const start = Date.parse(createdAt);
+  const end = Date.parse(updatedAt);
+  if (Number.isNaN(start) || Number.isNaN(end)) {
+    return 0;
+  }
+  return Math.max(0, end - start);
+}
+
+// L'admin sélectionne un utilisateur via son id d'authentification (better-auth).
+// Les parties, elles, sont indexées par l'id Smotu (`google:...` / `auth:...`).
+async function smotuUserId(db: Db, authUserId: string): Promise<string | null> {
+  const row = await db
+    .select({ userId: usersTable.userId })
+    .from(usersTable)
+    .where(eq(usersTable.authUserId, authUserId))
+    .get();
+  return row?.userId ?? null;
+}
+
+async function adminUserGames(
+  db: Db,
+  authUserId: string,
+): Promise<AdminUserGamesData> {
+  const userId = await smotuUserId(db, authUserId);
+  if (!userId) {
+    return { userId: null, games: [] };
+  }
+
+  const [daily, endless, mastermind] = await Promise.all([
+    db
+      .select()
+      .from(dailyGamesTable)
+      .where(eq(dailyGamesTable.userId, userId))
+      .orderBy(desc(dailyGamesTable.createdAt))
+      .limit(ADMIN_GAMES_LIMIT)
+      .all(),
+    db
+      .select()
+      .from(endlessGamesTable)
+      .where(eq(endlessGamesTable.userId, userId))
+      .orderBy(desc(endlessGamesTable.createdAt))
+      .limit(ADMIN_GAMES_LIMIT)
+      .all(),
+    db
+      .select()
+      .from(mastermindGamesTable)
+      .where(eq(mastermindGamesTable.userId, userId))
+      .orderBy(desc(mastermindGamesTable.createdAt))
+      .limit(ADMIN_GAMES_LIMIT)
+      .all(),
+  ]);
+
+  const games: AdminUserGame[] = [];
+
+  for (const row of daily) {
+    const attempts = parseAttempts(row.attempts);
+    const solved = Boolean(row.solved) || attempts.some((a) => a.solved);
+    const status: AdminGameStatus = solved
+      ? "solved"
+      : attempts.length >= MAX_ATTEMPTS
+        ? "failed"
+        : "active";
+    games.push({
+      id: row.id,
+      mode: "daily",
+      answer: getWordForDate(row.dateKey),
+      status,
+      solved,
+      score: row.score,
+      attemptCount: attempts.length,
+      maxAttempts: MAX_ATTEMPTS,
+      durationMs: durationMs(row.createdAt, row.updatedAt),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      attempts,
+    });
+  }
+
+  for (const row of endless) {
+    const attempts = parseAttempts(row.attempts);
+    const solved = row.status === "solved" || attempts.some((a) => a.solved);
+    const status: AdminGameStatus =
+      row.status === "abandoned"
+        ? "abandoned"
+        : solved
+          ? "solved"
+          : attempts.length >= MAX_ATTEMPTS || row.status === "failed"
+            ? "failed"
+            : "active";
+    games.push({
+      id: row.id,
+      mode: "endless",
+      answer: row.answer,
+      status,
+      solved,
+      score: row.score,
+      attemptCount: attempts.length,
+      maxAttempts: MAX_ATTEMPTS,
+      durationMs: durationMs(row.createdAt, row.updatedAt),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      attempts,
+    });
+  }
+
+  for (const row of mastermind) {
+    const attempts = parseMastermindAttempts(row.attempts);
+    const solved = row.status === "solved" || attempts.some((a) => a.solved);
+    const status: AdminGameStatus =
+      row.status === "abandoned"
+        ? "abandoned"
+        : solved
+          ? "solved"
+          : attempts.length >= MASTERMIND_MAX_ATTEMPTS || row.status === "failed"
+            ? "failed"
+            : "active";
+    games.push({
+      id: row.id,
+      mode: "mastermind",
+      answer: row.answer,
+      answerColors: normalizeMastermindGuess(row.answer),
+      status,
+      solved,
+      score: row.score,
+      attemptCount: attempts.length,
+      maxAttempts: MASTERMIND_MAX_ATTEMPTS,
+      durationMs: durationMs(row.createdAt, row.updatedAt),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      attempts: [],
+      mastermindAttempts: attempts,
+    });
+  }
+
+  games.sort((left, right) =>
+    left.createdAt < right.createdAt
+      ? 1
+      : left.createdAt > right.createdAt
+        ? -1
+        : 0,
+  );
+
+  return { userId, games: games.slice(0, ADMIN_GAMES_LIMIT) };
+}
+
 async function adminOverview(user: AuthUser) {
   const dateKey = todayKey();
 
@@ -1453,6 +1606,15 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
       .map((id) => id.trim())
       .filter(Boolean);
     return json({ names: await adminUsernames(db, ids) });
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/admin/user-games") {
+    await requireAdmin(request, env, db);
+    const targetId = url.searchParams.get("userId")?.trim() ?? "";
+    if (!targetId) {
+      return error("userId requis.", 400);
+    }
+    return json(await adminUserGames(db, targetId));
   }
 
   const user = await requireUser(request, env);

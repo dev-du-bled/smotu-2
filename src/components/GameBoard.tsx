@@ -9,6 +9,7 @@ export type GameBoardProps = {
   activeRow: number;
   canSubmit: boolean;
   celebrationKey?: string;
+  debugAnswer?: string;
   game: GameState;
   inputValue: string;
   localError: string;
@@ -121,6 +122,7 @@ function Keyboard({
 export function GameBoard({
   activeRow,
   celebrationKey,
+  debugAnswer,
   game,
   inputValue,
   localError,
@@ -215,13 +217,20 @@ export function GameBoard({
       </p>
 
       {import.meta.env.DEV ? (
-        <button
-          className="rounded-md border border-dashed border-orange/60 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-orange transition hover:border-orange hover:bg-orange/10"
-          type="button"
-          onClick={() => setDebugCelebrationKey(`debug-${Date.now()}`)}
-        >
-          Debug confettis
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            className="rounded-md border border-dashed border-orange/60 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-orange transition hover:border-orange hover:bg-orange/10"
+            type="button"
+            onClick={() => setDebugCelebrationKey(`debug-${Date.now()}`)}
+          >
+            Debug confettis
+          </button>
+          {debugAnswer ? (
+            <span className="rounded-md border border-dashed border-orange/60 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wide text-orange">
+              Mot: {debugAnswer}
+            </span>
+          ) : null}
+        </div>
       ) : null}
 
       <Keyboard
