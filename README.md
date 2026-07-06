@@ -15,7 +15,7 @@ jour et la satisfaction de gratter des points quand le mot tombe enfin.
 - **Pseudo public**: chaque joueur choisit un pseudo affiché à la place de son
   nom de compte, y compris au classement.
 - **Classement global**: les points des deux modes sont additionnés.
-- **Profil joueur**: score, rang, victoires et photo Google quand disponible.
+- **Profil joueur**: score, rang, victoires et avatar 3D interne.
 - **Dictionnaire étendu**: les propositions sont validées sur une grande banque
   de mots français, proche de l'expérience Wordle.
 - **Interface responsive**: dark theme, header mobile, footer classique et
@@ -144,10 +144,13 @@ Les scores sont rattachés à un identifiant Smotu stable dérivé du compte Goo
 (`google:<sub Google>`), pas à l'identifiant interne Better Auth. Si un compte
 Google recrée une session ou un utilisateur Better Auth, les données de jeu
 continuent donc de pointer vers le même joueur.
+Cet identifiant reste interne au Worker: les classements publics exposent un
+identifiant `player:<hash>`, le pseudo Smotu et l'avatar interne.
 
 Les comptes email utilisent l'identifiant Better Auth local (`auth:<id>`).
 
-Si Google fournit une photo de profil, elle est affichée sur la page profil.
+Les photos fournies par les fournisseurs d'authentification ne sont pas affichées
+publiquement. Le site utilise uniquement le pseudo Smotu et l'avatar interne.
 
 En production, configure les secrets suivants dans Cloudflare:
 

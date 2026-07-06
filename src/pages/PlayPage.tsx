@@ -1,12 +1,15 @@
+import type { ShopItemId } from "../../shared/game";
 import { GameBoard, type GameBoardProps } from "../components/GameBoard";
-import { PointsAmount, ProgressStrip, SectionKicker } from "../components/ui";
+import { ProgressStrip, SectionKicker } from "../components/ui";
 
 export function PlayPage({
+  confettiSkin,
   onSignIn,
   playProps,
   signedIn,
 }: {
   authLoading?: boolean;
+  confettiSkin?: ShopItemId;
   onSignIn: () => void | Promise<void>;
   playProps?: GameBoardProps & { progress: number };
   signedIn: boolean;
@@ -22,7 +25,7 @@ export function PlayPage({
           <SectionKicker>Mot du jour</SectionKicker>
           <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-subtle-foreground">
             Une seule grille quotidienne · jusqu'à
-            <PointsAmount className="font-black" iconClassName="size-4" value={900} />
+            <span className="font-mono font-black tabular-nums">900 pts</span>
           </p>
           {!signedIn ? (
             <p className="mt-1 text-xs font-semibold text-muted-foreground">
@@ -40,7 +43,7 @@ export function PlayPage({
           <ProgressStrip value={playProps.progress} />
         </div>
       </div>
-      <GameBoard {...playProps} />
+      <GameBoard {...playProps} confettiSkin={confettiSkin} />
     </div>
   );
 }

@@ -1,11 +1,16 @@
 import { useMemo } from "react";
-import type { ProfileStats } from "../../shared/game";
+import {
+  DEFAULT_PUBLIC_AVATAR,
+  DEFAULT_SHOP_EQUIPMENT,
+  type ProfileStats,
+} from "../../shared/game";
 import { useApiResource } from "../lib/api";
 
 export function emptyProfileStats(userId = ""): ProfileStats {
   return {
     userId,
     userName: userId ? `Joueur ${userId.slice(-6)}` : "Joueur",
+    publicAvatar: DEFAULT_PUBLIC_AVATAR,
     totalScore: 0,
     dailyScore: 0,
     endlessScore: 0,
@@ -15,7 +20,21 @@ export function emptyProfileStats(userId = ""): ProfileStats {
     endlessSolved: 0,
     mastermindSolved: 0,
     lastScoredAt: "",
+    inventory: {
+      balance: 0,
+      equipped: { ...DEFAULT_SHOP_EQUIPMENT },
+      ownedCount: 0,
+      ownedThemeIds: [DEFAULT_PUBLIC_AVATAR.themeId],
+      totalItems: 0,
+      consumables: {
+        hintLetter: 0,
+        hintPosition: 0,
+        hintMastermind: 0,
+      },
+      publicAvatar: DEFAULT_PUBLIC_AVATAR,
+    },
     rank: null,
+    recentGames: [],
   };
 }
 

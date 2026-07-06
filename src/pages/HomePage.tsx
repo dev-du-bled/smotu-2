@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import type { GameState } from "../../shared/game";
-import { Panel, PointsAmount, SectionKicker, Skeleton } from "../components/ui";
+import type { GameState, GlobalLeaderboardEntry } from "../../shared/game";
+import { AvatarDisplay } from "../components/AvatarDisplay";
+import { Panel, SectionKicker, Skeleton } from "../components/ui";
 
 function formatDateKey(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -17,15 +18,15 @@ function formatDateKey(dateKey: string): string {
 }
 
 export function HomePage({
-  bestScore,
   game,
   leaderboardCount,
   leaderboardLoading = false,
+  topPlayer,
 }: {
-  bestScore: number;
   game: GameState;
   leaderboardCount: number;
   leaderboardLoading?: boolean;
+  topPlayer: GlobalLeaderboardEntry | null;
 }) {
   const attemptsLabel = game.attempts.length > 1 ? "essais" : "essai";
   const modes = [
@@ -104,19 +105,25 @@ export function HomePage({
         </div>
 
         <div className="grid grid-cols-2 gap-4 border-b border-border pb-5">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              Top score
+              Champion
             </p>
             {leaderboardLoading ? (
-              <Skeleton className="mt-1 h-10 w-28" />
+              <Skeleton className="mt-1 h-12 w-full" />
+            ) : topPlayer ? (
+              <div className="mt-1 flex items-center gap-2">
+                <AvatarDisplay
+                  avatar={topPlayer.publicAvatar}
+                  label={`Avatar de ${topPlayer.userName}`}
+                  size="sm"
+                />
+                <span className="min-w-0 truncate text-lg font-black leading-tight">
+                  {topPlayer.userName}
+                </span>
+              </div>
             ) : (
-              <PointsAmount
-                className="mt-1 h-10 text-4xl font-black leading-none"
-                iconClassName="size-8"
-                valueClassName="h-10"
-                value={bestScore}
-              />
+              <p className="mt-1 text-4xl font-black leading-none text-muted-foreground">—</p>
             )}
           </div>
           <div>
@@ -153,11 +160,9 @@ export function HomePage({
                     {mode.meta}
                   </span>
                 </span>
-                <PointsAmount
-                  className="justify-end rounded bg-muted px-2 py-1 text-xs font-black text-subtle-foreground"
-                  iconClassName="size-4"
-                  value={mode.score}
-                />
+                <span className="rounded bg-muted px-2 py-1 font-mono text-xs font-black tabular-nums text-subtle-foreground">
+                  {mode.score} pts
+                </span>
               </Link>
             ))}
           </div>

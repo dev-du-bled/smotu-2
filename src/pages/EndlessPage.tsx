@@ -1,19 +1,20 @@
 import {
   getScoreForMode,
   type EndlessGameState,
+  type ShopItemId,
   type WordLengthOption,
 } from "../../shared/game";
 import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import {
   Button,
   Panel,
-  PointsAmount,
   ProgressStrip,
   SectionKicker,
 } from "../components/ui";
 
 export function EndlessPage({
   abandonRound,
+  confettiSkin,
   game,
   isAbandoning,
   isStarting,
@@ -25,6 +26,7 @@ export function EndlessPage({
   wordLengthOptions,
 }: {
   abandonRound: () => void | Promise<void>;
+  confettiSkin?: ShopItemId;
   game: EndlessGameState;
   isAbandoning: boolean;
   isStarting: boolean;
@@ -58,11 +60,9 @@ export function EndlessPage({
               <span className="inline-grid min-w-[1ch] translate-y-[0.055em] place-items-center leading-none">
                 {wordLength}
               </span>
-              <PointsAmount
-                className="leading-none"
-                iconClassName="size-4"
-                value={getScoreForMode("endless", 1, wordLength)}
-              />
+              <span className="font-mono leading-none tabular-nums">
+                {getScoreForMode("endless", 1, wordLength).toLocaleString("fr-FR")} pts
+              </span>
             </span>
           </button>
         ))}
@@ -111,11 +111,9 @@ export function EndlessPage({
             <SectionKicker>Mode libre</SectionKicker>
             <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-subtle-foreground">
               Manche #{game.gamesPlayed} · jusqu'à
-              <PointsAmount
-                className="font-black"
-                iconClassName="size-4"
-                value={currentMaxScore}
-              />
+              <span className="font-mono font-black tabular-nums">
+                {currentMaxScore.toLocaleString("fr-FR")} pts
+              </span>
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -154,7 +152,7 @@ export function EndlessPage({
           <ProgressStrip value={playProps.progress} />
         </div>
       </div>
-      <GameBoard {...playProps} />
+      <GameBoard {...playProps} confettiSkin={confettiSkin} />
     </div>
   );
 }

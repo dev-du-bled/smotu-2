@@ -1,5 +1,7 @@
+import { Link } from "react-router-dom";
 import type { GlobalLeaderboardEntry, LeaderboardSet } from "../../shared/game";
-import { PointsAmount, Skeleton } from "./ui";
+import { AvatarDisplay } from "./AvatarDisplay";
+import { Skeleton } from "./ui";
 
 type BoardKey = keyof LeaderboardSet;
 
@@ -29,22 +31,11 @@ function scoreForBoard(entry: GlobalLeaderboardEntry, board: BoardKey): number {
   return entry.totalScore;
 }
 
-// Or / argent / bronze pour les trois premiers du classement.
-const PODIUM_BADGE = [
-  "bg-[#f6b100] text-black",
-  "bg-[#c9ced6] text-black",
-  "bg-[#cd7f32] text-white",
-] as const;
-
 const PODIUM_ROW = [
   "border-[#f6b100]/60 bg-[#f6b100]/10",
   "border-[#c9ced6]/60 bg-[#c9ced6]/15",
   "border-[#cd7f32]/55 bg-[#cd7f32]/10",
 ] as const;
-
-function badgeClass(index: number): string {
-  return PODIUM_BADGE[index] ?? "bg-primary text-primary-foreground";
-}
 
 function rowClass(index: number): string {
   return PODIUM_ROW[index] ?? "border-border bg-card";
@@ -57,32 +48,13 @@ function LeaderboardAvatar({
   entry: GlobalLeaderboardEntry;
   index: number;
 }) {
-  const initial = entry.userName.slice(0, 1).toUpperCase() || "?";
-
   return (
-    <div className="relative size-12 shrink-0">
-      <div className="grid size-12 place-items-center overflow-hidden rounded-md border border-border bg-success text-lg font-black text-success-foreground">
-        <span>{initial}</span>
-        {entry.userImage ? (
-          <img
-            alt=""
-            className="absolute inset-0 size-full object-cover rounded-sm"
-            referrerPolicy="no-referrer"
-            src={entry.userImage}
-            onError={(event) => {
-              event.currentTarget.style.display = "none";
-            }}
-          />
-        ) : null}
-      </div>
-      <span
-        className={`absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border-2 border-card text-xs font-black ${badgeClass(
-          index,
-        )}`}
-      >
-        {index + 1}
-      </span>
-    </div>
+    <AvatarDisplay
+      avatar={entry.publicAvatar}
+      label={`Avatar de ${entry.userName}`}
+      rank={index + 1}
+      size="sm"
+    />
   );
 }
 
@@ -144,9 +116,19 @@ export function LeaderboardList({
             )} ${large ? "p-4" : "p-3"}`}
             key={entry.userId}
           >
-            <LeaderboardAvatar entry={entry} index={index} />
+            <Link
+              className="shrink-0 transition-[scale] active:scale-[0.96]"
+              to={`/players/${encodeURIComponent(entry.userId)}`}
+            >
+              <LeaderboardAvatar entry={entry} index={index} />
+            </Link>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-bold">{entry.userName}</p>
+              <Link
+                className="block truncate font-bold transition-colors hover:text-primary"
+                to={`/players/${encodeURIComponent(entry.userId)}`}
+              >
+                {entry.userName}
+              </Link>
               <p className="text-sm text-muted-foreground">
                 {winsForBoard(entry, board)}{" "}
                 {winsForBoard(entry, board) > 1 ? "victoires" : "victoire"}
@@ -155,30 +137,28 @@ export function LeaderboardList({
                 {board === "global" ? (
                   <>
                     <span className="inline-flex items-center gap-2">
-                      Jour <PointsAmount iconClassName="size-3.5" value={entry.dailyScore} />
+                      Jour <span className="font-mono tabular-nums">{entry.dailyScore.toLocaleString("fr-FR")}</span>
                     </span>
                     <ScoreDivider />
                     <span className="inline-flex items-center gap-1">
-                      Libre <PointsAmount iconClassName="size-3.5" value={entry.endlessScore} />
+                      Libre <span className="font-mono tabular-nums">{entry.endlessScore.toLocaleString("fr-FR")}</span>
                     </span>
                     <ScoreDivider />
                     <span className="inline-flex items-center gap-1">
-                      Mastermind <PointsAmount iconClassName="size-3.5" value={entry.mastermindScore} />
+                      Mastermind <span className="font-mono tabular-nums">{entry.mastermindScore.toLocaleString("fr-FR")}</span>
                     </span>
                   </>
                 ) : (
                   <span className="inline-flex items-center gap-1">
-                    Score <PointsAmount iconClassName="size-3.5" value={scoreForBoard(entry, board)} />
+                    Score <span className="font-mono tabular-nums">{scoreForBoard(entry, board).toLocaleString("fr-FR")}</span>
                   </span>
                 )}
               </div>
             </div>
             {board === "global" ? (
-              <PointsAmount
-                className="text-lg font-black"
-                iconClassName="size-5"
-                value={entry.totalScore}
-              />
+              <span className="font-mono text-lg font-black tabular-nums">
+                {entry.totalScore.toLocaleString("fr-FR")}
+              </span>
             ) : (
               <p className="text-right leading-tight">
                 <span className="block text-lg font-black">

@@ -3,6 +3,7 @@ import {
   MASTERMIND_COLORS,
   type MastermindColorId,
   type MastermindGameState,
+  type ShopItemId,
 } from "../../shared/game";
 import { ConfettiBurst } from "../components/ConfettiBurst";
 import {
@@ -13,7 +14,6 @@ import {
 import {
   Button,
   Panel,
-  PointsAmount,
   ProgressStrip,
   SectionKicker,
 } from "../components/ui";
@@ -51,11 +51,9 @@ function statusText(game: MastermindGameState, pendingGuess: boolean): ReactNode
     return (
       <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
         Code trouvé en {attempt?.attemptNumber ?? 0} essais. Score:
-        <PointsAmount
-          className="font-black"
-          iconClassName="size-4"
-          value={attempt?.score ?? 0}
-        />
+        <span className="font-mono font-black tabular-nums">
+          {(attempt?.score ?? 0).toLocaleString("fr-FR")}
+        </span>
       </span>
     );
   }
@@ -71,6 +69,7 @@ export function MastermindPage({
   authLoading = false,
   canSubmit,
   celebrationKey,
+  confettiSkin,
   clearGuess,
   game,
   guess,
@@ -90,6 +89,7 @@ export function MastermindPage({
   authLoading?: boolean;
   canSubmit: boolean;
   celebrationKey?: string;
+  confettiSkin?: ShopItemId;
   clearGuess: () => void;
   game?: MastermindGameState;
   guess: MastermindColorId[];
@@ -138,7 +138,7 @@ export function MastermindPage({
 
   return (
     <div className="mx-auto grid min-h-[inherit] max-w-6xl gap-6 px-4 py-5 lg:grid-cols-[1fr_360px]">
-      <ConfettiBurst burstKey={celebrationKey} />
+      <ConfettiBurst burstKey={celebrationKey} skin={confettiSkin} />
 
       <section className="mx-auto w-full max-w-xl space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -146,7 +146,7 @@ export function MastermindPage({
             <SectionKicker>Mastermind</SectionKicker>
             <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-subtle-foreground">
               Manche #{game.gamesPlayed} · jusqu'à
-              <PointsAmount className="font-black" iconClassName="size-4" value={560} />
+              <span className="font-mono font-black tabular-nums">560 pts</span>
             </p>
             {!signedIn ? (
               <p className="mt-1 text-xs font-semibold text-muted-foreground">

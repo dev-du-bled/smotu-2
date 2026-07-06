@@ -4,7 +4,6 @@ import {
   Button,
   Input,
   Panel,
-  PointsAmount,
   SectionKicker,
   Skeleton,
 } from "../components/ui";
@@ -182,17 +181,17 @@ function GameCard({ game }: { game: AdminUserGame }) {
         <span className="text-sm font-semibold text-muted-foreground">
           {formatDuration(game.durationMs)}
         </span>
-        <PointsAmount
-          className={`ml-auto text-sm font-black ${
+        <span
+          className={`ml-auto font-mono text-sm font-black tabular-nums ${
             game.score > 0
               ? "text-success"
               : game.score < 0
                 ? "text-destructive"
                 : "text-muted-foreground"
           }`}
-          iconClassName="size-4"
-          value={game.score}
-        />
+        >
+          {game.score.toLocaleString("fr-FR")}
+        </span>
         <span className="text-xs font-bold text-muted-foreground">
           {open ? "▲" : "▼"}
         </span>
@@ -268,7 +267,7 @@ export function AdminPage({
   const [gamesError, setGamesError] = useState("");
 
   const isAdmin = Boolean(overview);
-  // Affiche le pseudo Smotu si l'utilisateur en a choisi un, sinon le nom Google.
+  // L'admin peut lire les comptes auth, mais l'identité publique reste le pseudo Smotu.
   const displayName = (user: AdminUser) => profileNames[user.id] ?? user.name;
   const page = Math.floor(offset / PAGE_SIZE) + 1;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -326,7 +325,7 @@ export function AdminPage({
             );
             setProfileNames((previous) => ({ ...previous, ...nameData.names }));
           } catch {
-            // Non bloquant : on retombe sur le nom Google.
+            // Non bloquant : on retombe sur le nom du compte auth dans le panel admin.
           }
         }
       } catch (reason) {

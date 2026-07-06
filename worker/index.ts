@@ -16,17 +16,40 @@ import {
   normalizeGuess,
   normalizeWordLength,
   randomWord,
+  smotucoinsEarned,
   type Attempt,
   type EndlessGameState,
   type EndlessGameStatus,
   type GameMode,
   type GameState,
+  type FriendProfile,
+  type FriendRequest,
+  type FriendshipStatus,
+  type FriendsState,
   type GlobalLeaderboardEntry,
   type LeaderboardSet,
   type MastermindAttempt,
   type MastermindGameState,
   type MastermindGameStatus,
+  type PlayerSearchResult,
+  type ProfileInventorySummary,
+  type ProfileRecentGame,
   type ProfileStats,
+  type PublicPlayerProfile,
+  DEFAULT_PUBLIC_AVATAR,
+  DEFAULT_SHOP_EQUIPMENT,
+  SHOP_ITEMS,
+  SHOP_SECTIONS,
+  defaultOwnedItemIds,
+  publicAvatarFromEquipment,
+  shopItemById,
+  type PublicAvatar,
+  type ShopCategory,
+  type ShopEquipSlot,
+  type ShopEquipment,
+  type ShopInventory,
+  type ShopItemId,
+  type ShopState,
   type TileState,
   type AdminGameStatus,
   type AdminUserGame,
@@ -35,8 +58,12 @@ import {
 import {
   dailyGames as dailyGamesTable,
   endlessGames as endlessGamesTable,
+  friendRequests as friendRequestsTable,
+  friendships as friendshipsTable,
   users as usersTable,
   mastermindGames as mastermindGamesTable,
+  shopEquipment as shopEquipmentTable,
+  shopPurchases as shopPurchasesTable,
   type StoredDailyGame,
   type StoredEndlessGame,
   type StoredMastermindGame,
@@ -49,7 +76,6 @@ type AuthUser = {
   email?: string;
   googleAccountId?: string;
   name: string;
-  picture?: string;
   role?: string | null;
   sessionId: string;
   sessionToken: string;
@@ -76,6 +102,15 @@ const schemaStatements = [
   "CREATE INDEX IF NOT EXISTS endless_games_user_status_idx ON endless_games (user_id, status, created_at)",
   "CREATE TABLE IF NOT EXISTS mastermind_games (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, answer TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active', score INTEGER NOT NULL DEFAULT 0, attempts TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
   "CREATE INDEX IF NOT EXISTS mastermind_games_user_status_idx ON mastermind_games (user_id, status, created_at)",
+  "CREATE TABLE IF NOT EXISTS shop_purchases (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, item_id TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 1, spent INTEGER NOT NULL, created_at TEXT NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS shop_purchases_user_idx ON shop_purchases (user_id, created_at)",
+  "CREATE TABLE IF NOT EXISTS shop_equipment (user_id TEXT NOT NULL, slot TEXT NOT NULL, item_id TEXT NOT NULL, updated_at TEXT NOT NULL)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS shop_equipment_user_slot_idx ON shop_equipment (user_id, slot)",
+  "CREATE TABLE IF NOT EXISTS friendships (user_id TEXT NOT NULL, friend_user_id TEXT NOT NULL, created_at TEXT NOT NULL)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS friendships_user_friend_idx ON friendships (user_id, friend_user_id)",
+  "CREATE TABLE IF NOT EXISTS friend_requests (id TEXT PRIMARY KEY, from_user_id TEXT NOT NULL, to_user_id TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS friend_requests_pair_pending_idx ON friend_requests (from_user_id, to_user_id, status)",
+  "CREATE INDEX IF NOT EXISTS friend_requests_to_status_idx ON friend_requests (to_user_id, status)",
 ];
 
 const migrationStatements = [
@@ -266,7 +301,7 @@ async function migrateAttemptsToGames(db: Db): Promise<void> {
     };
     const byDay = new Map<string, DailyBucket>();
     for (const row of rows) {
-      const key = `${row.user_id} ${row.date_key}`;
+      const key = `${row.user_id}${row.date_key}`;
       const bucket =
         byDay.get(key) ??
         ({
@@ -325,8 +360,8 @@ async function googleAccountId(env: Env, authUserId: string): Promise<string | u
   return row?.accountId;
 }
 
-function fallbackName(name: string, email: string | undefined, userId: string): string {
-  return name.trim() || email?.trim() || `Joueur ${userId.slice(-6)}`;
+function fallbackName(userId: string): string {
+  return `Joueur ${userId.slice(-6)}`;
 }
 
 async function requireUser(request: Request, env: Env): Promise<AuthUser> {
@@ -349,9 +384,8 @@ async function requireUser(request: Request, env: Env): Promise<AuthUser> {
     authUserId: session.user.id,
     googleAccountId: accountId,
     userId,
-    name: fallbackName(session.user.name, session.user.email, userId),
+    name: fallbackName(userId),
     email: session.user.email,
-    picture: session.user.image ?? undefined,
     role: "role" in session.user ? String(session.user.role ?? "") : undefined,
     sessionId: session.session.id,
     sessionToken: session.session.token,
@@ -365,6 +399,28 @@ function configuredAdminUserIds(env: Env): Set<string> {
       .map((id) => id.trim())
       .filter(Boolean),
   );
+}
+
+function publicUserId(userId: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < userId.length; index += 1) {
+    hash ^= userId.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `player:${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+async function internalUserIdFromPublicId(
+  db: Db,
+  publicId: string,
+): Promise<string | null> {
+  const id = publicId.trim();
+  if (!id.startsWith("player:")) {
+    return null;
+  }
+
+  const rows = await db.select({ userId: usersTable.userId }).from(usersTable).all();
+  return rows.find((row) => publicUserId(row.userId) === id)?.userId ?? null;
 }
 
 async function requireAdmin(
@@ -391,10 +447,17 @@ async function requireAdmin(
   return { ...user, role };
 }
 
-// Remplace le nom Google par le username choisi (public partout), et crée le
-// profil Smotu stable rattaché au compte Google.
+// Le profil public est toujours le username Smotu. Les infos du fournisseur
+// d'authentification restent internes au compte et ne pilotent pas l'identité UI.
 async function ensureUserProfile(db: Db, user: AuthUser): Promise<void> {
   const timestamp = now();
+
+  await db
+    .update(authUser)
+    .set({ image: null })
+    .where(eq(authUser.id, user.authUserId))
+    .run();
+
   const row = await db
     .select({ username: usersTable.username })
     .from(usersTable)
@@ -458,7 +521,7 @@ async function setUsername(
     .run();
 
   // Le nom est dénormalisé dans les parties: on met à jour l'historique pour que
-  // le nom Google disparaisse aussi du classement.
+  // le pseudo Smotu courant soit celui que le classement relit partout.
   await db.update(dailyGamesTable).set({ userName: username }).where(eq(dailyGamesTable.userId, user.userId)).run();
   await db.update(endlessGamesTable).set({ userName: username }).where(eq(endlessGamesTable.userId, user.userId)).run();
   await db.update(mastermindGamesTable).set({ userName: username }).where(eq(mastermindGamesTable.userId, user.userId)).run();
@@ -1080,6 +1143,7 @@ function addScore(
     ({
       userId: event.userId,
       userName: event.userName,
+      publicAvatar: DEFAULT_PUBLIC_AVATAR,
       totalScore: 0,
       dailyScore: 0,
       endlessScore: 0,
@@ -1178,23 +1242,6 @@ async function leaderboardRows(db: Db) {
   return { daily, endless, endlessPenalties, mastermind };
 }
 
-async function leaderboardImages(db: Db): Promise<Record<string, string>> {
-  const rows = await db
-    .select({
-      userId: usersTable.userId,
-      image: authUser.image,
-    })
-    .from(usersTable)
-    .leftJoin(authUser, eq(usersTable.authUserId, authUser.id))
-    .all();
-
-  return Object.fromEntries(
-    rows
-      .filter((row): row is { userId: string; image: string } => Boolean(row.image))
-      .map((row) => [row.userId, row.image]),
-  );
-}
-
 function scoreEvents({
   daily,
   endless,
@@ -1276,13 +1323,122 @@ function scoreForEntryMode(entry: GlobalLeaderboardEntry, mode: GameMode): numbe
   return entry.mastermindScore;
 }
 
-function withImages(
+async function publicAvatarForUser(db: Db, userId: string): Promise<PublicAvatar> {
+  const [purchases, equipmentRows] = await Promise.all([
+    shopPurchaseRows(db, userId),
+    shopEquipmentRows(db, userId),
+  ]);
+  const ownedItemIds = ownedItemIdsFromPurchases(purchases);
+  return publicAvatarFromEquipment(equipmentFromRows(equipmentRows, ownedItemIds));
+}
+
+// Version groupée : au lieu de 2 requêtes D1 (achats + équipement) PAR utilisateur,
+// on récupère tout le monde en 2 requêtes via inArray puis on regroupe en mémoire.
+// Indispensable pour rester dans les quotas Workers/D1 sur les listes (classement,
+// recherche, amis) où le N+1 explose vite.
+async function publicAvatarsForUsers(
+  db: Db,
+  userIds: string[],
+): Promise<Record<string, PublicAvatar>> {
+  const ids = Array.from(new Set(userIds));
+  if (ids.length === 0) {
+    return {};
+  }
+
+  const [purchaseRows, equipmentRows] = await Promise.all([
+    db
+      .select({
+        userId: shopPurchasesTable.userId,
+        id: shopPurchasesTable.id,
+        itemId: shopPurchasesTable.itemId,
+        quantity: shopPurchasesTable.quantity,
+        spent: shopPurchasesTable.spent,
+        createdAt: shopPurchasesTable.createdAt,
+      })
+      .from(shopPurchasesTable)
+      .where(inArray(shopPurchasesTable.userId, ids))
+      .all(),
+    db
+      .select({
+        userId: shopEquipmentTable.userId,
+        slot: shopEquipmentTable.slot,
+        itemId: shopEquipmentTable.itemId,
+      })
+      .from(shopEquipmentTable)
+      .where(inArray(shopEquipmentTable.userId, ids))
+      .all(),
+  ]);
+
+  const purchasesByUser = new Map<string, ShopPurchaseRow[]>();
+  for (const row of purchaseRows) {
+    const list = purchasesByUser.get(row.userId) ?? [];
+    list.push(row);
+    purchasesByUser.set(row.userId, list);
+  }
+
+  const equipmentByUser = new Map<string, ShopEquipmentRow[]>();
+  for (const row of equipmentRows) {
+    const list = equipmentByUser.get(row.userId) ?? [];
+    list.push(row);
+    equipmentByUser.set(row.userId, list);
+  }
+
+  const avatars: Record<string, PublicAvatar> = {};
+  for (const userId of ids) {
+    const purchases = purchasesByUser.get(userId) ?? [];
+    const ownedItemIds = ownedItemIdsFromPurchases(purchases);
+    const equipment = equipmentByUser.get(userId) ?? [];
+    avatars[userId] = publicAvatarFromEquipment(
+      equipmentFromRows(equipment, ownedItemIds),
+    );
+  }
+
+  return avatars;
+}
+
+async function publicAvatarsForLeaderboard(
+  db: Db,
+  leaderboards: GlobalLeaderboardEntry[][],
+): Promise<Record<string, PublicAvatar>> {
+  const userIds = leaderboards.flatMap((leaderboard) =>
+    leaderboard.map((entry) => entry.userId),
+  );
+  return publicAvatarsForUsers(db, userIds);
+}
+
+async function publicUsernamesForLeaderboard(
+  db: Db,
+  leaderboards: GlobalLeaderboardEntry[][],
+): Promise<Record<string, string>> {
+  const userIds = Array.from(
+    new Set(leaderboards.flatMap((leaderboard) => leaderboard.map((entry) => entry.userId))),
+  );
+  if (userIds.length === 0) {
+    return {};
+  }
+
+  const rows = await db
+    .select({
+      userId: usersTable.userId,
+      username: usersTable.username,
+    })
+    .from(usersTable)
+    .where(inArray(usersTable.userId, userIds))
+    .all();
+
+  return Object.fromEntries(rows.map((row) => [row.userId, row.username]));
+}
+
+function withPublicProfiles(
   leaderboard: GlobalLeaderboardEntry[],
-  images: Record<string, string>,
+  avatars: Record<string, PublicAvatar>,
+  names: Record<string, string>,
 ): GlobalLeaderboardEntry[] {
   return leaderboard.map((entry) => ({
     ...entry,
-    userImage: images[entry.userId],
+    userId: publicUserId(entry.userId),
+    userName: names[entry.userId] ?? entry.userName,
+    publicAvatar: avatars[entry.userId] ?? DEFAULT_PUBLIC_AVATAR,
   }));
 }
 
@@ -1321,19 +1477,21 @@ function buildLeaderboard(
 
 async function leaderboards(db: Db): Promise<LeaderboardSet> {
   const events = scoreEvents(await leaderboardRows(db));
-  const images = await leaderboardImages(db);
+  const global = buildLeaderboard(events.all).slice(0, 30);
+  const daily = buildLeaderboard(events.daily, "daily").slice(0, 30);
+  const endless = buildLeaderboard(events.endless, "endless").slice(0, 30);
+  const mastermind = buildLeaderboard(events.mastermind, "mastermind").slice(0, 30);
+  const publicBoards = [global, daily, endless, mastermind];
+  const [avatars, names] = await Promise.all([
+    publicAvatarsForLeaderboard(db, publicBoards),
+    publicUsernamesForLeaderboard(db, publicBoards),
+  ]);
 
   return {
-    global: withImages(buildLeaderboard(events.all).slice(0, 30), images),
-    daily: withImages(buildLeaderboard(events.daily, "daily").slice(0, 30), images),
-    endless: withImages(
-      buildLeaderboard(events.endless, "endless").slice(0, 30),
-      images,
-    ),
-    mastermind: withImages(
-      buildLeaderboard(events.mastermind, "mastermind").slice(0, 30),
-      images,
-    ),
+    global: withPublicProfiles(global, avatars, names),
+    daily: withPublicProfiles(daily, avatars, names),
+    endless: withPublicProfiles(endless, avatars, names),
+    mastermind: withPublicProfiles(mastermind, avatars, names),
   };
 }
 
@@ -1341,21 +1499,185 @@ async function globalLeaderboard(db: Db): Promise<GlobalLeaderboardEntry[]> {
   return (await leaderboards(db)).global;
 }
 
-async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
-  const rows = await leaderboardRows(db);
-  const leaderboard = buildLeaderboard(scoreEvents(rows).all);
-  const index = leaderboard.findIndex((entry) => entry.userId === user.userId);
-  const entry = index >= 0 ? leaderboard[index] : undefined;
-  const dailySolved = rows.daily.filter((row) => row.userId === user.userId).length;
-  const endlessSolved = rows.endless.filter((row) => row.userId === user.userId).length;
-  const mastermindSolved = rows.mastermind.filter(
-    (row) => row.userId === user.userId,
-  ).length;
+async function publicNameForUser(db: Db, userId: string): Promise<string> {
+  const row = await db
+    .select({ username: usersTable.username })
+    .from(usersTable)
+    .where(eq(usersTable.userId, userId))
+    .get();
+  return row?.username ?? fallbackName(userId);
+}
+
+async function profileRecentGames(
+  db: Db,
+  userId: string,
+  limit = 8,
+): Promise<ProfileRecentGame[]> {
+  const [daily, endless, mastermind] = await Promise.all([
+    db
+      .select()
+      .from(dailyGamesTable)
+      .where(eq(dailyGamesTable.userId, userId))
+      .orderBy(desc(dailyGamesTable.updatedAt))
+      .limit(limit)
+      .all(),
+    db
+      .select()
+      .from(endlessGamesTable)
+      .where(eq(endlessGamesTable.userId, userId))
+      .orderBy(desc(endlessGamesTable.updatedAt))
+      .limit(limit)
+      .all(),
+    db
+      .select()
+      .from(mastermindGamesTable)
+      .where(eq(mastermindGamesTable.userId, userId))
+      .orderBy(desc(mastermindGamesTable.updatedAt))
+      .limit(limit)
+      .all(),
+  ]);
+
+  const games: ProfileRecentGame[] = [];
+
+  for (const row of daily) {
+    const attempts = parseAttempts(row.attempts);
+    const solved = Boolean(row.solved) || attempts.some((attempt) => attempt.solved);
+    games.push({
+      id: row.id,
+      mode: "daily",
+      status: solved ? "solved" : attempts.length >= MAX_ATTEMPTS ? "failed" : "active",
+      score: row.score,
+      attemptCount: attempts.length,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    });
+  }
+
+  for (const row of endless) {
+    const attempts = parseAttempts(row.attempts);
+    const solved = row.status === "solved" || attempts.some((attempt) => attempt.solved);
+    games.push({
+      id: row.id,
+      mode: "endless",
+      status:
+        row.status === "abandoned"
+          ? "abandoned"
+          : solved
+            ? "solved"
+            : row.status === "failed" || attempts.length >= MAX_ATTEMPTS
+              ? "failed"
+              : "active",
+      score: row.score,
+      attemptCount: attempts.length,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    });
+  }
+
+  for (const row of mastermind) {
+    const attempts = parseMastermindAttempts(row.attempts);
+    const solved = row.status === "solved" || attempts.some((attempt) => attempt.solved);
+    games.push({
+      id: row.id,
+      mode: "mastermind",
+      status:
+        row.status === "abandoned"
+          ? "abandoned"
+          : solved
+            ? "solved"
+            : row.status === "failed" || attempts.length >= MASTERMIND_MAX_ATTEMPTS
+              ? "failed"
+              : "active",
+      score: row.score,
+      attemptCount: attempts.length,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    });
+  }
+
+  return games
+    .sort((left, right) =>
+      left.updatedAt < right.updatedAt
+        ? 1
+        : left.updatedAt > right.updatedAt
+          ? -1
+          : 0,
+    )
+    .slice(0, limit);
+}
+
+async function profileInventorySummary(
+  db: Db,
+  userId: string,
+  coinsEarned: number,
+): Promise<ProfileInventorySummary> {
+  const [purchases, equipmentRows] = await Promise.all([
+    shopPurchaseRows(db, userId),
+    shopEquipmentRows(db, userId),
+  ]);
+  const ownedItemIds = ownedItemIdsFromPurchases(purchases);
+  const equipped = equipmentFromRows(equipmentRows, ownedItemIds, purchases);
+  const consumables = hintCounts(purchases);
+  // Solde de smotucoins : récompenses fixes par victoire moins les dépenses.
+  // Remboursement auto des items retirés du catalogue (ex. contours) : on ne compte
+  // que les achats dont l'itemId est encore valide, les smotucoins dépensés sur des
+  // items supprimés reviennent donc automatiquement dans la balance.
+  const lifetimeSpent = purchases.reduce(
+    (total, row) => (normalizeShopItemId(row.itemId) ? total + row.spent : total),
+    0,
+  );
+  const balance = Math.max(0, coinsEarned - lifetimeSpent);
+  const ownedCosmetics = ownedItemIds.filter((itemId) => {
+    const item = shopItemById(itemId);
+    return item && !item.repeatable;
+  });
+  const ownedThemeIds = ownedItemIds.filter((itemId): itemId is ShopItemId => {
+    const item = shopItemById(itemId);
+    return item?.category === "theme" && !item.repeatable;
+  });
 
   return {
-    userId: user.userId,
-    userName: entry?.userName ?? user.name,
-    userImage: user.picture,
+    balance,
+    equipped,
+    ownedCount: ownedCosmetics.length,
+    ownedThemeIds,
+    totalItems: SHOP_ITEMS.filter((item) => !item.repeatable).length,
+    consumables: {
+      hintLetter: consumables.hintLetterCount,
+      hintPosition: consumables.hintPositionCount,
+      hintMastermind: consumables.hintMastermindCount,
+    },
+    publicAvatar: publicAvatarFromEquipment(equipped),
+  };
+}
+
+async function profileStatsForUser(
+  db: Db,
+  userId: string,
+): Promise<ProfileStats> {
+  const rows = await leaderboardRows(db);
+  const leaderboard = buildLeaderboard(scoreEvents(rows).all);
+  const index = leaderboard.findIndex((entry) => entry.userId === userId);
+  const entry = index >= 0 ? leaderboard[index] : undefined;
+  const dailySolved = rows.daily.filter((row) => row.userId === userId).length;
+  const endlessSolved = rows.endless.filter((row) => row.userId === userId).length;
+  const mastermindSolved = rows.mastermind.filter(
+    (row) => row.userId === userId,
+  ).length;
+  const [userName, inventory, recentGames] = await Promise.all([
+    publicNameForUser(db, userId),
+    profileInventorySummary(
+      db,
+      userId,
+      smotucoinsEarned(dailySolved, endlessSolved, mastermindSolved),
+    ),
+    profileRecentGames(db, userId),
+  ]);
+
+  return {
+    userId: publicUserId(userId),
+    userName,
+    publicAvatar: inventory.publicAvatar,
     totalScore: entry?.totalScore ?? 0,
     dailyScore: entry?.dailyScore ?? 0,
     endlessScore: entry?.endlessScore ?? 0,
@@ -1365,8 +1687,387 @@ async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
     endlessSolved,
     mastermindSolved,
     lastScoredAt: entry?.lastScoredAt ?? "",
+    inventory,
     rank: index >= 0 ? index + 1 : null,
+    recentGames,
   };
+}
+
+async function profileStats(db: Db, user: AuthUser): Promise<ProfileStats> {
+  return profileStatsForUser(db, user.userId);
+}
+
+async function friendshipStatus(
+  db: Db,
+  viewerUserId: string,
+  targetUserId: string,
+): Promise<FriendshipStatus> {
+  if (viewerUserId === targetUserId) {
+    return "self";
+  }
+
+  const friend = await db
+    .select({ friendUserId: friendshipsTable.friendUserId })
+    .from(friendshipsTable)
+    .where(
+      and(
+        eq(friendshipsTable.userId, viewerUserId),
+        eq(friendshipsTable.friendUserId, targetUserId),
+      ),
+    )
+    .get();
+  if (friend) {
+    return "friend";
+  }
+
+  const outgoing = await db
+    .select({ id: friendRequestsTable.id })
+    .from(friendRequestsTable)
+    .where(
+      and(
+        eq(friendRequestsTable.fromUserId, viewerUserId),
+        eq(friendRequestsTable.toUserId, targetUserId),
+        eq(friendRequestsTable.status, "pending"),
+      ),
+    )
+    .get();
+  if (outgoing) {
+    return "outgoing";
+  }
+
+  const incoming = await db
+    .select({ id: friendRequestsTable.id })
+    .from(friendRequestsTable)
+    .where(
+      and(
+        eq(friendRequestsTable.fromUserId, targetUserId),
+        eq(friendRequestsTable.toUserId, viewerUserId),
+        eq(friendRequestsTable.status, "pending"),
+      ),
+    )
+    .get();
+  return incoming ? "incoming" : "none";
+}
+
+async function publicPlayerProfile(
+  db: Db,
+  viewer: AuthUser,
+  publicId: string,
+): Promise<PublicPlayerProfile> {
+  const targetUserId = await internalUserIdFromPublicId(db, publicId);
+  if (!targetUserId) {
+    throw new Error("Joueur introuvable.");
+  }
+
+  const [stats, status] = await Promise.all([
+    profileStatsForUser(db, targetUserId),
+    friendshipStatus(db, viewer.userId, targetUserId),
+  ]);
+  // Le solde smotucoin est un porte-monnaie (à terme achetable en argent réel) :
+  // il reste privé, on ne l'expose pas sur les profils publics.
+  return {
+    ...stats,
+    inventory: { ...stats.inventory, balance: 0 },
+    friendshipStatus: status,
+  };
+}
+
+async function friendProfile(
+  db: Db,
+  userId: string,
+  avatar?: PublicAvatar,
+): Promise<FriendProfile> {
+  // `avatar` permet de réutiliser un lot d'avatars déjà chargé en masse
+  // (publicAvatarsForUsers) ; sinon on retombe sur la requête unitaire.
+  const [userName, publicAvatar] = await Promise.all([
+    publicNameForUser(db, userId),
+    avatar ?? publicAvatarForUser(db, userId),
+  ]);
+  return {
+    userId: publicUserId(userId),
+    userName,
+    publicAvatar,
+  };
+}
+
+async function playerSearch(
+  db: Db,
+  viewer: AuthUser,
+  query: string,
+): Promise<PlayerSearchResult[]> {
+  const normalized = cleanUsername(query).toLowerCase();
+  const rows =
+    normalized.length >= 2
+      ? await db
+          .select({
+            userId: usersTable.userId,
+            username: usersTable.username,
+          })
+          .from(usersTable)
+          .where(sql`lower(${usersTable.username}) like ${`%${normalized}%`}`)
+          .orderBy(asc(usersTable.username))
+          .limit(12)
+          .all()
+      : await db
+          .select({
+            userId: usersTable.userId,
+            username: usersTable.username,
+          })
+          .from(usersTable)
+          .orderBy(desc(usersTable.updatedAt))
+          .limit(8)
+          .all();
+
+  const leaderboard = buildLeaderboard(scoreEvents(await leaderboardRows(db)).all);
+  const ranked = new Map(
+    leaderboard.map((entry, index) => [
+      entry.userId,
+      {
+        entry,
+        rank: index + 1,
+      },
+    ]),
+  );
+
+  // Avatars des résultats en 2 requêtes groupées plutôt qu'un N+1 par ligne.
+  const avatars = await publicAvatarsForUsers(db, rows.map((row) => row.userId));
+
+  return Promise.all(
+    rows.map(async (row) => {
+      const score = ranked.get(row.userId);
+      return {
+        userId: publicUserId(row.userId),
+        userName: row.username,
+        publicAvatar: avatars[row.userId] ?? DEFAULT_PUBLIC_AVATAR,
+        totalScore: score?.entry.totalScore ?? 0,
+        rank: score?.rank ?? null,
+        gamesSolved: score?.entry.gamesSolved ?? 0,
+        friendshipStatus: await friendshipStatus(db, viewer.userId, row.userId),
+      };
+    }),
+  );
+}
+
+async function resolveFriendTargetUserId(
+  db: Db,
+  rawTarget: unknown,
+): Promise<string | null> {
+  const target = String(rawTarget ?? "").trim();
+  if (!target) {
+    return null;
+  }
+
+  if (target.startsWith("player:")) {
+    return internalUserIdFromPublicId(db, target);
+  }
+
+  const username = cleanUsername(target).toLowerCase();
+  const row = await db
+    .select({ userId: usersTable.userId })
+    .from(usersTable)
+    .where(sql`lower(${usersTable.username}) = ${username}`)
+    .get();
+  return row?.userId ?? null;
+}
+
+async function friendsState(db: Db, user: AuthUser): Promise<FriendsState> {
+  const [friendRows, incomingRows, outgoingRows] = await Promise.all([
+    db
+      .select({ friendUserId: friendshipsTable.friendUserId })
+      .from(friendshipsTable)
+      .where(eq(friendshipsTable.userId, user.userId))
+      .orderBy(desc(friendshipsTable.createdAt))
+      .all(),
+    db
+      .select({
+        id: friendRequestsTable.id,
+        fromUserId: friendRequestsTable.fromUserId,
+        createdAt: friendRequestsTable.createdAt,
+      })
+      .from(friendRequestsTable)
+      .where(
+        and(
+          eq(friendRequestsTable.toUserId, user.userId),
+          eq(friendRequestsTable.status, "pending"),
+        ),
+      )
+      .orderBy(desc(friendRequestsTable.createdAt))
+      .all(),
+    db
+      .select({
+        id: friendRequestsTable.id,
+        toUserId: friendRequestsTable.toUserId,
+        createdAt: friendRequestsTable.createdAt,
+      })
+      .from(friendRequestsTable)
+      .where(
+        and(
+          eq(friendRequestsTable.fromUserId, user.userId),
+          eq(friendRequestsTable.status, "pending"),
+        ),
+      )
+      .orderBy(desc(friendRequestsTable.createdAt))
+      .all(),
+  ]);
+
+  // Avatars des amis et des demandes en 2 requêtes groupées (quotas Workers/D1)
+  // plutôt qu'un N+1 caché dans chaque friendProfile.
+  const avatars = await publicAvatarsForUsers(db, [
+    ...friendRows.map((row) => row.friendUserId),
+    ...incomingRows.map((row) => row.fromUserId),
+    ...outgoingRows.map((row) => row.toUserId),
+  ]);
+
+  const friends = await Promise.all(
+    friendRows.map((row) =>
+      friendProfile(db, row.friendUserId, avatars[row.friendUserId]),
+    ),
+  );
+  const incomingRequests: FriendRequest[] = await Promise.all(
+    incomingRows.map(async (row) => ({
+      id: row.id,
+      createdAt: row.createdAt,
+      user: await friendProfile(db, row.fromUserId, avatars[row.fromUserId]),
+    })),
+  );
+  const outgoingRequests: FriendRequest[] = await Promise.all(
+    outgoingRows.map(async (row) => ({
+      id: row.id,
+      createdAt: row.createdAt,
+      user: await friendProfile(db, row.toUserId, avatars[row.toUserId]),
+    })),
+  );
+
+  return { friends, incomingRequests, outgoingRequests };
+}
+
+async function requestFriend(
+  db: Db,
+  user: AuthUser,
+  rawTarget: unknown,
+): Promise<FriendsState> {
+  const targetUserId = await resolveFriendTargetUserId(db, rawTarget);
+  if (!targetUserId) {
+    throw new Error("Joueur introuvable.");
+  }
+
+  const status = await friendshipStatus(db, user.userId, targetUserId);
+  if (status === "self") {
+    throw new Error("Tu ne peux pas t'envoyer une demande.");
+  }
+  if (status === "friend") {
+    throw new Error("Ce joueur est déjà dans tes amis.");
+  }
+  if (status === "outgoing") {
+    throw new Error("Demande déjà envoyée.");
+  }
+  if (status === "incoming") {
+    throw new Error("Ce joueur t'a déjà envoyé une demande.");
+  }
+
+  const timestamp = now();
+  await db
+    .insert(friendRequestsTable)
+    .values({
+      id: crypto.randomUUID(),
+      fromUserId: user.userId,
+      toUserId: targetUserId,
+      status: "pending",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .onConflictDoNothing()
+    .run();
+
+  return friendsState(db, user);
+}
+
+async function respondFriendRequest(
+  db: Db,
+  user: AuthUser,
+  rawRequestId: unknown,
+  accept: boolean,
+): Promise<FriendsState> {
+  const requestId = String(rawRequestId ?? "").trim();
+  const request = requestId
+    ? await db
+        .select()
+        .from(friendRequestsTable)
+        .where(
+          and(
+            eq(friendRequestsTable.id, requestId),
+            eq(friendRequestsTable.toUserId, user.userId),
+            eq(friendRequestsTable.status, "pending"),
+          ),
+        )
+        .get()
+    : null;
+
+  if (!request) {
+    throw new Error("Demande d'ami introuvable.");
+  }
+
+  const timestamp = now();
+  await db
+    .update(friendRequestsTable)
+    .set({ status: accept ? "accepted" : "declined", updatedAt: timestamp })
+    .where(eq(friendRequestsTable.id, request.id))
+    .run();
+
+  if (accept) {
+    await db
+      .insert(friendshipsTable)
+      .values({
+        userId: user.userId,
+        friendUserId: request.fromUserId,
+        createdAt: timestamp,
+      })
+      .onConflictDoNothing()
+      .run();
+    await db
+      .insert(friendshipsTable)
+      .values({
+        userId: request.fromUserId,
+        friendUserId: user.userId,
+        createdAt: timestamp,
+      })
+      .onConflictDoNothing()
+      .run();
+  }
+
+  return friendsState(db, user);
+}
+
+async function removeFriend(
+  db: Db,
+  user: AuthUser,
+  rawPublicId: unknown,
+): Promise<FriendsState> {
+  const targetUserId = await resolveFriendTargetUserId(db, rawPublicId);
+  if (!targetUserId) {
+    throw new Error("Joueur introuvable.");
+  }
+
+  await db
+    .delete(friendshipsTable)
+    .where(
+      and(
+        eq(friendshipsTable.userId, user.userId),
+        eq(friendshipsTable.friendUserId, targetUserId),
+      ),
+    )
+    .run();
+  await db
+    .delete(friendshipsTable)
+    .where(
+      and(
+        eq(friendshipsTable.userId, targetUserId),
+        eq(friendshipsTable.friendUserId, user.userId),
+      ),
+    )
+    .run();
+
+  return friendsState(db, user);
 }
 
 const ADMIN_GAMES_LIMIT = 15;
@@ -1569,6 +2270,293 @@ async function adminUsernames(
   return names;
 }
 
+function normalizeShopItemId(value: unknown): ShopItemId | undefined {
+  return shopItemById(value)?.id;
+}
+
+function normalizeShopSlot(value: unknown): ShopEquipSlot | undefined {
+  const slot = String(value ?? "");
+  return ["avatar", "hat", "shirt", "confetti", "theme"].includes(slot)
+    ? (slot as ShopEquipSlot)
+    : undefined;
+}
+
+type ShopPurchaseRow = {
+  id: string;
+  itemId: string;
+  quantity: number;
+  spent: number;
+  createdAt: string;
+};
+
+type ShopEquipmentRow = {
+  slot: string;
+  itemId: string;
+};
+
+async function shopPurchaseRows(
+  db: Db,
+  userId: string,
+): Promise<ShopPurchaseRow[]> {
+  return db
+    .select({
+      id: shopPurchasesTable.id,
+      itemId: shopPurchasesTable.itemId,
+      quantity: shopPurchasesTable.quantity,
+      spent: shopPurchasesTable.spent,
+      createdAt: shopPurchasesTable.createdAt,
+    })
+    .from(shopPurchasesTable)
+    .where(eq(shopPurchasesTable.userId, userId))
+    .orderBy(desc(shopPurchasesTable.createdAt))
+    .all();
+}
+
+async function shopEquipmentRows(
+  db: Db,
+  userId: string,
+): Promise<ShopEquipmentRow[]> {
+  return db
+    .select({
+      slot: shopEquipmentTable.slot,
+      itemId: shopEquipmentTable.itemId,
+    })
+    .from(shopEquipmentTable)
+    .where(eq(shopEquipmentTable.userId, userId))
+    .all();
+}
+
+function ownedItemIdsFromPurchases(purchases: ShopPurchaseRow[]): ShopItemId[] {
+  return Array.from(
+    new Set([
+      ...defaultOwnedItemIds(),
+      ...purchases
+        .map((row) => normalizeShopItemId(row.itemId))
+        .filter((itemId): itemId is ShopItemId => Boolean(itemId)),
+    ]),
+  );
+}
+
+function ownedByCategory(ownedItemIds: ShopItemId[]): Record<ShopCategory, ShopItemId[]> {
+  const byCategory: Record<ShopCategory, ShopItemId[]> = {
+    avatar: [],
+    hat: [],
+    shirt: [],
+    confetti: [],
+    theme: [],
+    hint: [],
+  };
+
+  for (const itemId of ownedItemIds) {
+    const item = shopItemById(itemId);
+    if (item) {
+      byCategory[item.category].push(item.id);
+    }
+  }
+
+  return byCategory;
+}
+
+function equipmentFromRows(
+  rows: ShopEquipmentRow[],
+  ownedItemIds: ShopItemId[],
+  purchases: ShopPurchaseRow[] = [],
+): ShopEquipment {
+  const owned = new Set(ownedItemIds);
+  const equipped: ShopEquipment = { ...DEFAULT_SHOP_EQUIPMENT };
+  const explicitSlots = new Set<ShopEquipSlot>();
+
+  for (const row of rows) {
+    const slot = normalizeShopSlot(row.slot);
+    const itemId = normalizeShopItemId(row.itemId);
+    const item = itemId ? shopItemById(itemId) : undefined;
+    if (slot && item && item.slot === slot && owned.has(item.id)) {
+      equipped[slot] = item.id;
+      explicitSlots.add(slot);
+    }
+  }
+
+  for (const row of purchases) {
+    const itemId = normalizeShopItemId(row.itemId);
+    const item = itemId ? shopItemById(itemId) : undefined;
+    if (item?.slot && !explicitSlots.has(item.slot) && owned.has(item.id)) {
+      equipped[item.slot] = item.id;
+      explicitSlots.add(item.slot);
+    }
+  }
+
+  return equipped;
+}
+
+function hintCounts(purchases: { itemId: string; quantity: number }[]) {
+  let hintLetterCount = 0;
+  let hintPositionCount = 0;
+  let hintMastermindCount = 0;
+
+  for (const purchase of purchases) {
+    if (purchase.itemId === "hint-letter-pack") {
+      hintLetterCount += purchase.quantity * 3;
+    }
+    if (purchase.itemId === "hint-position-pack") {
+      hintPositionCount += purchase.quantity * 2;
+    }
+    if (purchase.itemId === "hint-mastermind-pack") {
+      hintMastermindCount += purchase.quantity * 2;
+    }
+  }
+
+  return { hintLetterCount, hintPositionCount, hintMastermindCount };
+}
+
+async function shopInventory(db: Db, user: AuthUser): Promise<ShopInventory> {
+  const stats = await profileStats(db, user);
+  const [rows, equipmentRows] = await Promise.all([
+    shopPurchaseRows(db, user.userId),
+    shopEquipmentRows(db, user.userId),
+  ]);
+  // Remboursement auto des items retirés du catalogue (ex. contours) : on ne compte
+  // dans les dépenses que les achats dont l'itemId est encore valide, les smotucoins
+  // dépensés sur des items supprimés reviennent donc automatiquement dans la balance.
+  const lifetimeSpent = rows.reduce(
+    (total, row) => (normalizeShopItemId(row.itemId) ? total + row.spent : total),
+    0,
+  );
+  // La monnaie (smotucoin) est créditée en récompenses fixes par victoire : le
+  // classement garde ses points pleins, les deux systèmes sont découplés.
+  const lifetimeEarned = smotucoinsEarned(
+    stats.dailySolved,
+    stats.endlessSolved,
+    stats.mastermindSolved,
+  );
+  const ownedItemIds = ownedItemIdsFromPurchases(rows);
+  const equipped = equipmentFromRows(equipmentRows, ownedItemIds, rows);
+  const consumables = hintCounts(rows);
+
+  return {
+    balance: Math.max(0, lifetimeEarned - lifetimeSpent),
+    lifetimeEarned,
+    lifetimeSpent,
+    purchases: rows.flatMap((row) => {
+      const itemId = normalizeShopItemId(row.itemId);
+      return itemId
+        ? [
+            {
+              id: row.id,
+              itemId,
+              quantity: row.quantity,
+              spent: row.spent,
+              createdAt: row.createdAt,
+            },
+          ]
+        : [];
+    }),
+    ownedItemIds,
+    ownedByCategory: ownedByCategory(ownedItemIds),
+    equipped,
+    publicAvatar: publicAvatarFromEquipment(equipped),
+    consumables: {
+      hintLetter: consumables.hintLetterCount,
+      hintPosition: consumables.hintPositionCount,
+      hintMastermind: consumables.hintMastermindCount,
+    },
+    ...consumables,
+  };
+}
+
+async function shopState(db: Db, user: AuthUser): Promise<ShopState> {
+  return {
+    sections: SHOP_SECTIONS,
+    items: SHOP_ITEMS,
+    inventory: await shopInventory(db, user),
+  };
+}
+
+async function setShopEquipment(
+  db: Db,
+  userId: string,
+  slot: ShopEquipSlot,
+  itemId: ShopItemId,
+): Promise<void> {
+  await db
+    .insert(shopEquipmentTable)
+    .values({
+      userId,
+      slot,
+      itemId,
+      updatedAt: now(),
+    })
+    .onConflictDoUpdate({
+      target: [shopEquipmentTable.userId, shopEquipmentTable.slot],
+      set: { itemId, updatedAt: now() },
+    })
+    .run();
+}
+
+async function buyShopItem(
+  db: Db,
+  user: AuthUser,
+  rawItemId: unknown,
+): Promise<ShopState> {
+  const itemId = normalizeShopItemId(rawItemId);
+  const item = SHOP_ITEMS.find((candidate) => candidate.id === itemId);
+
+  if (!item) {
+    throw new Error("Article boutique introuvable.");
+  }
+
+  const inventory = await shopInventory(db, user);
+  if (!item.repeatable && inventory.ownedItemIds.includes(item.id)) {
+    throw new Error("Cet article est déjà dans ton inventaire.");
+  }
+  if (inventory.balance < item.price) {
+    throw new Error("Solde de smotucoins insuffisant.");
+  }
+
+  await db
+    .insert(shopPurchasesTable)
+    .values({
+      id: crypto.randomUUID(),
+      userId: user.userId,
+      itemId: item.id,
+      quantity: 1,
+      spent: item.price,
+      createdAt: now(),
+    })
+    .run();
+
+  if (item.slot) {
+    await setShopEquipment(db, user.userId, item.slot, item.id);
+  }
+
+  return shopState(db, user);
+}
+
+async function equipShopItem(
+  db: Db,
+  user: AuthUser,
+  rawItemId: unknown,
+  rawSlot: unknown,
+): Promise<ShopState> {
+  const itemId = normalizeShopItemId(rawItemId);
+  const item = itemId ? shopItemById(itemId) : undefined;
+  const slot = normalizeShopSlot(rawSlot) ?? item?.slot;
+
+  if (!item || !itemId || !slot || item.slot !== slot) {
+    throw new Error("Cosmétique impossible à équiper.");
+  }
+  if (item.category === "hint") {
+    throw new Error("Les indices ne peuvent pas être équipés.");
+  }
+
+  const inventory = await shopInventory(db, user);
+  if (!inventory.ownedItemIds.includes(itemId)) {
+    throw new Error("Tu dois acheter cet article avant de l'équiper.");
+  }
+
+  await setShopEquipment(db, user.userId, slot, itemId);
+  return shopState(db, user);
+}
+
 async function requestBody(request: Request): Promise<Record<string, unknown>> {
   if (!request.body) {
     return {};
@@ -1628,9 +2616,61 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     return json(await profileStats(db, user));
   }
 
+  if (request.method === "GET" && url.pathname === "/api/profile/games") {
+    // `Number(null)` et `Number("")` valent 0 : absent/vide/invalide => défaut 60.
+    const requested = Number(url.searchParams.get("limit"));
+    const limit =
+      Number.isFinite(requested) && requested >= 1
+        ? Math.min(200, Math.floor(requested))
+        : 60;
+    return json(await profileRecentGames(db, user.userId, limit));
+  }
+
   if (request.method === "POST" && url.pathname === "/api/profile/username") {
     const body = await requestBody(request);
     return json(await setUsername(db, user, String(body.username ?? "")));
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/players/search") {
+    return json(await playerSearch(db, user, url.searchParams.get("q") ?? ""));
+  }
+
+  if (request.method === "GET" && url.pathname.startsWith("/api/players/")) {
+    const publicId = decodeURIComponent(url.pathname.slice("/api/players/".length));
+    return json(await publicPlayerProfile(db, user, publicId));
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/friends") {
+    return json(await friendsState(db, user));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/friends/request") {
+    const body = await requestBody(request);
+    return json(await requestFriend(db, user, body.targetUserId ?? body.username));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/friends/respond") {
+    const body = await requestBody(request);
+    return json(await respondFriendRequest(db, user, body.requestId, Boolean(body.accept)));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/friends/remove") {
+    const body = await requestBody(request);
+    return json(await removeFriend(db, user, body.targetUserId));
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/shop") {
+    return json(await shopState(db, user));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/shop/buy") {
+    const body = await requestBody(request);
+    return json(await buyShopItem(db, user, body.itemId));
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/shop/equip") {
+    const body = await requestBody(request);
+    return json(await equipShopItem(db, user, body.itemId, body.slot));
   }
 
   if (request.method === "GET" && url.pathname === "/api/game/daily") {

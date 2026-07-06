@@ -1,7 +1,12 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { type Attempt, type GameState, type TileState } from "../../shared/game";
+import {
+  type Attempt,
+  type GameState,
+  type ShopItemId,
+  type TileState,
+} from "../../shared/game";
 import { ConfettiBurst } from "./ConfettiBurst";
-import { KeyCap, PointsAmount, WordTile } from "./ui";
+import { KeyCap, WordTile } from "./ui";
 
 const KEY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
 
@@ -9,6 +14,7 @@ export type GameBoardProps = {
   activeRow: number;
   canSubmit: boolean;
   celebrationKey?: string;
+  confettiSkin?: ShopItemId;
   debugAnswer?: string;
   game: GameState;
   inputValue: string;
@@ -45,11 +51,9 @@ function statusText(
     return (
       <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
         Trouvé en {attempts} {attempts > 1 ? "essais" : "essai"}. Score:
-        <PointsAmount
-          className="font-black"
-          iconClassName="size-4"
-          value={solvedAttempt?.score ?? 0}
-        />
+        <span className="font-mono font-black tabular-nums">
+          {(solvedAttempt?.score ?? 0).toLocaleString("fr-FR")}
+        </span>
       </span>
     );
   }
@@ -58,11 +62,9 @@ function statusText(
       return (
         <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
           Partie terminée. Le mot était {game.answer}. Malus:
-          <PointsAmount
-            className="font-black text-destructive"
-            iconClassName="size-4"
-            value={-lossPenalty}
-          />
+          <span className="font-mono font-black tabular-nums text-destructive">
+            {(-lossPenalty).toLocaleString("fr-FR")}
+          </span>
         </span>
       );
     }
@@ -122,6 +124,7 @@ function Keyboard({
 export function GameBoard({
   activeRow,
   celebrationKey,
+  confettiSkin,
   debugAnswer,
   game,
   inputValue,
@@ -177,8 +180,10 @@ export function GameBoard({
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5">
-      <ConfettiBurst burstKey={celebrationKey} />
-      {import.meta.env.DEV ? <ConfettiBurst burstKey={debugCelebrationKey} /> : null}
+      <ConfettiBurst burstKey={celebrationKey} skin={confettiSkin} />
+      {import.meta.env.DEV ? (
+        <ConfettiBurst burstKey={debugCelebrationKey} skin={confettiSkin} />
+      ) : null}
 
       <div className="w-full max-w-sm">
         <div className="grid gap-1.5">

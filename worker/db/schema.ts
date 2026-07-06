@@ -54,6 +54,67 @@ export const endlessGames = sqliteTable(
   ],
 );
 
+export const shopPurchases = sqliteTable(
+  "shop_purchases",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    itemId: text("item_id").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    spent: integer("spent").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("shop_purchases_user_idx").on(table.userId, table.createdAt)],
+);
+
+export const shopEquipment = sqliteTable(
+  "shop_equipment",
+  {
+    userId: text("user_id").notNull(),
+    slot: text("slot").notNull(),
+    itemId: text("item_id").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("shop_equipment_user_slot_idx").on(table.userId, table.slot),
+  ],
+);
+
+export const friendships = sqliteTable(
+  "friendships",
+  {
+    userId: text("user_id").notNull(),
+    friendUserId: text("friend_user_id").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("friendships_user_friend_idx").on(
+      table.userId,
+      table.friendUserId,
+    ),
+  ],
+);
+
+export const friendRequests = sqliteTable(
+  "friend_requests",
+  {
+    id: text("id").primaryKey(),
+    fromUserId: text("from_user_id").notNull(),
+    toUserId: text("to_user_id").notNull(),
+    status: text("status").notNull().default("pending"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("friend_requests_pair_pending_idx").on(
+      table.fromUserId,
+      table.toUserId,
+      table.status,
+    ),
+    index("friend_requests_to_status_idx").on(table.toUserId, table.status),
+  ],
+);
+
 export const mastermindGames = sqliteTable(
   "mastermind_games",
   {
@@ -79,6 +140,10 @@ export const mastermindGames = sqliteTable(
   ],
 );
 
+export type StoredShopPurchase = typeof shopPurchases.$inferSelect;
+export type StoredShopEquipment = typeof shopEquipment.$inferSelect;
+export type StoredFriendship = typeof friendships.$inferSelect;
+export type StoredFriendRequest = typeof friendRequests.$inferSelect;
 export type StoredUser = typeof users.$inferSelect;
 export type StoredDailyGame = typeof dailyGames.$inferSelect;
 export type StoredEndlessGame = typeof endlessGames.$inferSelect;
