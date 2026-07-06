@@ -147,6 +147,7 @@ function GameCard({ game }: { game: AdminUserGame }) {
   return (
     <div className="rounded-md border border-border bg-muted">
       <button
+        aria-expanded={open}
         className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left"
         type="button"
         onClick={() => setOpen((value) => !value)}

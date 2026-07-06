@@ -666,7 +666,7 @@ function toEndlessGameState(
     // On masque le mot tant que la manche est active pour ne pas le divulguer.
     // En dev (`import.meta.env.DEV`, remplacé par `false` au build de prod) on le
     // révèle pour l'aide au debug affichée dans le plateau.
-    answer: status === "active" && !import.meta.env.DEV ? "" : game.answer,
+    answer: status === "active" && !(import.meta as any).env?.DEV ? "" : game.answer,
     status,
     gamesPlayed: played,
   };

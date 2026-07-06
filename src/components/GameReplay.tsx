@@ -108,7 +108,7 @@ export function FeedbackPegs({
     ...Array.from({ length: exact }, (_, index) => ({
       key: `exact-${index}`,
       className: "bg-primary",
-      label: "Bien place",
+      label: "Bien placé",
     })),
     ...Array.from({ length: present }, (_, index) => ({
       key: `present-${index}`,
