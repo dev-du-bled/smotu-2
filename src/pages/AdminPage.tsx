@@ -65,6 +65,11 @@ type ListUserSessionsData = {
   sessions: AdminSession[];
 };
 
+// authUserId -> pseudo Smotu choisi par l'utilisateur (peut différer du nom Google).
+type AdminUsernamesData = {
+  names: Record<string, string>;
+};
+
 const PAGE_SIZE = 20;
 
 function formatDate(value: Date | string | null | undefined): string {
@@ -141,8 +146,11 @@ export function AdminPage({
   const [sessions, setSessions] = useState<AdminSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsError, setSessionsError] = useState("");
+  const [profileNames, setProfileNames] = useState<Record<string, string>>({});
 
   const isAdmin = Boolean(overview);
+  // Affiche le pseudo Smotu si l'utilisateur en a choisi un, sinon le nom Google.
+  const displayName = (user: AdminUser) => profileNames[user.id] ?? user.name;
   const page = Math.floor(offset / PAGE_SIZE) + 1;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const canPrevious = offset > 0;
@@ -187,6 +195,20 @@ export function AdminPage({
         ) {
           setSelectedUserId("");
           setSessions([]);
+        }
+
+        const ids = data.users.map((user) => user.id).filter(Boolean);
+        if (ids.length > 0) {
+          try {
+            const nameData = await apiJson<AdminUsernamesData>(
+              `/api/admin/usernames?ids=${ids
+                .map((id) => encodeURIComponent(id))
+                .join(",")}`,
+            );
+            setProfileNames((previous) => ({ ...previous, ...nameData.names }));
+          } catch {
+            // Non bloquant : on retombe sur le nom Google.
+          }
         }
       } catch (reason) {
         setUsersError(errorMessage(reason));
@@ -435,7 +457,7 @@ export function AdminPage({
                         }}
                       >
                         <td className={`rounded-l-md px-3 py-3 ${cellClass}`}>
-                          <p className="font-black">{user.name}</p>
+                          <p className="font-black">{displayName(user)}</p>
                           <p className="text-sm text-muted-foreground">{user.email}</p>
                         </td>
                         <td className={`px-3 py-3 ${cellClass}`}>
@@ -501,7 +523,7 @@ export function AdminPage({
           <div>
             <SectionKicker>Utilisateur</SectionKicker>
             <h3 className="mt-2 text-2xl font-black">
-              {selectedUser ? selectedUser.name : "Aucun utilisateur"}
+              {selectedUser ? displayName(selectedUser) : "Aucun utilisateur"}
             </h3>
             {selectedUser ? (
               <p className="mt-1 break-all text-sm text-muted-foreground">

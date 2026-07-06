@@ -1386,6 +1386,36 @@ async function adminOverview(user: AuthUser) {
   };
 }
 
+// Le panel admin liste les comptes better-auth, dont le `name` vient de Google.
+// On récupère ici le pseudo Smotu choisi par l'utilisateur (table `users`,
+// rattachée via `authUserId`) pour l'afficher à la place du nom Google.
+async function adminUsernames(
+  db: Db,
+  authUserIds: string[],
+): Promise<Record<string, string>> {
+  const ids = authUserIds.filter(Boolean);
+  if (ids.length === 0) {
+    return {};
+  }
+
+  const rows = await db
+    .select({
+      authUserId: usersTable.authUserId,
+      username: usersTable.username,
+    })
+    .from(usersTable)
+    .where(inArray(usersTable.authUserId, ids))
+    .all();
+
+  const names: Record<string, string> = {};
+  for (const row of rows) {
+    if (row.authUserId && row.username) {
+      names[row.authUserId] = row.username;
+    }
+  }
+  return names;
+}
+
 async function requestBody(request: Request): Promise<Record<string, unknown>> {
   if (!request.body) {
     return {};
@@ -1414,6 +1444,15 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     const adminUser = await requireAdmin(request, env, db);
     await ensureUserProfile(db, adminUser);
     return json(await adminOverview(adminUser));
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/admin/usernames") {
+    await requireAdmin(request, env, db);
+    const ids = (url.searchParams.get("ids") ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    return json({ names: await adminUsernames(db, ids) });
   }
 
   const user = await requireUser(request, env);
