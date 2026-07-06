@@ -210,7 +210,9 @@ function RecentGameRow({ game }: { game: ProfileRecentGame }) {
           {STATUS_LABELS[game.status]} · {game.attemptCount} essais · {formatDate(game.updatedAt)}
         </p>
       </div>
-      <PointsAmount className="justify-start text-xl font-black sm:justify-end" value={game.score} />
+      <p className="justify-start font-mono text-xl font-black tabular-nums sm:justify-end sm:text-right">
+        {game.score.toLocaleString("fr-FR")}
+      </p>
     </div>
   );
 }
@@ -541,9 +543,9 @@ export function ProfilePage({
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-3">
-            <StatBox label={`${stats.dailySolved} victoires quotidiennes`} points value={stats.dailyScore} />
-            <StatBox label={`${stats.endlessSolved} victoires libres`} points value={stats.endlessScore} />
-            <StatBox label={`${stats.mastermindSolved} victoires Mastermind`} points value={stats.mastermindScore} />
+            <StatBox label={`${stats.dailySolved} victoires quotidiennes`} value={stats.dailyScore.toLocaleString("fr-FR")} />
+            <StatBox label={`${stats.endlessSolved} victoires libres`} value={stats.endlessScore.toLocaleString("fr-FR")} />
+            <StatBox label={`${stats.mastermindSolved} victoires Mastermind`} value={stats.mastermindScore.toLocaleString("fr-FR")} />
           </div>
         )}
 

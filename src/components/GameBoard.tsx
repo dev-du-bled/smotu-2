@@ -6,7 +6,7 @@ import {
   type TileState,
 } from "../../shared/game";
 import { ConfettiBurst } from "./ConfettiBurst";
-import { KeyCap, PointsAmount, WordTile } from "./ui";
+import { KeyCap, WordTile } from "./ui";
 
 const KEY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
 
@@ -51,11 +51,9 @@ function statusText(
     return (
       <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
         Trouvé en {attempts} {attempts > 1 ? "essais" : "essai"}. Score:
-        <PointsAmount
-          className="font-black"
-          iconClassName="size-4"
-          value={solvedAttempt?.score ?? 0}
-        />
+        <span className="font-mono font-black tabular-nums">
+          {(solvedAttempt?.score ?? 0).toLocaleString("fr-FR")}
+        </span>
       </span>
     );
   }
@@ -64,11 +62,9 @@ function statusText(
       return (
         <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
           Partie terminée. Le mot était {game.answer}. Malus:
-          <PointsAmount
-            className="font-black text-destructive"
-            iconClassName="size-4"
-            value={-lossPenalty}
-          />
+          <span className="font-mono font-black tabular-nums text-destructive">
+            {(-lossPenalty).toLocaleString("fr-FR")}
+          </span>
         </span>
       );
     }

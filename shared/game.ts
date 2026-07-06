@@ -98,6 +98,8 @@ export type ShopItemId =
   | "avatar-yeti"
   | "avatar-panda"
   | "avatar-citrouille"
+  | "avatar-grenouille"
+  | "avatar-requin"
   | "hat-casquette"
   | "hat-couronne-lowpoly"
   | "hat-casque-spatial"
@@ -107,6 +109,8 @@ export type ShopItemId =
   | "hat-viking"
   | "hat-melon"
   | "hat-pirate"
+  | "hat-cowboy"
+  | "hat-noel"
   | "shirt-classic"
   | "shirt-neon"
   | "shirt-mastermind"
@@ -116,6 +120,8 @@ export type ShopItemId =
   | "shirt-arcenciel"
   | "shirt-menthe"
   | "shirt-galaxie"
+  | "shirt-marin"
+  | "shirt-cyber"
   | "theme-default"
   | "theme-neon"
   | "theme-foret"
@@ -128,6 +134,8 @@ export type ShopItemId =
   | "theme-arctique"
   | "theme-royal"
   | "theme-crepuscule"
+  | "theme-desert"
+  | "theme-abysse"
   | "confetti-classic"
   | "confetti-etoiles"
   | "confetti-smotucoins"
@@ -137,6 +145,8 @@ export type ShopItemId =
   | "confetti-neige"
   | "confetti-bulles"
   | "confetti-lave"
+  | "confetti-emeraude"
+  | "confetti-or-rose"
   | "hint-letter-pack"
   | "hint-position-pack"
   | "hint-mastermind-pack";
@@ -1080,14 +1090,15 @@ const ENDLESS_SCORES_BY_LENGTH: Record<WordLengthOption, readonly number[]> = {
 const MASTERMIND_SCORES = [560, 500, 440, 380, 320, 260, 200, 140] as const;
 
 // Découplage total monnaie / classement : le classement se joue en points de
-// partie, la monnaie (smotucoin) est créditée en récompenses FIXES par victoire —
-// deux systèmes sans aucun lien mathématique. Le loot est volontairement
-// famélique et la balance gains/dépenses penche vers la dépense : des packs de
-// smotucoins payants (argent réel) arriveront.
+// partie, la monnaie (smotucoin) est créditée en récompenses FIXES par victoire
+// (5 mot du jour / 1 manche libre / 2 Mastermind) — deux systèmes sans aucun lien
+// mathématique. Le loot est volontairement famélique et la balance gains/dépenses
+// penche fortement vers la dépense : des packs de smotucoins payants (argent réel)
+// arriveront.
 export const SMOTUCOIN_REWARDS: Record<GameMode, number> = {
-  daily: 10,
-  endless: 2,
-  mastermind: 3,
+  daily: 5,
+  endless: 1,
+  mastermind: 2,
 };
 
 export function smotucoinsEarned(
@@ -1384,8 +1395,8 @@ export const SHOP_SECTIONS: ShopState["sections"] = [
 ];
 
 // Économie boutique: prix libellés en smotucoins, crédités en récompenses fixes
-// par victoire (voir SMOTUCOIN_REWARDS : 10 mot du jour / 2 manche libre /
-// 3 Mastermind), sans aucun lien avec les points du classement. La monnaie est
+// par victoire (voir SMOTUCOIN_REWARDS : 5 mot du jour / 1 manche libre /
+// 2 Mastermind), sans aucun lien avec les points du classement. La monnaie est
 // volontairement rare et la balance penche vers la dépense car des packs de
 // smotucoins payants (argent réel) arriveront : les petits cosmétiques coûtent
 // des semaines de jeu, les thèmes premium bien plus.
@@ -1408,7 +1419,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un modèle vif aux volumes orange et aux reflets dorés.",
     category: "avatar",
     slot: "avatar",
-    price: 450,
+    price: 900,
     repeatable: false,
     rarity: "common",
     sortOrder: 2,
@@ -1420,7 +1431,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un visage calme, parfait pour les séries patientes.",
     category: "avatar",
     slot: "avatar",
-    price: 550,
+    price: 1100,
     repeatable: false,
     rarity: "common",
     sortOrder: 3,
@@ -1432,7 +1443,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un modèle translucide avec une base souple et brillante.",
     category: "avatar",
     slot: "avatar",
-    price: 650,
+    price: 1300,
     repeatable: false,
     rarity: "rare",
     sortOrder: 4,
@@ -1444,7 +1455,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une tête mécanique low-poly avec reflets métalliques.",
     category: "avatar",
     slot: "avatar",
-    price: 800,
+    price: 1600,
     repeatable: false,
     rarity: "rare",
     sortOrder: 5,
@@ -1456,7 +1467,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un casque spatial lumineux pour les explorateurs de mots.",
     category: "avatar",
     slot: "avatar",
-    price: 1100,
+    price: 2200,
     repeatable: false,
     rarity: "epic",
     sortOrder: 6,
@@ -1468,7 +1479,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un modèle angulaire, massif, réservé aux gros coffres.",
     category: "avatar",
     slot: "avatar",
-    price: 1800,
+    price: 3600,
     repeatable: false,
     rarity: "legendary",
     sortOrder: 7,
@@ -1480,7 +1491,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un modèle rayé et vif qui bourdonne en tête de partie.",
     category: "avatar",
     slot: "avatar",
-    price: 500,
+    price: 1000,
     repeatable: false,
     rarity: "common",
     sortOrder: 8,
@@ -1492,7 +1503,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un visage translucide qui plane au-dessus du classement.",
     category: "avatar",
     slot: "avatar",
-    price: 700,
+    price: 1400,
     repeatable: false,
     rarity: "rare",
     sortOrder: 9,
@@ -1504,7 +1515,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une créature glacée et massive pour les longues séries.",
     category: "avatar",
     slot: "avatar",
-    price: 1200,
+    price: 2400,
     repeatable: false,
     rarity: "epic",
     sortOrder: 10,
@@ -1516,7 +1527,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un modèle noir et blanc placide pour les parties posées.",
     category: "avatar",
     slot: "avatar",
-    price: 750,
+    price: 1500,
     repeatable: false,
     rarity: "rare",
     sortOrder: 11,
@@ -1528,11 +1539,35 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une tête de citrouille orange pour les séries festives.",
     category: "avatar",
     slot: "avatar",
-    price: 1300,
+    price: 2600,
     repeatable: false,
     rarity: "epic",
     sortOrder: 12,
     preview: { primary: "#f97316", secondary: "#7c2d12", accent: "#22c55e" },
+  },
+  {
+    id: "avatar-grenouille",
+    name: "Avatar Grenouille",
+    description: "Une grenouille verte et vive, prête à bondir en tête de partie.",
+    category: "avatar",
+    slot: "avatar",
+    price: 800,
+    repeatable: false,
+    rarity: "common",
+    sortOrder: 13,
+    preview: { primary: "#4ade80", secondary: "#dcfce7", accent: "#166534" },
+  },
+  {
+    id: "avatar-requin",
+    name: "Avatar Requin",
+    description: "Un requin gris et affûté qui rôde autour du classement.",
+    category: "avatar",
+    slot: "avatar",
+    price: 2600,
+    repeatable: false,
+    rarity: "epic",
+    sortOrder: 14,
+    preview: { primary: "#64748b", secondary: "#e2e8f0", accent: "#0f172a" },
   },
   {
     id: "hat-casquette",
@@ -1552,7 +1587,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un bonnet compact, idéal pour les profils arcade.",
     category: "hat",
     slot: "hat",
-    price: 350,
+    price: 700,
     repeatable: false,
     rarity: "common",
     sortOrder: 2,
@@ -1564,7 +1599,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une couronne facettée pour le haut du classement.",
     category: "hat",
     slot: "hat",
-    price: 750,
+    price: 1500,
     repeatable: false,
     rarity: "rare",
     sortOrder: 3,
@@ -1576,7 +1611,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une visière claire et volumique pour les avatars premium.",
     category: "hat",
     slot: "hat",
-    price: 950,
+    price: 1900,
     repeatable: false,
     rarity: "epic",
     sortOrder: 4,
@@ -1588,7 +1623,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un cercle lumineux pour les résolutions impeccables.",
     category: "hat",
     slot: "hat",
-    price: 1300,
+    price: 2600,
     repeatable: false,
     rarity: "legendary",
     sortOrder: 5,
@@ -1600,7 +1635,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un chapeau pointu étoilé pour deviner comme par magie.",
     category: "hat",
     slot: "hat",
-    price: 700,
+    price: 1400,
     repeatable: false,
     rarity: "rare",
     sortOrder: 6,
@@ -1612,7 +1647,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un casque à cornes pour partir à l'assaut des grilles.",
     category: "hat",
     slot: "hat",
-    price: 1000,
+    price: 2000,
     repeatable: false,
     rarity: "epic",
     sortOrder: 7,
@@ -1624,7 +1659,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un chapeau melon sobre pour un profil tiré à quatre épingles.",
     category: "hat",
     slot: "hat",
-    price: 450,
+    price: 900,
     repeatable: false,
     rarity: "common",
     sortOrder: 8,
@@ -1636,11 +1671,35 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un tricorne à l'abordage pour partir à la chasse aux mots.",
     category: "hat",
     slot: "hat",
-    price: 800,
+    price: 1600,
     repeatable: false,
     rarity: "rare",
     sortOrder: 9,
     preview: { primary: "#1c1917", secondary: "#78716c", accent: "#facc15" },
+  },
+  {
+    id: "hat-cowboy",
+    name: "Chapeau de cowboy",
+    description: "Un chapeau de cowboy pour mener la partie façon Far West.",
+    category: "hat",
+    slot: "hat",
+    price: 1500,
+    repeatable: false,
+    rarity: "rare",
+    sortOrder: 10,
+    preview: { primary: "#92400e", secondary: "#d6a25e", accent: "#451a03" },
+  },
+  {
+    id: "hat-noel",
+    name: "Bonnet de Noël",
+    description: "Un bonnet de Noël festif pour les victoires d'hiver.",
+    category: "hat",
+    slot: "hat",
+    price: 1600,
+    repeatable: false,
+    rarity: "rare",
+    sortOrder: 11,
+    preview: { primary: "#dc2626", secondary: "#ffffff", accent: "#fecaca" },
   },
   {
     id: "shirt-classic",
@@ -1660,7 +1719,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un maillot électrique pour les scores qui flashent.",
     category: "shirt",
     slot: "shirt",
-    price: 450,
+    price: 900,
     repeatable: false,
     rarity: "common",
     sortOrder: 2,
@@ -1672,7 +1731,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Quatre pastilles de couleur sur une base sombre.",
     category: "shirt",
     slot: "shirt",
-    price: 650,
+    price: 1300,
     repeatable: false,
     rarity: "rare",
     sortOrder: 3,
@@ -1684,7 +1743,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une tenue dorée pour les profils qui restent devant.",
     category: "shirt",
     slot: "shirt",
-    price: 1050,
+    price: 2100,
     repeatable: false,
     rarity: "epic",
     sortOrder: 4,
@@ -1696,7 +1755,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un dégradé chaud pour les séries explosives.",
     category: "shirt",
     slot: "shirt",
-    price: 1350,
+    price: 2700,
     repeatable: false,
     rarity: "legendary",
     sortOrder: 5,
@@ -1708,7 +1767,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un maillot rétro tout en gros pixels verts.",
     category: "shirt",
     slot: "shirt",
-    price: 400,
+    price: 800,
     repeatable: false,
     rarity: "common",
     sortOrder: 6,
@@ -1720,7 +1779,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un dégradé multicolore pour afficher toutes les couleurs.",
     category: "shirt",
     slot: "shirt",
-    price: 700,
+    price: 1400,
     repeatable: false,
     rarity: "rare",
     sortOrder: 7,
@@ -1732,7 +1791,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un maillot vert menthe frais et lumineux.",
     category: "shirt",
     slot: "shirt",
-    price: 400,
+    price: 800,
     repeatable: false,
     rarity: "common",
     sortOrder: 8,
@@ -1744,11 +1803,35 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un dégradé cosmique parsemé d'étoiles pour les profils rêveurs.",
     category: "shirt",
     slot: "shirt",
-    price: 1100,
+    price: 2200,
     repeatable: false,
     rarity: "epic",
     sortOrder: 9,
     preview: { primary: "#312e81", secondary: "#0f172a", accent: "#f0abfc" },
+  },
+  {
+    id: "shirt-marin",
+    name: "Marinière",
+    description: "Une marinière rayée bleu et blanc, sobre et intemporelle.",
+    category: "shirt",
+    slot: "shirt",
+    price: 800,
+    repeatable: false,
+    rarity: "common",
+    sortOrder: 10,
+    preview: { primary: "#1e3a8a", secondary: "#f8fafc", accent: "#ffffff" },
+  },
+  {
+    id: "shirt-cyber",
+    name: "T-shirt cyber",
+    description: "Un maillot cyber néon pour les profils venus du futur.",
+    category: "shirt",
+    slot: "shirt",
+    price: 3200,
+    repeatable: false,
+    rarity: "legendary",
+    sortOrder: 11,
+    preview: { primary: "#0f172a", secondary: "#22d3ee", accent: "#f0abfc" },
   },
   {
     id: "theme-default",
@@ -1768,7 +1851,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une ambiance verte et calme pour les sessions longues.",
     category: "theme",
     slot: "theme",
-    price: 700,
+    price: 1400,
     repeatable: false,
     rarity: "common",
     sortOrder: 2,
@@ -1780,7 +1863,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Des bleus profonds pour garder la tête froide.",
     category: "theme",
     slot: "theme",
-    price: 800,
+    price: 1600,
     repeatable: false,
     rarity: "rare",
     sortOrder: 3,
@@ -1792,7 +1875,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une palette rose et douce pour célébrer les victoires propres.",
     category: "theme",
     slot: "theme",
-    price: 950,
+    price: 1900,
     repeatable: false,
     rarity: "rare",
     sortOrder: 4,
@@ -1804,7 +1887,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une signature visuelle flashy pour les profils qui claquent.",
     category: "theme",
     slot: "theme",
-    price: 1200,
+    price: 2400,
     repeatable: false,
     rarity: "epic",
     sortOrder: 5,
@@ -1816,7 +1899,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Le thème sombre complet, réservé aux joueurs qui l'achètent.",
     category: "theme",
     slot: "theme",
-    price: 1400,
+    price: 2800,
     repeatable: false,
     rarity: "epic",
     sortOrder: 6,
@@ -1828,7 +1911,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Suit le thème système clair/sombre. Le sombre reste derrière ce paywall.",
     category: "theme",
     slot: "theme",
-    price: 2100,
+    price: 4200,
     repeatable: false,
     rarity: "legendary",
     sortOrder: 7,
@@ -1840,7 +1923,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un thème chaud et agressif pour les séries explosives.",
     category: "theme",
     slot: "theme",
-    price: 1700,
+    price: 3400,
     repeatable: false,
     rarity: "legendary",
     sortOrder: 8,
@@ -1852,7 +1935,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Le thème sombre absolu : noir profond et accents ambre.",
     category: "theme",
     slot: "theme",
-    price: 1600,
+    price: 3200,
     repeatable: false,
     rarity: "epic",
     sortOrder: 9,
@@ -1864,7 +1947,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Des bleus glacés et clairs pour une ambiance polaire.",
     category: "theme",
     slot: "theme",
-    price: 750,
+    price: 1500,
     repeatable: false,
     rarity: "rare",
     sortOrder: 10,
@@ -1876,7 +1959,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une ambiance claire violet et or pour un profil couronné.",
     category: "theme",
     slot: "theme",
-    price: 1500,
+    price: 3000,
     repeatable: false,
     rarity: "epic",
     sortOrder: 11,
@@ -1888,11 +1971,35 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un thème sombre premium, bleu-violet profond aux accents rosés.",
     category: "theme",
     slot: "theme",
-    price: 900,
+    price: 1800,
     repeatable: false,
     rarity: "rare",
     sortOrder: 12,
     preview: { primary: "#818cf8", secondary: "#171528", accent: "#f472b6" },
+  },
+  {
+    id: "theme-desert",
+    name: "Thème Désert",
+    description: "Une ambiance claire sable et ambre, chaude et lumineuse.",
+    category: "theme",
+    slot: "theme",
+    price: 1600,
+    repeatable: false,
+    rarity: "rare",
+    sortOrder: 13,
+    preview: { primary: "#b45309", secondary: "#fdf6e3", accent: "#f59e0b" },
+  },
+  {
+    id: "theme-abysse",
+    name: "Thème Abysse",
+    description: "Un thème sombre premium, bleu profond des abysses.",
+    category: "theme",
+    slot: "theme",
+    price: 4000,
+    repeatable: false,
+    rarity: "legendary",
+    sortOrder: 14,
+    preview: { primary: "#38bdf8", secondary: "#04121f", accent: "#2dd4bf" },
   },
   {
     id: "confetti-classic",
@@ -1912,7 +2019,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Des étoiles qui tombent quand le dernier essai est parfait.",
     category: "confetti",
     slot: "confetti",
-    price: 450,
+    price: 900,
     repeatable: false,
     rarity: "common",
     sortOrder: 2,
@@ -1924,7 +2031,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une pluie de pièces pour les victoires les plus rentables.",
     category: "confetti",
     slot: "confetti",
-    price: 700,
+    price: 1400,
     repeatable: false,
     rarity: "rare",
     sortOrder: 3,
@@ -1936,7 +2043,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une explosion de couleurs pour les résolutions en peu d'essais.",
     category: "confetti",
     slot: "confetti",
-    price: 900,
+    price: 1800,
     repeatable: false,
     rarity: "epic",
     sortOrder: 4,
@@ -1948,7 +2055,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Un burst cosmique pour les victoires vraiment stellaires.",
     category: "confetti",
     slot: "confetti",
-    price: 1150,
+    price: 2300,
     repeatable: false,
     rarity: "epic",
     sortOrder: 5,
@@ -1960,7 +2067,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "L'effet le plus luxueux pour transformer une victoire en jackpot.",
     category: "confetti",
     slot: "confetti",
-    price: 1550,
+    price: 3100,
     repeatable: false,
     rarity: "legendary",
     sortOrder: 6,
@@ -1972,7 +2079,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une chute de flocons pour célébrer les victoires givrées.",
     category: "confetti",
     slot: "confetti",
-    price: 700,
+    price: 1400,
     repeatable: false,
     rarity: "rare",
     sortOrder: 7,
@@ -1984,7 +2091,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une envolée de bulles turquoise pour des victoires pétillantes.",
     category: "confetti",
     slot: "confetti",
-    price: 500,
+    price: 1000,
     repeatable: false,
     rarity: "common",
     sortOrder: 8,
@@ -1996,18 +2103,42 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "Une gerbe de lave incandescente pour les séries brûlantes.",
     category: "confetti",
     slot: "confetti",
-    price: 1200,
+    price: 2400,
     repeatable: false,
     rarity: "epic",
     sortOrder: 9,
     preview: { primary: "#ef4444", secondary: "#f97316", accent: "#facc15" },
   },
   {
+    id: "confetti-emeraude",
+    name: "Confetti Émeraude",
+    description: "Une pluie d'émeraude scintillante pour les victoires précieuses.",
+    category: "confetti",
+    slot: "confetti",
+    price: 1500,
+    repeatable: false,
+    rarity: "rare",
+    sortOrder: 10,
+    preview: { primary: "#10b981", secondary: "#a7f3d0", accent: "#065f46" },
+  },
+  {
+    id: "confetti-or-rose",
+    name: "Confetti Or rose",
+    description: "Un burst or rose ultra chic pour les résolutions parfaites.",
+    category: "confetti",
+    slot: "confetti",
+    price: 3400,
+    repeatable: false,
+    rarity: "legendary",
+    sortOrder: 11,
+    preview: { primary: "#fb7185", secondary: "#fda4af", accent: "#facc15" },
+  },
+  {
     id: "hint-letter-pack",
     name: "Pack indice lettre x3",
     description: "Trois indices qui révèlent une lettre présente dans une grille de mots.",
     category: "hint",
-    price: 600,
+    price: 1200,
     repeatable: true,
     rarity: "common",
     sortOrder: 1,
@@ -2019,7 +2150,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     name: "Pack indice position x2",
     description: "Deux indices plus forts qui révèlent une lettre bien placée.",
     category: "hint",
-    price: 850,
+    price: 1700,
     repeatable: true,
     rarity: "rare",
     sortOrder: 2,
@@ -2031,7 +2162,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     name: "Pack indice Mastermind x2",
     description: "Deux aides dédiées aux codes couleur les plus coriaces.",
     category: "hint",
-    price: 750,
+    price: 1500,
     repeatable: true,
     rarity: "rare",
     sortOrder: 3,

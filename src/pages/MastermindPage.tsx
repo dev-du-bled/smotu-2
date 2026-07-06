@@ -14,7 +14,6 @@ import {
 import {
   Button,
   Panel,
-  PointsAmount,
   ProgressStrip,
   SectionKicker,
 } from "../components/ui";
@@ -52,11 +51,9 @@ function statusText(game: MastermindGameState, pendingGuess: boolean): ReactNode
     return (
       <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
         Code trouvé en {attempt?.attemptNumber ?? 0} essais. Score:
-        <PointsAmount
-          className="font-black"
-          iconClassName="size-4"
-          value={attempt?.score ?? 0}
-        />
+        <span className="font-mono font-black tabular-nums">
+          {(attempt?.score ?? 0).toLocaleString("fr-FR")}
+        </span>
       </span>
     );
   }
@@ -149,7 +146,7 @@ export function MastermindPage({
             <SectionKicker>Mastermind</SectionKicker>
             <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-subtle-foreground">
               Manche #{game.gamesPlayed} · jusqu'à
-              <PointsAmount className="font-black" iconClassName="size-4" value={560} />
+              <span className="font-mono font-black tabular-nums">560 pts</span>
             </p>
             {!signedIn ? (
               <p className="mt-1 text-xs font-semibold text-muted-foreground">

@@ -4,7 +4,6 @@ import {
   Button,
   Input,
   Panel,
-  PointsAmount,
   SectionKicker,
   Skeleton,
 } from "../components/ui";
@@ -182,17 +181,17 @@ function GameCard({ game }: { game: AdminUserGame }) {
         <span className="text-sm font-semibold text-muted-foreground">
           {formatDuration(game.durationMs)}
         </span>
-        <PointsAmount
-          className={`ml-auto text-sm font-black ${
+        <span
+          className={`ml-auto font-mono text-sm font-black tabular-nums ${
             game.score > 0
               ? "text-success"
               : game.score < 0
                 ? "text-destructive"
                 : "text-muted-foreground"
           }`}
-          iconClassName="size-4"
-          value={game.score}
-        />
+        >
+          {game.score.toLocaleString("fr-FR")}
+        </span>
         <span className="text-xs font-bold text-muted-foreground">
           {open ? "▲" : "▼"}
         </span>

@@ -25,6 +25,7 @@ type Palette = {
   accent: THREE.Color;
   hat: THREE.Color;
   hatAccent: THREE.Color;
+  hatSecondary: THREE.Color;
   primary: THREE.Color;
   secondary: THREE.Color;
   shirt: THREE.Color;
@@ -48,6 +49,7 @@ function paletteFromAvatar(avatar: PublicAvatar): Palette {
     shirtAccent: new THREE.Color(previewColor(avatar.shirtId, "accent", "#538d4e")),
     hat: new THREE.Color(previewColor(avatar.hatId, "primary", "#facc15")),
     hatAccent: new THREE.Color(previewColor(avatar.hatId, "accent", "#ffffff")),
+    hatSecondary: new THREE.Color(previewColor(avatar.hatId, "secondary", "#ffffff")),
   };
 }
 
@@ -118,6 +120,14 @@ function buildHead(avatar: PublicAvatar, palette: Palette) {
   } else if (id === "avatar-citrouille") {
     head = mesh(new THREE.SphereGeometry(0.72, 36, 24), material(palette.primary, 0.6, 0.05));
     head.scale.set(1.14, 0.86, 1.14);
+  } else if (id === "avatar-grenouille") {
+    // Tête verte légèrement large et bombée.
+    head = mesh(new THREE.SphereGeometry(0.7, 36, 24), material(palette.primary, 0.5, 0.06));
+    head.scale.set(1.12, 0.96, 1.02);
+  } else if (id === "avatar-requin") {
+    // Tête grise anguleuse (icosaèdre) étirée vers l'avant (museau).
+    head = mesh(new THREE.IcosahedronGeometry(0.66, 1), material(palette.primary, 0.48, 0.12));
+    head.scale.set(0.92, 0.82, 1.42);
   } else {
     head = mesh(
       new THREE.SphereGeometry(0.68, 36, 24),
@@ -385,6 +395,54 @@ function addFace(avatar: PublicAvatar, palette: Palette, group: THREE.Group) {
     return;
   }
 
+  if (id === "avatar-grenouille") {
+    // Deux yeux globuleux proéminents sur le dessus de la tête.
+    const eyeball = material(palette.secondary, 0.4, 0.05);
+    const pupil = material(DARK, 0.35, 0.05);
+    [-1, 1].forEach((s) => {
+      const globe = mesh(new THREE.SphereGeometry(0.2, 20, 16), eyeball);
+      globe.position.set(0.26 * s, 1.18, 0.16);
+      add(globe, group);
+      const dot = mesh(new THREE.SphereGeometry(0.09, 14, 12), pupil);
+      dot.position.set(0.26 * s, 1.22, 0.32);
+      add(dot, group);
+    });
+    // Large sourire fin : arc torique courbé vers le bas.
+    const smile = mesh(
+      new THREE.TorusGeometry(0.28, 0.028, 10, 24, Math.PI),
+      material(palette.accent, 0.5, 0.04),
+    );
+    smile.position.set(0, 0.58, 0.58);
+    smile.rotation.z = Math.PI;
+    add(smile, group);
+    return;
+  }
+
+  if (id === "avatar-requin") {
+    // Aileron dorsal : cône aplati (mince dans l'axe X) légèrement incliné vers l'arrière.
+    const fin = mesh(new THREE.ConeGeometry(0.26, 0.5, 4), material(palette.primary, 0.5, 0.1));
+    fin.position.set(0, 1.28, -0.06);
+    fin.rotation.x = -0.22;
+    fin.scale.set(0.38, 1, 1.05);
+    add(fin, group);
+    // Mâchoire claire sous le museau.
+    const jaw = mesh(new THREE.SphereGeometry(0.3, 20, 16), material(palette.secondary, 0.5, 0.05));
+    jaw.position.set(0, 0.48, 0.52);
+    jaw.scale.set(1.05, 0.5, 1);
+    add(jaw, group);
+    // Petite rangée de dents : cônes blancs pointant vers le bas.
+    const toothMaterial = material(palette.secondary, 0.35, 0.04);
+    [-0.18, -0.06, 0.06, 0.18].forEach((x) => {
+      const tooth = mesh(new THREE.ConeGeometry(0.045, 0.13, 4), toothMaterial);
+      tooth.position.set(x, 0.4, 0.68);
+      tooth.rotation.x = Math.PI;
+      add(tooth, group);
+    });
+    // Yeux sombres latéraux.
+    addEyes(group, DARK, 0.075, 0.82, 0.46, 0.4);
+    return;
+  }
+
   // avatar-classic-3d, avatar-slime et repli : yeux + sourire + reflet.
   addEyes(group, palette.accent, 0.075, 0.73, 0.62, 0.23);
   const mouth = mesh(new THREE.BoxGeometry(0.3, 0.04, 0.04), material(palette.accent, 0.5, 0.02));
@@ -451,6 +509,22 @@ function buildBody(avatar: PublicAvatar, palette: Palette, group: THREE.Group) {
     const belly = mesh(new THREE.SphereGeometry(0.3, 20, 16), material(palette.secondary, 0.85, 0.02));
     belly.position.set(0, -0.28, 0.4);
     belly.scale.set(1.1, 1.2, 0.5);
+    add(belly, group);
+  }
+
+  if (id === "avatar-grenouille") {
+    // Ventre clair de grenouille.
+    const belly = mesh(new THREE.SphereGeometry(0.3, 20, 16), material(palette.secondary, 0.5, 0.04));
+    belly.position.set(0, -0.26, 0.42);
+    belly.scale.set(1.15, 1.25, 0.5);
+    add(belly, group);
+  }
+
+  if (id === "avatar-requin") {
+    // Ventre clair de requin.
+    const belly = mesh(new THREE.SphereGeometry(0.3, 20, 16), material(palette.secondary, 0.5, 0.05));
+    belly.position.set(0, -0.28, 0.42);
+    belly.scale.set(1.1, 1.3, 0.5);
     add(belly, group);
   }
 }
@@ -602,6 +676,56 @@ function addHat(avatar: PublicAvatar, palette: Palette, group: THREE.Group) {
     badge.position.set(0, 1.34, 0.4);
     badge.scale.set(1, 1, 0.5);
     add(badge, group);
+    return;
+  }
+
+  if (avatar.hatId === "hat-cowboy") {
+    // Calotte bombée haute.
+    const crown = mesh(
+      new THREE.SphereGeometry(0.42, 24, 18, 0, Math.PI * 2, 0, Math.PI / 2),
+      hatMaterial,
+    );
+    crown.position.set(0, 1.22, 0);
+    crown.scale.set(1, 1.18, 1);
+    add(crown, group);
+    // Très large bord torique aplati, bords légèrement relevés (léger volume vertical).
+    const brim = mesh(new THREE.TorusGeometry(0.66, 0.12, 12, 44), hatMaterial);
+    brim.position.set(0, 1.2, 0);
+    brim.rotation.x = Math.PI / 2;
+    brim.scale.set(1.32, 1.32, 0.42);
+    add(brim, group);
+    // Bande sombre à la base de la calotte.
+    const band = mesh(new THREE.TorusGeometry(0.4, 0.05, 10, 40), accentMaterial);
+    band.position.set(0, 1.28, 0);
+    band.rotation.x = Math.PI / 2;
+    add(band, group);
+    return;
+  }
+
+  if (avatar.hatId === "hat-noel") {
+    // Bande blanche torique à la base.
+    const band = mesh(
+      new THREE.TorusGeometry(0.44, 0.09, 12, 40),
+      material(palette.hatSecondary, 0.5, 0.04),
+    );
+    band.position.set(0, 1.22, 0);
+    band.rotation.x = Math.PI / 2;
+    add(band, group);
+    // Cône rouge souple en deux segments : base droite puis pointe qui retombe.
+    const lower = mesh(new THREE.ConeGeometry(0.42, 0.72, 20), hatMaterial);
+    lower.position.set(0, 1.62, 0);
+    add(lower, group);
+    const tip = mesh(new THREE.ConeGeometry(0.2, 0.52, 18), hatMaterial);
+    tip.position.set(0.26, 1.94, 0.02);
+    tip.rotation.z = -0.95;
+    add(tip, group);
+    // Pompon blanc à la pointe.
+    const pompom = mesh(
+      new THREE.SphereGeometry(0.13, 16, 12),
+      material(palette.hatSecondary, 0.5, 0.04),
+    );
+    pompom.position.set(0.52, 2, 0.02);
+    add(pompom, group);
     return;
   }
 

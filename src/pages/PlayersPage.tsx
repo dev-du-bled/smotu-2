@@ -7,7 +7,6 @@ import {
   Button,
   Input,
   Panel,
-  PointsAmount,
   SectionKicker,
   Skeleton,
 } from "../components/ui";
@@ -71,7 +70,9 @@ function PlayerResultCard({
         </div>
       </div>
       <div className="grid gap-2 sm:min-w-36">
-        <PointsAmount className="justify-start text-2xl font-black sm:justify-end" value={player.totalScore} />
+        <p className="justify-start font-mono text-2xl font-black tabular-nums sm:justify-end sm:text-right">
+          {player.totalScore.toLocaleString("fr-FR")}
+        </p>
         {canRequest ? (
           <Button disabled={busy} size="sm" type="button" variant="success" onClick={() => void requestFriend()}>
             {busy ? "Envoi..." : "Demander"}

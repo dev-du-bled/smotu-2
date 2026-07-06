@@ -13,7 +13,6 @@ import { AvatarDisplay } from "../components/AvatarDisplay";
 import {
   Button,
   Panel,
-  PointsAmount,
   SectionKicker,
   Skeleton,
 } from "../components/ui";
@@ -63,24 +62,18 @@ function formatDate(value: string): string {
 
 function PublicStat({
   label,
-  points = false,
   value,
 }: {
   label: string;
-  points?: boolean;
   value: number | string;
 }) {
   const compactText = typeof value === "string" && value.length > 8;
 
   return (
     <div className="rounded-lg bg-muted p-4">
-      {points ? (
-        <PointsAmount className="text-3xl font-black" iconClassName="size-7" value={value} />
-      ) : (
-        <p className={`font-mono font-black tabular-nums ${compactText ? "text-lg" : "text-3xl"}`}>
-          {value}
-        </p>
-      )}
+      <p className={`font-mono font-black tabular-nums ${compactText ? "text-lg" : "text-3xl"}`}>
+        {value}
+      </p>
       <p className="mt-1 text-sm font-semibold text-muted-foreground">{label}</p>
     </div>
   );
@@ -206,7 +199,9 @@ function PublicRecentGames({ games }: { games: ProfileRecentGame[] }) {
                   {STATUS_LABELS[game.status]} · {game.attemptCount} essais · {formatDate(game.updatedAt)}
                 </p>
               </div>
-              <PointsAmount className="justify-start text-xl font-black sm:justify-end" value={game.score} />
+              <p className="justify-start font-mono text-xl font-black tabular-nums sm:justify-end sm:text-right">
+                {game.score.toLocaleString("fr-FR")}
+              </p>
             </div>
           ))}
         </div>
@@ -274,15 +269,15 @@ export function PlayerProfilePage({
         ) : (
           <>
             <div className="grid gap-3 md:grid-cols-4">
-              <PublicStat label="Score total" points value={player.totalScore} />
+              <PublicStat label="Score total" value={player.totalScore.toLocaleString("fr-FR")} />
               <PublicStat label="Rang" value={player.rank ? `#${player.rank}` : "Non classé"} />
               <PublicStat label="Victoires" value={player.gamesSolved} />
               <PublicStat label="Dernier score" value={formatDate(player.lastScoredAt)} />
             </div>
             <div className="grid gap-3 md:grid-cols-3">
-              <PublicStat label="Mot du jour" points value={player.dailyScore} />
-              <PublicStat label="Mode libre" points value={player.endlessScore} />
-              <PublicStat label="Mastermind" points value={player.mastermindScore} />
+              <PublicStat label="Mot du jour" value={player.dailyScore.toLocaleString("fr-FR")} />
+              <PublicStat label="Mode libre" value={player.endlessScore.toLocaleString("fr-FR")} />
+              <PublicStat label="Mastermind" value={player.mastermindScore.toLocaleString("fr-FR")} />
             </div>
             <PublicInventory player={player} />
             <PublicRecentGames games={player.recentGames} />

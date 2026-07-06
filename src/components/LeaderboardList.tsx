@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import type { GlobalLeaderboardEntry, LeaderboardSet } from "../../shared/game";
 import { AvatarDisplay } from "./AvatarDisplay";
-import { PointsAmount, Skeleton } from "./ui";
+import { Skeleton } from "./ui";
 
 type BoardKey = keyof LeaderboardSet;
 
@@ -137,30 +137,28 @@ export function LeaderboardList({
                 {board === "global" ? (
                   <>
                     <span className="inline-flex items-center gap-2">
-                      Jour <PointsAmount iconClassName="size-3.5" value={entry.dailyScore} />
+                      Jour <span className="font-mono tabular-nums">{entry.dailyScore.toLocaleString("fr-FR")}</span>
                     </span>
                     <ScoreDivider />
                     <span className="inline-flex items-center gap-1">
-                      Libre <PointsAmount iconClassName="size-3.5" value={entry.endlessScore} />
+                      Libre <span className="font-mono tabular-nums">{entry.endlessScore.toLocaleString("fr-FR")}</span>
                     </span>
                     <ScoreDivider />
                     <span className="inline-flex items-center gap-1">
-                      Mastermind <PointsAmount iconClassName="size-3.5" value={entry.mastermindScore} />
+                      Mastermind <span className="font-mono tabular-nums">{entry.mastermindScore.toLocaleString("fr-FR")}</span>
                     </span>
                   </>
                 ) : (
                   <span className="inline-flex items-center gap-1">
-                    Score <PointsAmount iconClassName="size-3.5" value={scoreForBoard(entry, board)} />
+                    Score <span className="font-mono tabular-nums">{scoreForBoard(entry, board).toLocaleString("fr-FR")}</span>
                   </span>
                 )}
               </div>
             </div>
             {board === "global" ? (
-              <PointsAmount
-                className="text-lg font-black"
-                iconClassName="size-5"
-                value={entry.totalScore}
-              />
+              <span className="font-mono text-lg font-black tabular-nums">
+                {entry.totalScore.toLocaleString("fr-FR")}
+              </span>
             ) : (
               <p className="text-right leading-tight">
                 <span className="block text-lg font-black">
