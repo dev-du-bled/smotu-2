@@ -159,8 +159,15 @@ export type ShopItemId =
   | "confetti-citrons"
   | "confetti-cosmos"
   | "hint-letter-pack"
+  | "hint-letter-solo"
+  | "hint-letter-mega-pack"
   | "hint-position-pack"
-  | "hint-mastermind-pack";
+  | "hint-position-solo"
+  | "hint-position-mega-pack"
+  | "hint-mastermind-pack"
+  | "hint-mastermind-solo"
+  | "hint-mastermind-mega-pack"
+  | "hint-starter-kit";
 
 export type ShopEquipment = Partial<Record<ShopEquipSlot, ShopItemId>>;
 
@@ -1201,25 +1208,38 @@ const ENDLESS_SCORES_BY_LENGTH: Record<WordLengthOption, readonly number[]> = {
 const MASTERMIND_SCORES = [560, 500, 440, 380, 320, 260, 200, 140] as const;
 
 // Découplage total monnaie / classement : le classement se joue en points de
-// partie, la monnaie (smotucoin) est créditée en récompenses FIXES par victoire
-// (25 mot du jour / 5 manche libre / 6 Mastermind) — deux systèmes sans aucun
-// lien mathématique. On peut gagner un peu en jouant, mais juste un peu : la
-// balance gains/dépenses penche fortement vers la dépense car des packs de
-// smotucoins payants (argent réel) arriveront.
-const SMOTUCOIN_REWARDS: Record<GameMode, number> = {
+// partie, la monnaie (smotucoin) est créditée en récompenses par victoire
+// (25 mot du jour / longueur du mot en mode libre / 6 Mastermind) — deux systèmes
+// sans aucun lien mathématique. On peut gagner un peu en jouant, mais juste un
+// peu : la balance gains/dépenses penche fortement vers la dépense car des packs
+// de smotucoins payants (argent réel) arriveront.
+const SMOTUCOIN_REWARDS = {
   daily: 25,
-  endless: 5,
+  endless: WORD_LENGTH,
   mastermind: 6,
-};
+} as const satisfies Record<GameMode, number>;
+
+export function smotucoinsForEndlessWordLength(wordLength: number): number {
+  return normalizeWordLength(wordLength);
+}
 
 export function smotucoinsEarned(
   dailySolved: number,
   endlessSolved: number,
   mastermindSolved: number,
+  endlessWordLengths: readonly number[] = [],
 ): number {
+  const endlessEarned =
+    endlessWordLengths.length > 0
+      ? endlessWordLengths.reduce(
+          (total, wordLength) => total + smotucoinsForEndlessWordLength(wordLength),
+          0,
+        )
+      : endlessSolved * SMOTUCOIN_REWARDS.endless;
+
   return (
     dailySolved * SMOTUCOIN_REWARDS.daily +
-    endlessSolved * SMOTUCOIN_REWARDS.endless +
+    endlessEarned +
     mastermindSolved * SMOTUCOIN_REWARDS.mastermind
   );
 }
@@ -1505,10 +1525,10 @@ export const SHOP_SECTIONS: ShopState["sections"] = [
   },
 ];
 
-// Économie boutique: prix libellés en smotucoins, crédités en récompenses fixes
-// par victoire (voir SMOTUCOIN_REWARDS : 25 mot du jour / 5 manche libre /
-// 6 Mastermind), sans aucun lien avec les points du classement. La monnaie est
-// volontairement rare et la balance penche vers la dépense car des packs de
+// Économie boutique: prix libellés en smotucoins, crédités en récompenses
+// par victoire (voir SMOTUCOIN_REWARDS : 25 mot du jour / longueur du mot en
+// mode libre / 6 Mastermind), sans aucun lien avec les points du classement.
+// La monnaie est volontairement rare et la balance penche vers la dépense car des packs de
 // smotucoins payants (argent réel) arriveront : les petits cosmétiques coûtent
 // des semaines de jeu, les thèmes premium bien plus.
 export const SHOP_ITEMS: ShopItem[] = [
@@ -2377,6 +2397,18 @@ export const SHOP_ITEMS: ShopItem[] = [
     preview: { primary: "#4c1d95", secondary: "#22d3ee", accent: "#f0abfc" },
   },
   {
+    id: "hint-letter-solo",
+    name: "Indice lettre solo",
+    description: "Un indice léger pour révéler une lettre présente sans engager tout un pack.",
+    category: "hint",
+    price: 450,
+    repeatable: true,
+    rarity: "common",
+    sortOrder: 1,
+    bundleQuantity: 1,
+    preview: { primary: "#b59f3b", secondary: "#fff7da", accent: "#111318" },
+  },
+  {
     id: "hint-letter-pack",
     name: "Pack indice lettre x3",
     description: "Trois indices qui révèlent une lettre présente dans une grille de mots.",
@@ -2384,9 +2416,33 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 1200,
     repeatable: true,
     rarity: "common",
-    sortOrder: 1,
+    sortOrder: 2,
     bundleQuantity: 3,
     preview: { primary: "#b59f3b", secondary: "#fff7da", accent: "#111318" },
+  },
+  {
+    id: "hint-letter-mega-pack",
+    name: "Mega pack lettres x8",
+    description: "Huit révélations de lettres pour sécuriser plusieurs manches difficiles.",
+    category: "hint",
+    price: 2800,
+    repeatable: true,
+    rarity: "epic",
+    sortOrder: 3,
+    bundleQuantity: 8,
+    preview: { primary: "#f59e0b", secondary: "#fef3c7", accent: "#78350f" },
+  },
+  {
+    id: "hint-position-solo",
+    name: "Indice position solo",
+    description: "Une lettre bien placée, parfaite quand il ne manque qu'un déclic.",
+    category: "hint",
+    price: 900,
+    repeatable: true,
+    rarity: "rare",
+    sortOrder: 4,
+    bundleQuantity: 1,
+    preview: { primary: "#538d4e", secondary: "#d9f99d", accent: "#111318" },
   },
   {
     id: "hint-position-pack",
@@ -2396,9 +2452,33 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 1700,
     repeatable: true,
     rarity: "rare",
-    sortOrder: 2,
+    sortOrder: 5,
     bundleQuantity: 2,
     preview: { primary: "#538d4e", secondary: "#d9f99d", accent: "#111318" },
+  },
+  {
+    id: "hint-position-mega-pack",
+    name: "Mega pack positions x5",
+    description: "Cinq placements garantis pour débloquer les grilles les plus serrées.",
+    category: "hint",
+    price: 3900,
+    repeatable: true,
+    rarity: "legendary",
+    sortOrder: 6,
+    bundleQuantity: 5,
+    preview: { primary: "#16a34a", secondary: "#bbf7d0", accent: "#052e16" },
+  },
+  {
+    id: "hint-mastermind-solo",
+    name: "Indice Mastermind solo",
+    description: "Une aide ciblée pour tester un code couleur sans vider son stock.",
+    category: "hint",
+    price: 800,
+    repeatable: true,
+    rarity: "rare",
+    sortOrder: 7,
+    bundleQuantity: 1,
+    preview: { primary: "#a855f7", secondary: "#f3e8ff", accent: "#111318" },
   },
   {
     id: "hint-mastermind-pack",
@@ -2408,9 +2488,33 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 1500,
     repeatable: true,
     rarity: "rare",
-    sortOrder: 3,
+    sortOrder: 8,
     bundleQuantity: 2,
     preview: { primary: "#a855f7", secondary: "#f3e8ff", accent: "#111318" },
+  },
+  {
+    id: "hint-mastermind-mega-pack",
+    name: "Mega pack Mastermind x5",
+    description: "Cinq aides Mastermind pour avancer dans les longues sessions de codes.",
+    category: "hint",
+    price: 3400,
+    repeatable: true,
+    rarity: "epic",
+    sortOrder: 9,
+    bundleQuantity: 5,
+    preview: { primary: "#7c3aed", secondary: "#ddd6fe", accent: "#facc15" },
+  },
+  {
+    id: "hint-starter-kit",
+    name: "Kit indices découverte",
+    description: "Un lot équilibré avec deux lettres, une position et une aide Mastermind.",
+    category: "hint",
+    price: 2100,
+    repeatable: true,
+    rarity: "epic",
+    sortOrder: 10,
+    bundleQuantity: 4,
+    preview: { primary: "#0ea5e9", secondary: "#e0f2fe", accent: "#a855f7" },
   },
 ];
 

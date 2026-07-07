@@ -62,6 +62,7 @@ import {
   friendships as friendshipsTable,
   users as usersTable,
   mastermindGames as mastermindGamesTable,
+  promptSubmissions as promptSubmissionsTable,
   shopEquipment as shopEquipmentTable,
   shopPurchases as shopPurchasesTable,
   type StoredDailyGame,
@@ -111,6 +112,8 @@ const schemaStatements = [
   "CREATE TABLE IF NOT EXISTS friend_requests (id TEXT PRIMARY KEY, from_user_id TEXT NOT NULL, to_user_id TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
   "CREATE UNIQUE INDEX IF NOT EXISTS friend_requests_pair_pending_idx ON friend_requests (from_user_id, to_user_id, status)",
   "CREATE INDEX IF NOT EXISTS friend_requests_to_status_idx ON friend_requests (to_user_id, status)",
+  "CREATE TABLE IF NOT EXISTS prompt_submissions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, prompt TEXT NOT NULL, prompt_cost INTEGER NOT NULL DEFAULT 0, date_key TEXT NOT NULL, created_at TEXT NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS prompt_submissions_user_date_idx ON prompt_submissions (user_id, date_key)",
 ];
 
 const migrationStatements = [
@@ -127,6 +130,7 @@ const migrationStatements = [
   // google_account_id est dérivable de `account`).
   "ALTER TABLE users DROP COLUMN google_account_id",
   "ALTER TABLE users DROP COLUMN email",
+  "ALTER TABLE prompt_submissions ADD COLUMN prompt_cost INTEGER NOT NULL DEFAULT 0",
 ];
 
 const postMigrationStatements = [
@@ -1225,6 +1229,7 @@ async function leaderboardRows(db: Db) {
       userId: endlessGamesTable.userId,
       userName: endlessGamesTable.userName,
       score: endlessGamesTable.score,
+      answer: endlessGamesTable.answer,
       createdAt: endlessGamesTable.createdAt,
     })
     .from(endlessGamesTable)
@@ -1635,21 +1640,24 @@ async function profileInventorySummary(
   userId: string,
   coinsEarned: number,
 ): Promise<ProfileInventorySummary> {
-  const [purchases, equipmentRows] = await Promise.all([
+  const [purchases, equipmentRows, promptSpent] = await Promise.all([
     shopPurchaseRows(db, userId),
     shopEquipmentRows(db, userId),
+    promptSubmissionSpent(db, userId),
   ]);
   const ownedItemIds = ownedItemIdsFromPurchases(purchases);
   const equipped = equipmentFromRows(equipmentRows, ownedItemIds, purchases);
   const consumables = hintCounts(purchases);
-  // Solde de smotucoins : récompenses fixes par victoire moins les dépenses.
+  // Solde de smotucoins : récompenses par victoire moins les dépenses.
   // Remboursement auto des items retirés du catalogue (ex. contours) : on ne compte
   // que les achats dont l'itemId est encore valide, les smotucoins dépensés sur des
   // items supprimés reviennent donc automatiquement dans la balance.
-  const lifetimeSpent = purchases.reduce(
-    (total, row) => (normalizeShopItemId(row.itemId) ? total + row.spent : total),
-    0,
-  );
+  const lifetimeSpent =
+    purchases.reduce(
+      (total, row) =>
+        normalizeShopItemId(row.itemId) ? total + row.spent : total,
+      0,
+    ) + promptSpent;
   const balance = Math.max(0, coinsEarned - lifetimeSpent);
   const ownedCosmetics = ownedItemIds.filter((itemId) => {
     const item = shopItemById(itemId);
@@ -1684,7 +1692,8 @@ async function profileStatsForUser(
   const index = leaderboard.findIndex((entry) => entry.userId === userId);
   const entry = index >= 0 ? leaderboard[index] : undefined;
   const dailySolved = rows.daily.filter((row) => row.userId === userId).length;
-  const endlessSolved = rows.endless.filter((row) => row.userId === userId).length;
+  const endlessRows = rows.endless.filter((row) => row.userId === userId);
+  const endlessSolved = endlessRows.length;
   const mastermindSolved = rows.mastermind.filter(
     (row) => row.userId === userId,
   ).length;
@@ -1693,7 +1702,12 @@ async function profileStatsForUser(
     profileInventorySummary(
       db,
       userId,
-      smotucoinsEarned(dailySolved, endlessSolved, mastermindSolved),
+      smotucoinsEarned(
+        dailySolved,
+        endlessSolved,
+        mastermindSolved,
+        endlessRows.map((row) => row.answer.length),
+      ),
     ),
     profileRecentGames(db, userId),
   ]);
@@ -2412,21 +2426,36 @@ function equipmentFromRows(
   return equipped;
 }
 
+const HINT_PACK_CONTENTS: Record<
+  string,
+  { hintLetter?: number; hintPosition?: number; hintMastermind?: number }
+> = {
+  "hint-letter-solo": { hintLetter: 1 },
+  "hint-letter-pack": { hintLetter: 3 },
+  "hint-letter-mega-pack": { hintLetter: 8 },
+  "hint-position-solo": { hintPosition: 1 },
+  "hint-position-pack": { hintPosition: 2 },
+  "hint-position-mega-pack": { hintPosition: 5 },
+  "hint-mastermind-solo": { hintMastermind: 1 },
+  "hint-mastermind-pack": { hintMastermind: 2 },
+  "hint-mastermind-mega-pack": { hintMastermind: 5 },
+  "hint-starter-kit": { hintLetter: 2, hintPosition: 1, hintMastermind: 1 },
+};
+
 function hintCounts(purchases: { itemId: string; quantity: number }[]) {
   let hintLetterCount = 0;
   let hintPositionCount = 0;
   let hintMastermindCount = 0;
 
   for (const purchase of purchases) {
-    if (purchase.itemId === "hint-letter-pack") {
-      hintLetterCount += purchase.quantity * 3;
+    const contents = HINT_PACK_CONTENTS[purchase.itemId];
+    if (!contents) {
+      continue;
     }
-    if (purchase.itemId === "hint-position-pack") {
-      hintPositionCount += purchase.quantity * 2;
-    }
-    if (purchase.itemId === "hint-mastermind-pack") {
-      hintMastermindCount += purchase.quantity * 2;
-    }
+
+    hintLetterCount += (contents.hintLetter ?? 0) * purchase.quantity;
+    hintPositionCount += (contents.hintPosition ?? 0) * purchase.quantity;
+    hintMastermindCount += (contents.hintMastermind ?? 0) * purchase.quantity;
   }
 
   return { hintLetterCount, hintPositionCount, hintMastermindCount };
@@ -2434,23 +2463,30 @@ function hintCounts(purchases: { itemId: string; quantity: number }[]) {
 
 async function shopInventory(db: Db, user: AuthUser): Promise<ShopInventory> {
   const stats = await profileStats(db, user);
-  const [rows, equipmentRows] = await Promise.all([
+  const [rows, equipmentRows, promptSpent] = await Promise.all([
     shopPurchaseRows(db, user.userId),
     shopEquipmentRows(db, user.userId),
+    promptSubmissionSpent(db, user.userId),
   ]);
   // Remboursement auto des items retirés du catalogue (ex. contours) : on ne compte
   // dans les dépenses que les achats dont l'itemId est encore valide, les smotucoins
   // dépensés sur des items supprimés reviennent donc automatiquement dans la balance.
-  const lifetimeSpent = rows.reduce(
-    (total, row) => (normalizeShopItemId(row.itemId) ? total + row.spent : total),
-    0,
-  );
-  // La monnaie (smotucoin) est créditée en récompenses fixes par victoire : le
-  // classement garde ses points pleins, les deux systèmes sont découplés.
+  const lifetimeSpent =
+    rows.reduce(
+      (total, row) =>
+        normalizeShopItemId(row.itemId) ? total + row.spent : total,
+      0,
+    ) + promptSpent;
+  // La monnaie (smotucoin) est créditée séparément du classement : le mode
+  // libre suit la longueur des mots gagnés, les points restent inchangés.
+  const profileRows = await leaderboardRows(db);
   const lifetimeEarned = smotucoinsEarned(
     stats.dailySolved,
     stats.endlessSolved,
     stats.mastermindSolved,
+    profileRows.endless
+      .filter((row) => row.userId === user.userId)
+      .map((row) => row.answer.length),
   );
   const ownedItemIds = ownedItemIdsFromPurchases(rows);
   const equipped = equipmentFromRows(equipmentRows, ownedItemIds, rows);
@@ -2581,6 +2617,145 @@ async function equipShopItem(
   return shopState(db, user);
 }
 
+const PROMPT_SUBMISSION_LIMIT = 3;
+const PROMPT_SUBMISSION_COST = 25;
+const PROMPT_MAX_LENGTH = 2000;
+
+async function promptSubmissionsToday(db: Db, userId: string): Promise<number> {
+  const row = await db.get<{ total?: number }>(
+    sql`SELECT COUNT(*) as total FROM prompt_submissions WHERE user_id = ${userId} AND date_key = ${todayKey()}`,
+  );
+  return Number(row?.total ?? 0);
+}
+
+async function promptSubmissionSpent(db: Db, userId: string): Promise<number> {
+  const row = await db.get<{ total?: number }>(
+    sql`SELECT COALESCE(SUM(prompt_cost), 0) as total FROM prompt_submissions WHERE user_id = ${userId}`,
+  );
+  return Number(row?.total ?? 0);
+}
+
+async function verifyRecaptcha(
+  env: Env,
+  token: string,
+  request: Request,
+): Promise<void> {
+  if (!env.RECAPTCHA_SECRET_KEY) {
+    throw new Error("Clé secrète Google reCAPTCHA manquante côté worker.");
+  }
+  if (!token) {
+    throw new Error("Validation anti-spam requise.");
+  }
+
+  const form = new FormData();
+  form.set("secret", env.RECAPTCHA_SECRET_KEY);
+  form.set("response", token);
+  const ip = request.headers.get("CF-Connecting-IP");
+  if (ip) {
+    form.set("remoteip", ip);
+  }
+
+  const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+    method: "POST",
+    body: form,
+  });
+  const result = (await response.json().catch(() => ({}))) as {
+    success?: boolean;
+  };
+  if (!result.success) {
+    throw new Error("Validation Google reCAPTCHA refusée.");
+  }
+}
+
+async function submitPromptSuggestion(
+  db: Db,
+  env: Env,
+  request: Request,
+  user: AuthUser,
+  rawPrompt: unknown,
+  rawCaptchaToken: unknown,
+): Promise<{ remainingToday: number; balance: number; promptCost: number }> {
+  if (!env.DISCORD_PROMPT_WEBHOOK_URL) {
+    throw new Error("Webhook Discord non configuré côté worker.");
+  }
+
+  const prompt = String(rawPrompt ?? "").trim();
+  if (prompt.length < 20) {
+    throw new Error("Le prompt doit contenir au moins 20 caractères.");
+  }
+  if (prompt.length > PROMPT_MAX_LENGTH) {
+    throw new Error(
+      `Le prompt doit faire ${PROMPT_MAX_LENGTH} caractères maximum.`,
+    );
+  }
+
+  const submittedToday = await promptSubmissionsToday(db, user.userId);
+  if (submittedToday >= PROMPT_SUBMISSION_LIMIT) {
+    throw new Error("Limite atteinte : 3 prompts par jour et par utilisateur.");
+  }
+
+  const inventory = await shopInventory(db, user);
+  if (inventory.balance < PROMPT_SUBMISSION_COST) {
+    throw new Error(
+      `Solde insuffisant : un prompt coûte ${PROMPT_SUBMISSION_COST} smotucoins.`,
+    );
+  }
+
+  await verifyRecaptcha(env, String(rawCaptchaToken ?? ""), request);
+
+  const createdAt = now();
+  const discordResponse = await fetch(env.DISCORD_PROMPT_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: null,
+      embeds: [
+        {
+          title: "Nouveau prompt Smotu",
+          description: prompt,
+          color: 0xf97316,
+          fields: [
+            {
+              name: "Utilisateur",
+              value: `${user.name} (${user.userId})`,
+              inline: false,
+            },
+            {
+              name: "Coût",
+              value: `${PROMPT_SUBMISSION_COST} smotucoins`,
+              inline: true,
+            },
+            { name: "Date", value: createdAt, inline: false },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!discordResponse.ok) {
+    throw new Error("Discord a refusé le webhook.");
+  }
+
+  await db
+    .insert(promptSubmissionsTable)
+    .values({
+      id: crypto.randomUUID(),
+      userId: user.userId,
+      userName: user.name,
+      prompt,
+      promptCost: PROMPT_SUBMISSION_COST,
+      dateKey: todayKey(),
+      createdAt,
+    })
+    .run();
+
+  return {
+    remainingToday: Math.max(0, PROMPT_SUBMISSION_LIMIT - submittedToday - 1),
+    balance: Math.max(0, inventory.balance - PROMPT_SUBMISSION_COST),
+    promptCost: PROMPT_SUBMISSION_COST,
+  };
+}
+
 async function requestBody(request: Request): Promise<Record<string, unknown>> {
   if (!request.body) {
     return {};
@@ -2668,6 +2843,34 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   if (request.method === "GET" && url.pathname === "/api/profile") {
     return json(await profileStats(db, user));
   }
+  if (
+    request.method === "GET" &&
+    url.pathname === "/api/prompt-submissions/config"
+  ) {
+    const submittedToday = await promptSubmissionsToday(db, user.userId);
+    return json({
+      maxPerDay: PROMPT_SUBMISSION_LIMIT,
+      remainingToday: Math.max(0, PROMPT_SUBMISSION_LIMIT - submittedToday),
+      promptCost: PROMPT_SUBMISSION_COST,
+      balance: (await shopInventory(db, user)).balance,
+      recaptchaSiteKey: env.RECAPTCHA_SITE_KEY ?? "",
+    });
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/prompt-submissions") {
+    const body = await requestBody(request);
+    return json(
+      await submitPromptSuggestion(
+        db,
+        env,
+        request,
+        user,
+        body.prompt,
+        body.captchaToken,
+      ),
+    );
+  }
+
 
   if (request.method === "GET" && url.pathname === "/api/profile/games") {
     // `Number(null)` et `Number("")` valent 0 : absent/vide/invalide => défaut 60.
