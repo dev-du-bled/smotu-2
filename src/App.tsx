@@ -29,6 +29,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { ShopPage } from "./pages/ShopPage";
 import { apiJson, clearApiCache } from "./lib/api";
 import { authClient, type AuthUser } from "./lib/auth";
+import { capturePageview, identifyPostHogUser } from "./lib/posthog";
 import type { ShopItemId } from "../shared/game";
 
 type EmailAuthInput = {
@@ -93,6 +94,16 @@ function RouteMeta() {
       tag.setAttribute("content", description);
     }
   }, [location.pathname]);
+
+  return null;
+}
+
+function PostHogPageviews() {
+  const location = useLocation();
+
+  useEffect(() => {
+    capturePageview(`${location.pathname}${location.search}${location.hash}`);
+  }, [location.hash, location.pathname, location.search]);
 
   return null;
 }
@@ -396,6 +407,10 @@ export function App() {
   };
 
   useEffect(() => {
+    identifyPostHogUser(signedIn ? user : undefined);
+  }, [signedIn, user]);
+
+  useEffect(() => {
     if (signedIn) {
       setHeaderPoints(headerStats.data.inventory.balance);
     }
@@ -425,6 +440,7 @@ export function App() {
   return (
     <BrowserRouter>
       <RouteMeta />
+      <PostHogPageviews />
       <Shell themeId={signedIn ? publicAvatar.themeId : undefined}>
         <Surface>
           <Header

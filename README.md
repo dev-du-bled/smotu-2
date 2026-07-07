@@ -106,6 +106,21 @@ npm run deploy
 `npm run deploy` lance le build, applique les migrations D1 remote puis lance
 `wrangler deploy`.
 
+
+## Analytics PostHog
+
+Le suivi PostHog côté navigateur s'active uniquement quand une clé projet est
+fournie à Vite. Configure ces variables dans l'environnement de build:
+
+```sh
+VITE_POSTHOG_KEY=phc_xxx
+VITE_POSTHOG_HOST=https://us.i.posthog.com
+```
+
+`VITE_POSTHOG_HOST` est optionnel et vaut `https://us.i.posthog.com` par
+défaut. Les pages vues sont capturées à chaque navigation React Router et les
+utilisateurs connectés sont identifiés avec leur identifiant applicatif.
+
 ## Commandes utiles
 
 ```sh
