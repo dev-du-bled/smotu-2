@@ -74,6 +74,14 @@ export function HomePage({
       meta: "Des mots jusqu'à 8 lettres pour progresser sans attendre demain.",
     },
     {
+      accent: "bg-orange",
+      border: "border-orange/30",
+      cta: "Faire un sprint",
+      href: "/timed",
+      label: "Chrono 120s",
+      meta: "Trouve un maximum de mots avant la fin du compte à rebours.",
+    },
+    {
       accent: "bg-purple",
       border: "border-purple/30",
       cta: "Casser le code",
@@ -96,9 +104,10 @@ export function HomePage({
             Devine. Déduis. Domine le classement.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-subtle-foreground sm:text-xl">
-            Smotu rassemble trois défis rapides: une grille quotidienne, un mode
-            libre pour s'entraîner et un Mastermind coloré. Gagne des points,
-            collectionne des smotucoins et grimpe devant tes amis.
+            Smotu rassemble quatre défis rapides: une grille quotidienne, un mode
+            libre pour s'entraîner, un sprint chrono de 120s et un Mastermind
+            coloré. Gagne des points, collectionne des smotucoins et grimpe
+            devant tes amis.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -116,7 +125,7 @@ export function HomePage({
             </Link>
           </div>
 
-          <div className="mt-10 grid max-w-3xl gap-3 sm:grid-cols-3">
+          <div className="mt-10 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {modes.map((mode) => (
               <Link
                 className={`group rounded-2xl border ${mode.border} bg-card/85 p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-xl`}
