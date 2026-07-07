@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { PromptSubmitModal } from "./PromptSubmitModal";
 import { RulesModal } from "./RulesModal";
 
 function FooterLink({ children, to }: { children: string; to: string }) {
@@ -18,7 +19,14 @@ function FooterTitle({ children }: { children: string }) {
   );
 }
 
-export function Footer() {
+export function Footer({
+  onSignIn,
+  signedIn,
+}: {
+  onSignIn: () => void | Promise<void>;
+  signedIn: boolean;
+}) {
+  const [promptOpen, setPromptOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
 
   return (
@@ -56,6 +64,13 @@ export function Footer() {
           >
             Règles du jeu
           </button>
+          <button
+            className="block py-1.5 text-left transition hover:text-foreground"
+            type="button"
+            onClick={() => setPromptOpen(true)}
+          >
+            Proposer un prompt IA
+          </button>
           <a
             className="block py-1.5 transition hover:text-foreground"
             href="https://github.com/dev-du-bled/smotu-2"
@@ -67,6 +82,12 @@ export function Footer() {
         </div>
       </div>
       {rulesOpen ? <RulesModal onClose={() => setRulesOpen(false)} /> : null}
+      <PromptSubmitModal
+        open={promptOpen}
+        signedIn={signedIn}
+        onClose={() => setPromptOpen(false)}
+        onSignIn={onSignIn}
+      />
     </footer>
   );
 }

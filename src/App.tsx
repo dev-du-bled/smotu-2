@@ -582,7 +582,7 @@ export function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>
-          <Footer />
+          <Footer signedIn={signedIn} onSignIn={signIn} />
         </Surface>
       </Shell>
     </BrowserRouter>
