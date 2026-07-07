@@ -1195,7 +1195,7 @@ export const WORDS_BY_LENGTH: Record<WordLengthOption, readonly string[]> = {
   ],
 } as const;
 
-export const WORDS = WORDS_BY_LENGTH[WORD_LENGTH];
+const WORDS = WORDS_BY_LENGTH[WORD_LENGTH];
 
 const DAILY_SCORES = [900, 750, 600, 450, 300, 150] as const;
 const ENDLESS_SCORES_BY_LENGTH: Record<WordLengthOption, readonly number[]> = {
@@ -1213,7 +1213,7 @@ const MASTERMIND_SCORES = [560, 500, 440, 380, 320, 260, 200, 140] as const;
 // sans aucun lien mathématique. On peut gagner un peu en jouant, mais juste un
 // peu : la balance gains/dépenses penche fortement vers la dépense car des packs
 // de smotucoins payants (argent réel) arriveront.
-export const SMOTUCOIN_REWARDS = {
+const SMOTUCOIN_REWARDS = {
   daily: 25,
   endless: WORD_LENGTH,
   mastermind: 6,
@@ -1255,7 +1255,7 @@ function hashString(value: string): number {
   return hash >>> 0;
 }
 
-export function isWordLengthOption(value: number): value is WordLengthOption {
+function isWordLengthOption(value: number): value is WordLengthOption {
   return WORD_LENGTH_OPTIONS.includes(value as WordLengthOption);
 }
 
@@ -1264,11 +1264,11 @@ export function normalizeWordLength(value: unknown): WordLengthOption {
   return isWordLengthOption(parsed) ? parsed : WORD_LENGTH;
 }
 
-export function wordsForLength(wordLength: number): readonly string[] {
+function wordsForLength(wordLength: number): readonly string[] {
   return isWordLengthOption(wordLength) ? WORDS_BY_LENGTH[wordLength] : WORDS;
 }
 
-export function validWordsForLength(wordLength: number): readonly string[] {
+function validWordsForLength(wordLength: number): readonly string[] {
   return isWordLengthOption(wordLength) ? VALID_WORDS_BY_LENGTH[wordLength] : VALID_WORDS_BY_LENGTH[WORD_LENGTH];
 }
 
@@ -1293,7 +1293,7 @@ export function normalizeGuess(value: string, wordLength = WORD_LENGTH): string 
     .slice(0, wordLength);
 }
 
-export function isMastermindColorId(value: string): value is MastermindColorId {
+function isMastermindColorId(value: string): value is MastermindColorId {
   return MASTERMIND_COLORS.some((color) => color.id === value);
 }
 
@@ -1393,7 +1393,7 @@ const ENDLESS_LOSS_PENALTY_BY_LENGTH: Record<WordLengthOption, number> = {
   8: 600,
 } as const;
 
-export function getEndlessScore(attemptNumber: number, wordLength = WORD_LENGTH): number {
+function getEndlessScore(attemptNumber: number, wordLength = WORD_LENGTH): number {
   const scores = ENDLESS_SCORES_BY_LENGTH[normalizeWordLength(wordLength)];
   return scores[attemptNumber - 1] ?? 0;
 }
@@ -1437,7 +1437,7 @@ export type ShopItem = {
   bundleQuantity?: number;
 };
 
-export type ShopPurchase = {
+type ShopPurchase = {
   id: string;
   itemId: ShopItemId;
   quantity: number;

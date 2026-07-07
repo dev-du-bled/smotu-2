@@ -147,10 +147,34 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function securityHeaders(): HeadersInit {
+  return {
+    "Content-Security-Policy":
+      "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://us.i.posthog.com https://eu.i.posthog.com; upgrade-insecure-requests",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  };
+}
+
+function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(securityHeaders())) {
+    headers.set(name, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function json(value: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(value), {
     ...init,
     headers: {
+      ...securityHeaders(),
       "Content-Type": "application/json; charset=utf-8",
       ...init?.headers,
     },
@@ -2736,13 +2760,42 @@ async function requestBody(request: Request): Promise<Record<string, unknown>> {
   if (!request.body) {
     return {};
   }
+
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error("Content-Type JSON requis.");
+  }
+
   const value = await request.json().catch(() => ({}));
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
 }
 
+function assertTrustedOrigin(request: Request): void {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
+    return;
+  }
+
+  const origin = request.headers.get("origin");
+  if (!origin) {
+    return;
+  }
+
+  if (origin !== new URL(request.url).origin) {
+    throw new Response(JSON.stringify({ error: "Origine invalide." }), {
+      status: 403,
+      headers: {
+        ...securityHeaders(),
+        "Content-Type": "application/json; charset=utf-8",
+      },
+    });
+  }
+}
+
 async function handleApi(request: Request, env: Env): Promise<Response> {
+  assertTrustedOrigin(request);
+
   const db = database(env);
   await ensureSchema(db);
 
@@ -2954,6 +3007,6 @@ export default {
       }
     }
 
-    return env.ASSETS.fetch(request);
+    return withSecurityHeaders(await env.ASSETS.fetch(request));
   },
 } satisfies ExportedHandler<Env>;
