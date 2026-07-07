@@ -2388,21 +2388,36 @@ function equipmentFromRows(
   return equipped;
 }
 
+const HINT_PACK_CONTENTS: Record<
+  string,
+  { hintLetter?: number; hintPosition?: number; hintMastermind?: number }
+> = {
+  "hint-letter-solo": { hintLetter: 1 },
+  "hint-letter-pack": { hintLetter: 3 },
+  "hint-letter-mega-pack": { hintLetter: 8 },
+  "hint-position-solo": { hintPosition: 1 },
+  "hint-position-pack": { hintPosition: 2 },
+  "hint-position-mega-pack": { hintPosition: 5 },
+  "hint-mastermind-solo": { hintMastermind: 1 },
+  "hint-mastermind-pack": { hintMastermind: 2 },
+  "hint-mastermind-mega-pack": { hintMastermind: 5 },
+  "hint-starter-kit": { hintLetter: 2, hintPosition: 1, hintMastermind: 1 },
+};
+
 function hintCounts(purchases: { itemId: string; quantity: number }[]) {
   let hintLetterCount = 0;
   let hintPositionCount = 0;
   let hintMastermindCount = 0;
 
   for (const purchase of purchases) {
-    if (purchase.itemId === "hint-letter-pack") {
-      hintLetterCount += purchase.quantity * 3;
+    const contents = HINT_PACK_CONTENTS[purchase.itemId];
+    if (!contents) {
+      continue;
     }
-    if (purchase.itemId === "hint-position-pack") {
-      hintPositionCount += purchase.quantity * 2;
-    }
-    if (purchase.itemId === "hint-mastermind-pack") {
-      hintMastermindCount += purchase.quantity * 2;
-    }
+
+    hintLetterCount += (contents.hintLetter ?? 0) * purchase.quantity;
+    hintPositionCount += (contents.hintPosition ?? 0) * purchase.quantity;
+    hintMastermindCount += (contents.hintMastermind ?? 0) * purchase.quantity;
   }
 
   return { hintLetterCount, hintPositionCount, hintMastermindCount };
