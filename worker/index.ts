@@ -1201,6 +1201,7 @@ async function leaderboardRows(db: Db) {
       userId: endlessGamesTable.userId,
       userName: endlessGamesTable.userName,
       score: endlessGamesTable.score,
+      answer: endlessGamesTable.answer,
       createdAt: endlessGamesTable.createdAt,
     })
     .from(endlessGamesTable)
@@ -1618,7 +1619,7 @@ async function profileInventorySummary(
   const ownedItemIds = ownedItemIdsFromPurchases(purchases);
   const equipped = equipmentFromRows(equipmentRows, ownedItemIds, purchases);
   const consumables = hintCounts(purchases);
-  // Solde de smotucoins : récompenses fixes par victoire moins les dépenses.
+  // Solde de smotucoins : récompenses par victoire moins les dépenses.
   // Remboursement auto des items retirés du catalogue (ex. contours) : on ne compte
   // que les achats dont l'itemId est encore valide, les smotucoins dépensés sur des
   // items supprimés reviennent donc automatiquement dans la balance.
@@ -1660,7 +1661,8 @@ async function profileStatsForUser(
   const index = leaderboard.findIndex((entry) => entry.userId === userId);
   const entry = index >= 0 ? leaderboard[index] : undefined;
   const dailySolved = rows.daily.filter((row) => row.userId === userId).length;
-  const endlessSolved = rows.endless.filter((row) => row.userId === userId).length;
+  const endlessRows = rows.endless.filter((row) => row.userId === userId);
+  const endlessSolved = endlessRows.length;
   const mastermindSolved = rows.mastermind.filter(
     (row) => row.userId === userId,
   ).length;
@@ -1669,7 +1671,12 @@ async function profileStatsForUser(
     profileInventorySummary(
       db,
       userId,
-      smotucoinsEarned(dailySolved, endlessSolved, mastermindSolved),
+      smotucoinsEarned(
+        dailySolved,
+        endlessSolved,
+        mastermindSolved,
+        endlessRows.map((row) => row.answer.length),
+      ),
     ),
     profileRecentGames(db, userId),
   ]);
@@ -2421,12 +2428,16 @@ async function shopInventory(db: Db, user: AuthUser): Promise<ShopInventory> {
     (total, row) => (normalizeShopItemId(row.itemId) ? total + row.spent : total),
     0,
   );
-  // La monnaie (smotucoin) est créditée en récompenses fixes par victoire : le
-  // classement garde ses points pleins, les deux systèmes sont découplés.
+  // La monnaie (smotucoin) est créditée séparément du classement : le mode
+  // libre suit la longueur des mots gagnés, les points restent inchangés.
+  const profileRows = await leaderboardRows(db);
   const lifetimeEarned = smotucoinsEarned(
     stats.dailySolved,
     stats.endlessSolved,
     stats.mastermindSolved,
+    profileRows.endless
+      .filter((row) => row.userId === user.userId)
+      .map((row) => row.answer.length),
   );
   const ownedItemIds = ownedItemIdsFromPurchases(rows);
   const equipped = equipmentFromRows(equipmentRows, ownedItemIds, rows);

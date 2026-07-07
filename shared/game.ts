@@ -1201,25 +1201,38 @@ const ENDLESS_SCORES_BY_LENGTH: Record<WordLengthOption, readonly number[]> = {
 const MASTERMIND_SCORES = [560, 500, 440, 380, 320, 260, 200, 140] as const;
 
 // Découplage total monnaie / classement : le classement se joue en points de
-// partie, la monnaie (smotucoin) est créditée en récompenses FIXES par victoire
-// (25 mot du jour / 5 manche libre / 6 Mastermind) — deux systèmes sans aucun
-// lien mathématique. On peut gagner un peu en jouant, mais juste un peu : la
-// balance gains/dépenses penche fortement vers la dépense car des packs de
-// smotucoins payants (argent réel) arriveront.
-export const SMOTUCOIN_REWARDS: Record<GameMode, number> = {
+// partie, la monnaie (smotucoin) est créditée en récompenses par victoire
+// (25 mot du jour / longueur du mot en mode libre / 6 Mastermind) — deux systèmes
+// sans aucun lien mathématique. On peut gagner un peu en jouant, mais juste un
+// peu : la balance gains/dépenses penche fortement vers la dépense car des packs
+// de smotucoins payants (argent réel) arriveront.
+export const SMOTUCOIN_REWARDS = {
   daily: 25,
-  endless: 5,
+  endless: WORD_LENGTH,
   mastermind: 6,
-};
+} as const satisfies Record<GameMode, number>;
+
+export function smotucoinsForEndlessWordLength(wordLength: number): number {
+  return normalizeWordLength(wordLength);
+}
 
 export function smotucoinsEarned(
   dailySolved: number,
   endlessSolved: number,
   mastermindSolved: number,
+  endlessWordLengths: readonly number[] = [],
 ): number {
+  const endlessEarned =
+    endlessWordLengths.length > 0
+      ? endlessWordLengths.reduce(
+          (total, wordLength) => total + smotucoinsForEndlessWordLength(wordLength),
+          0,
+        )
+      : endlessSolved * SMOTUCOIN_REWARDS.endless;
+
   return (
     dailySolved * SMOTUCOIN_REWARDS.daily +
-    endlessSolved * SMOTUCOIN_REWARDS.endless +
+    endlessEarned +
     mastermindSolved * SMOTUCOIN_REWARDS.mastermind
   );
 }
@@ -1505,10 +1518,10 @@ export const SHOP_SECTIONS: ShopState["sections"] = [
   },
 ];
 
-// Économie boutique: prix libellés en smotucoins, crédités en récompenses fixes
-// par victoire (voir SMOTUCOIN_REWARDS : 25 mot du jour / 5 manche libre /
-// 6 Mastermind), sans aucun lien avec les points du classement. La monnaie est
-// volontairement rare et la balance penche vers la dépense car des packs de
+// Économie boutique: prix libellés en smotucoins, crédités en récompenses
+// par victoire (voir SMOTUCOIN_REWARDS : 25 mot du jour / longueur du mot en
+// mode libre / 6 Mastermind), sans aucun lien avec les points du classement.
+// La monnaie est volontairement rare et la balance penche vers la dépense car des packs de
 // smotucoins payants (argent réel) arriveront : les petits cosmétiques coûtent
 // des semaines de jeu, les thèmes premium bien plus.
 export const SHOP_ITEMS: ShopItem[] = [
