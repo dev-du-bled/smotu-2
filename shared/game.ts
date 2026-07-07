@@ -100,6 +100,8 @@ export type ShopItemId =
   | "avatar-citrouille"
   | "avatar-grenouille"
   | "avatar-requin"
+  | "avatar-tigre"
+  | "avatar-licorne"
   | "hat-casquette"
   | "hat-couronne-lowpoly"
   | "hat-casque-spatial"
@@ -111,6 +113,9 @@ export type ShopItemId =
   | "hat-pirate"
   | "hat-cowboy"
   | "hat-noel"
+  | "hat-ninja"
+  | "hat-beret"
+  | "hat-detective"
   | "shirt-classic"
   | "shirt-neon"
   | "shirt-mastermind"
@@ -122,6 +127,9 @@ export type ShopItemId =
   | "shirt-galaxie"
   | "shirt-marin"
   | "shirt-cyber"
+  | "shirt-ninja"
+  | "shirt-detective"
+  | "shirt-lave"
   | "theme-default"
   | "theme-neon"
   | "theme-foret"
@@ -147,6 +155,9 @@ export type ShopItemId =
   | "confetti-lave"
   | "confetti-emeraude"
   | "confetti-or-rose"
+  | "confetti-rubis"
+  | "confetti-citrons"
+  | "confetti-cosmos"
   | "hint-letter-pack"
   | "hint-position-pack"
   | "hint-mastermind-pack";
@@ -1570,6 +1581,30 @@ export const SHOP_ITEMS: ShopItem[] = [
     preview: { primary: "#64748b", secondary: "#e2e8f0", accent: "#0f172a" },
   },
   {
+    id: "avatar-tigre",
+    name: "Avatar Tigre",
+    description: "Un félin rayé orange, prêt à bondir sur les mots rares.",
+    category: "avatar",
+    slot: "avatar",
+    price: 1800,
+    repeatable: false,
+    rarity: "rare",
+    sortOrder: 15,
+    preview: { primary: "#f97316", secondary: "#ffedd5", accent: "#111827" },
+  },
+  {
+    id: "avatar-licorne",
+    name: "Avatar Licorne",
+    description: "Une silhouette magique avec corne pastel et museau clair.",
+    category: "avatar",
+    slot: "avatar",
+    price: 3800,
+    repeatable: false,
+    rarity: "legendary",
+    sortOrder: 16,
+    preview: { primary: "#f5d0fe", secondary: "#ffffff", accent: "#a855f7" },
+  },
+  {
     id: "hat-casquette",
     name: "Sans chapeau",
     description: "Le rendu neutre, propre et lisible partout.",
@@ -1702,6 +1737,42 @@ export const SHOP_ITEMS: ShopItem[] = [
     preview: { primary: "#dc2626", secondary: "#ffffff", accent: "#fecaca" },
   },
   {
+    id: "hat-ninja",
+    name: "Bandeau ninja",
+    description: "Un bandeau noué pour deviner en silence.",
+    category: "hat",
+    slot: "hat",
+    price: 1200,
+    repeatable: false,
+    rarity: "common",
+    sortOrder: 12,
+    preview: { primary: "#111827", secondary: "#374151", accent: "#ef4444" },
+  },
+  {
+    id: "hat-beret",
+    name: "Béret artiste",
+    description: "Un béret incliné pour les profils qui jouent avec style.",
+    category: "hat",
+    slot: "hat",
+    price: 1300,
+    repeatable: false,
+    rarity: "rare",
+    sortOrder: 13,
+    preview: { primary: "#1e1b4b", secondary: "#c7d2fe", accent: "#f472b6" },
+  },
+  {
+    id: "hat-detective",
+    name: "Chapeau détective",
+    description: "Un fedora sobre pour enquêter sur chaque lettre.",
+    category: "hat",
+    slot: "hat",
+    price: 2100,
+    repeatable: false,
+    rarity: "epic",
+    sortOrder: 14,
+    preview: { primary: "#78350f", secondary: "#fbbf24", accent: "#451a03" },
+  },
+  {
     id: "shirt-classic",
     name: "T-shirt Smotu",
     description: "La tenue de base, nette dans le profil et le classement.",
@@ -1832,6 +1903,42 @@ export const SHOP_ITEMS: ShopItem[] = [
     rarity: "legendary",
     sortOrder: 11,
     preview: { primary: "#0f172a", secondary: "#22d3ee", accent: "#f0abfc" },
+  },
+  {
+    id: "shirt-ninja",
+    name: "T-shirt ninja",
+    description: "Une tenue sombre barrée d'un accent rouge discret.",
+    category: "shirt",
+    slot: "shirt",
+    price: 1100,
+    repeatable: false,
+    rarity: "common",
+    sortOrder: 12,
+    preview: { primary: "#111827", secondary: "#9ca3af", accent: "#ef4444" },
+  },
+  {
+    id: "shirt-detective",
+    name: "T-shirt détective",
+    description: "Une veste brune élégante pour résoudre les énigmes.",
+    category: "shirt",
+    slot: "shirt",
+    price: 1700,
+    repeatable: false,
+    rarity: "rare",
+    sortOrder: 13,
+    preview: { primary: "#78350f", secondary: "#fef3c7", accent: "#f59e0b" },
+  },
+  {
+    id: "shirt-lave",
+    name: "T-shirt lave vive",
+    description: "Un maillot noir fissuré de lave incandescente.",
+    category: "shirt",
+    slot: "shirt",
+    price: 2900,
+    repeatable: false,
+    rarity: "epic",
+    sortOrder: 14,
+    preview: { primary: "#1f0707", secondary: "#fed7aa", accent: "#fb923c" },
   },
   {
     id: "theme-default",
@@ -2132,6 +2239,42 @@ export const SHOP_ITEMS: ShopItem[] = [
     rarity: "legendary",
     sortOrder: 11,
     preview: { primary: "#fb7185", secondary: "#fda4af", accent: "#facc15" },
+  },
+  {
+    id: "confetti-rubis",
+    name: "Confetti Rubis",
+    description: "Des éclats rouges et brillants pour les victoires flamboyantes.",
+    category: "confetti",
+    slot: "confetti",
+    price: 1700,
+    repeatable: false,
+    rarity: "rare",
+    sortOrder: 12,
+    preview: { primary: "#dc2626", secondary: "#fecaca", accent: "#7f1d1d" },
+  },
+  {
+    id: "confetti-citrons",
+    name: "Confetti Citrons",
+    description: "Une pluie jaune et verte, fraîche comme une série parfaite.",
+    category: "confetti",
+    slot: "confetti",
+    price: 1000,
+    repeatable: false,
+    rarity: "common",
+    sortOrder: 13,
+    preview: { primary: "#facc15", secondary: "#bef264", accent: "#65a30d" },
+  },
+  {
+    id: "confetti-cosmos",
+    name: "Confetti Cosmos",
+    description: "Un final spatial sombre, violet et turquoise.",
+    category: "confetti",
+    slot: "confetti",
+    price: 3600,
+    repeatable: false,
+    rarity: "legendary",
+    sortOrder: 14,
+    preview: { primary: "#4c1d95", secondary: "#22d3ee", accent: "#f0abfc" },
   },
   {
     id: "hint-letter-pack",
