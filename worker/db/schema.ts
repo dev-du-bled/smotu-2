@@ -115,6 +115,22 @@ export const friendRequests = sqliteTable(
   ],
 );
 
+export const promptSubmissions = sqliteTable(
+  "prompt_submissions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    userName: text("user_name").notNull(),
+    prompt: text("prompt").notNull(),
+    promptCost: integer("prompt_cost").notNull().default(0),
+    dateKey: text("date_key").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("prompt_submissions_user_date_idx").on(table.userId, table.dateKey),
+  ],
+);
+
 export const mastermindGames = sqliteTable(
   "mastermind_games",
   {
@@ -140,6 +156,7 @@ export const mastermindGames = sqliteTable(
   ],
 );
 
+export type StoredPromptSubmission = typeof promptSubmissions.$inferSelect;
 export type StoredShopPurchase = typeof shopPurchases.$inferSelect;
 export type StoredShopEquipment = typeof shopEquipment.$inferSelect;
 export type StoredFriendship = typeof friendships.$inferSelect;
