@@ -10,6 +10,7 @@ import {
 } from "./game/use-daily-game";
 import { useEndlessGame } from "./game/use-endless-game";
 import { useMastermindGame } from "./game/use-mastermind-game";
+import { useTimedGame } from "./game/use-timed-game";
 import { emptyProfileStats, useProfileStats } from "./game/use-profile";
 import { useShop } from "./game/use-shop";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
@@ -27,6 +28,7 @@ import { PlayersPage } from "./pages/PlayersPage";
 import { PlayPage } from "./pages/PlayPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { ShopPage } from "./pages/ShopPage";
+import { TimedPage } from "./pages/TimedPage";
 import { apiJson, clearApiCache } from "./lib/api";
 import { authClient, type AuthUser } from "./lib/auth";
 import { capturePageview, identifyPostHogUser } from "./lib/posthog";
@@ -40,7 +42,7 @@ type EmailAuthInput = {
 
 const DEFAULT_TITLE = "Smotu — le mot à deviner avec classement global";
 const DEFAULT_DESCRIPTION =
-  "Smotu, le mot à deviner avec classement global. Trois modes de jeu : le mot du jour, le mode libre et Mastermind.";
+  "Smotu, le mot à deviner avec classement global. Quatre modes de jeu : le mot du jour, le mode libre, le chrono et Mastermind.";
 
 const ROUTE_META: Record<string, { title: string; description?: string }> = {
   "/": { title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION },
@@ -55,6 +57,10 @@ const ROUTE_META: Record<string, { title: string; description?: string }> = {
   "/mastermind": {
     title: "Mastermind — Smotu",
     description: "Casse le code couleur du Mastermind de Smotu et marque des points.",
+  },
+  "/timed": {
+    title: "Mode chrono — Smotu",
+    description: "Fais un maximum de mots en 120 secondes sur Smotu.",
   },
   "/shop": { title: "Boutique — Smotu", description: "Dépense tes smotucoins contre des cosmétiques et des indices." },
   "/inventory": {
@@ -197,6 +203,16 @@ function EndlessRoute({
   const endless = useEndlessGame(signedIn);
 
   return <EndlessPage {...endless} confettiSkin={confettiSkin} signedIn={signedIn} />;
+}
+
+function TimedRoute({
+  confettiSkin,
+}: {
+  confettiSkin?: ShopItemId;
+}) {
+  const timed = useTimedGame();
+
+  return <TimedPage {...timed} confettiSkin={confettiSkin} />;
 }
 
 function MastermindRoute({
@@ -479,6 +495,14 @@ export function App() {
                   <EndlessRoute
                     confettiSkin={signedIn ? publicAvatar.confettiId : undefined}
                     signedIn={signedIn}
+                  />
+                }
+              />
+              <Route
+                path="/timed"
+                element={
+                  <TimedRoute
+                    confettiSkin={signedIn ? publicAvatar.confettiId : undefined}
                   />
                 }
               />

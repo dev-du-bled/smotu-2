@@ -45,6 +45,13 @@ export function HomePage({
       score: 560,
     },
     {
+      dot: "bg-orange",
+      href: "/timed",
+      label: "Chrono 120s",
+      meta: "Max de mots",
+      score: 120,
+    },
+    {
       dot: "bg-purple",
       href: "/mastermind",
       label: "Mastermind",
@@ -61,8 +68,8 @@ export function HomePage({
           Devine le mot. Marque des points.
         </h2>
         <p className="mt-5 max-w-2xl text-lg leading-8 text-subtle-foreground">
-          Trois jeux, trois rythmes: le mot du jour, le mode libre et
-          Mastermind. Les propositions restent libres, les points changent selon
+          Quatre jeux, quatre rythmes: le mot du jour, le mode libre, le
+          chrono 120s et Mastermind. Les propositions restent libres, les points changent selon
           le mode et le classement additionne tout.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -77,6 +84,12 @@ export function HomePage({
             to="/endless"
           >
             Mode libre
+          </Link>
+          <Link
+            className="inline-flex h-12 items-center justify-center rounded-md bg-orange px-5 text-base font-bold uppercase tracking-wide text-orange-foreground transition hover:bg-orange-hover"
+            to="/timed"
+          >
+            Chrono 120s
           </Link>
           <Link
             className="inline-flex h-12 items-center justify-center rounded-md bg-purple px-5 text-base font-bold uppercase tracking-wide text-purple-foreground transition hover:bg-purple-hover"
