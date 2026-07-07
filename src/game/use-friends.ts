@@ -1,7 +1,7 @@
 import type { FriendsState } from "../../shared/game";
 import { apiJson, useApiResource } from "../lib/api";
 
-export const emptyFriendsState: FriendsState = {
+const emptyFriendsState: FriendsState = {
   friends: [],
   incomingRequests: [],
   outgoingRequests: [],

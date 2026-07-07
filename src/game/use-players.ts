@@ -3,7 +3,7 @@ import type { PlayerSearchResult, PublicPlayerProfile } from "../../shared/game"
 import { apiJson, useApiResource } from "../lib/api";
 import { emptyProfileStats } from "./use-profile";
 
-export function emptyPublicPlayerProfile(playerId = ""): PublicPlayerProfile {
+function emptyPublicPlayerProfile(playerId = ""): PublicPlayerProfile {
   return {
     ...emptyProfileStats(playerId),
     userId: playerId,
