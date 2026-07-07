@@ -13,6 +13,9 @@ export type Env = {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   ADMIN_USER_IDS?: string;
+  DISCORD_PROMPT_WEBHOOK_URL?: string;
+  RECAPTCHA_SECRET_KEY?: string;
+  RECAPTCHA_SITE_KEY?: string;
 };
 
 const frenchAuthErrors = {

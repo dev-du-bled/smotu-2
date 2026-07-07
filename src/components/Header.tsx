@@ -156,6 +156,7 @@ function GameModeDropdown() {
   const active =
     location.pathname === "/play" ||
     location.pathname === "/endless" ||
+    location.pathname === "/timed" ||
     location.pathname === "/mastermind";
 
   return (
@@ -179,6 +180,13 @@ function GameModeDropdown() {
             onSelect={close}
           >
             Mode libre
+          </MenuLink>
+          <MenuLink
+            activeClass="bg-orange text-orange-foreground"
+            to="/timed"
+            onSelect={close}
+          >
+            Chrono 120s
           </MenuLink>
           <MenuLink
             activeClass="bg-purple text-purple-foreground"
