@@ -1091,14 +1091,14 @@ const MASTERMIND_SCORES = [560, 500, 440, 380, 320, 260, 200, 140] as const;
 
 // Découplage total monnaie / classement : le classement se joue en points de
 // partie, la monnaie (smotucoin) est créditée en récompenses FIXES par victoire
-// (10 mot du jour / 2 manche libre / 3 Mastermind) — deux systèmes sans aucun
+// (25 mot du jour / 5 manche libre / 6 Mastermind) — deux systèmes sans aucun
 // lien mathématique. On peut gagner un peu en jouant, mais juste un peu : la
 // balance gains/dépenses penche fortement vers la dépense car des packs de
 // smotucoins payants (argent réel) arriveront.
 export const SMOTUCOIN_REWARDS: Record<GameMode, number> = {
-  daily: 10,
-  endless: 2,
-  mastermind: 3,
+  daily: 25,
+  endless: 5,
+  mastermind: 6,
 };
 
 export function smotucoinsEarned(
@@ -1395,8 +1395,8 @@ export const SHOP_SECTIONS: ShopState["sections"] = [
 ];
 
 // Économie boutique: prix libellés en smotucoins, crédités en récompenses fixes
-// par victoire (voir SMOTUCOIN_REWARDS : 10 mot du jour / 2 manche libre /
-// 3 Mastermind), sans aucun lien avec les points du classement. La monnaie est
+// par victoire (voir SMOTUCOIN_REWARDS : 25 mot du jour / 5 manche libre /
+// 6 Mastermind), sans aucun lien avec les points du classement. La monnaie est
 // volontairement rare et la balance penche vers la dépense car des packs de
 // smotucoins payants (argent réel) arriveront : les petits cosmétiques coûtent
 // des semaines de jeu, les thèmes premium bien plus.
