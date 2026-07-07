@@ -128,6 +128,12 @@ function buildHead(avatar: PublicAvatar, palette: Palette) {
     // Tête grise anguleuse (icosaèdre) étirée vers l'avant (museau).
     head = mesh(new THREE.IcosahedronGeometry(0.66, 1), material(palette.primary, 0.48, 0.12));
     head.scale.set(0.92, 0.82, 1.42);
+  } else if (id === "avatar-tigre") {
+    head = mesh(new THREE.SphereGeometry(0.68, 36, 24), material(palette.primary, 0.5, 0.08));
+    head.scale.set(1.08, 0.94, 1.02);
+  } else if (id === "avatar-licorne") {
+    head = mesh(new THREE.SphereGeometry(0.68, 36, 24), material(palette.primary, 0.46, 0.06));
+    head.scale.set(1.02, 1.02, 0.98);
   } else {
     head = mesh(
       new THREE.SphereGeometry(0.68, 36, 24),
@@ -443,6 +449,51 @@ function addFace(avatar: PublicAvatar, palette: Palette, group: THREE.Group) {
     return;
   }
 
+  if (id === "avatar-tigre") {
+    const stripeMaterial = material(palette.accent, 0.5, 0.05);
+    [-0.28, 0, 0.28].forEach((x, index) => {
+      const stripe = mesh(new THREE.BoxGeometry(0.08, 0.34 - index * 0.06, 0.05), stripeMaterial);
+      stripe.position.set(x, 1.02 - Math.abs(x) * 0.25, 0.6);
+      stripe.rotation.z = x * 0.9;
+      add(stripe, group);
+    });
+    [-1, 1].forEach((s) => {
+      const ear = mesh(new THREE.ConeGeometry(0.18, 0.36, 4), material(palette.primary, 0.5, 0.08));
+      ear.position.set(0.42 * s, 1.22, -0.02);
+      ear.rotation.z = -0.24 * s;
+      add(ear, group);
+    });
+    const muzzle = mesh(new THREE.SphereGeometry(0.23, 20, 16), material(palette.secondary, 0.5, 0.04));
+    muzzle.position.set(0, 0.52, 0.6);
+    muzzle.scale.set(1.2, 0.8, 0.8);
+    add(muzzle, group);
+    addEyes(group, DARK, 0.075, 0.78, 0.6, 0.22);
+    return;
+  }
+
+  if (id === "avatar-licorne") {
+    const horn = mesh(new THREE.ConeGeometry(0.12, 0.58, 6), material(palette.accent, 0.36, 0.18));
+    horn.position.set(0, 1.36, 0.12);
+    horn.rotation.x = -0.22;
+    add(horn, group);
+    [-1, 1].forEach((s) => {
+      const ear = mesh(new THREE.ConeGeometry(0.14, 0.34, 4), material(palette.secondary, 0.45, 0.05));
+      ear.position.set(0.36 * s, 1.22, -0.02);
+      ear.rotation.z = -0.28 * s;
+      add(ear, group);
+    });
+    const forelock = mesh(new THREE.SphereGeometry(0.16, 16, 12), material(palette.accent, 0.42, 0.08));
+    forelock.position.set(-0.16, 1.1, 0.45);
+    forelock.scale.set(0.9, 1.35, 0.55);
+    add(forelock, group);
+    const muzzle = mesh(new THREE.SphereGeometry(0.22, 20, 16), material(palette.secondary, 0.45, 0.04));
+    muzzle.position.set(0, 0.5, 0.62);
+    muzzle.scale.set(1.15, 0.82, 0.75);
+    add(muzzle, group);
+    addEyes(group, palette.accent, 0.075, 0.78, 0.58, 0.22);
+    return;
+  }
+
   // avatar-classic-3d, avatar-slime et repli : yeux + sourire + reflet.
   addEyes(group, palette.accent, 0.075, 0.73, 0.62, 0.23);
   const mouth = mesh(new THREE.BoxGeometry(0.3, 0.04, 0.04), material(palette.accent, 0.5, 0.02));
@@ -527,6 +578,34 @@ function buildBody(avatar: PublicAvatar, palette: Palette, group: THREE.Group) {
     belly.scale.set(1.1, 1.3, 0.5);
     add(belly, group);
   }
+}
+
+function addLimbs(avatar: PublicAvatar, palette: Palette, group: THREE.Group) {
+  if (avatar.avatarId === "avatar-fantome") {
+    return;
+  }
+
+  const armMaterial = avatar.avatarId === "avatar-robot"
+    ? material(palette.primary, 0.38, 0.32)
+    : material(palette.shirt, 0.5, 0.08);
+  const footMaterial = material(palette.shirtAccent, 0.44, 0.12);
+
+  [-1, 1].forEach((s) => {
+    const arm = mesh(new THREE.CapsuleGeometry(0.09, 0.48, 8, 14), armMaterial);
+    arm.position.set(0.53 * s, -0.24, 0.02);
+    arm.rotation.z = -0.38 * s;
+    add(arm, group);
+
+    const hand = mesh(new THREE.SphereGeometry(0.11, 16, 12), material(palette.primary, 0.52, 0.06));
+    hand.position.set(0.66 * s, -0.52, 0.12);
+    hand.scale.set(1, 0.9, 0.85);
+    add(hand, group);
+
+    const foot = mesh(new THREE.SphereGeometry(0.14, 16, 12), footMaterial);
+    foot.position.set(0.24 * s, -0.78, 0.18);
+    foot.scale.set(1.35, 0.45, 0.9);
+    add(foot, group);
+  });
 }
 
 function addHat(avatar: PublicAvatar, palette: Palette, group: THREE.Group) {
@@ -729,6 +808,46 @@ function addHat(avatar: PublicAvatar, palette: Palette, group: THREE.Group) {
     return;
   }
 
+  if (avatar.hatId === "hat-ninja") {
+    const band = mesh(new THREE.BoxGeometry(0.88, 0.13, 0.16), hatMaterial);
+    band.position.set(0, 0.98, 0.55);
+    add(band, group);
+    [-1, 1].forEach((s) => {
+      const tail = mesh(new THREE.BoxGeometry(0.28, 0.09, 0.05), accentMaterial);
+      tail.position.set(0.5 * s, 0.96, 0.44);
+      tail.rotation.z = 0.45 * s;
+      add(tail, group);
+    });
+    return;
+  }
+
+  if (avatar.hatId === "hat-beret") {
+    const beret = mesh(new THREE.SphereGeometry(0.48, 24, 14), hatMaterial);
+    beret.position.set(-0.1, 1.22, 0.02);
+    beret.scale.set(1.25, 0.28, 0.92);
+    add(beret, group);
+    const nub = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.12, 8), accentMaterial);
+    nub.position.set(-0.18, 1.35, 0.02);
+    add(nub, group);
+    return;
+  }
+
+  if (avatar.hatId === "hat-detective") {
+    const brim = mesh(new THREE.TorusGeometry(0.58, 0.08, 12, 42), hatMaterial);
+    brim.position.set(0, 1.2, 0);
+    brim.rotation.x = Math.PI / 2;
+    brim.scale.set(1.18, 1.02, 0.48);
+    add(brim, group);
+    const crown = mesh(new THREE.CylinderGeometry(0.34, 0.42, 0.42, 18), hatMaterial);
+    crown.position.set(0, 1.42, 0);
+    add(crown, group);
+    const band = mesh(new THREE.TorusGeometry(0.39, 0.035, 10, 36), accentMaterial);
+    band.position.set(0, 1.32, 0);
+    band.rotation.x = Math.PI / 2;
+    add(band, group);
+    return;
+  }
+
   // hat-bonnet-pixel (repli) : calotte + bord.
   const cap = mesh(new THREE.SphereGeometry(0.5, 24, 14), hatMaterial);
   cap.position.set(0, 1.18, 0.02);
@@ -751,6 +870,7 @@ function buildScene(avatar: PublicAvatar) {
   const palette = paletteFromAvatar(avatar);
 
   buildBody(avatar, palette, group);
+  addLimbs(avatar, palette, group);
   add(buildHead(avatar, palette), group);
   addHat(avatar, palette, group);
 
@@ -763,13 +883,16 @@ function buildScene(avatar: PublicAvatar) {
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x58606d, 2.4));
-  const key = new THREE.DirectionalLight(0xffffff, 2.8);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x58606d, 2.7));
+  const key = new THREE.DirectionalLight(0xffffff, 3.1);
   key.position.set(2.8, 3.4, 4.2);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(palette.accent, 1.1);
+  const rim = new THREE.DirectionalLight(palette.accent, 1.25);
   rim.position.set(-3, 1.2, 2.5);
   scene.add(rim);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.65);
+  fill.position.set(-2.4, 1.6, 3.2);
+  scene.add(fill);
 
   return { camera, group, scene };
 }

@@ -95,6 +95,24 @@ const PRESETS: Partial<Record<ShopItemId, ConfettiPreset>> = {
     scalar: 1.1,
     spread: 72,
   },
+  "confetti-rubis": {
+    colors: ["#dc2626", "#fecaca", "#991b1b", "#ffffff"],
+    particleCount: 128,
+    scalar: 1.02,
+    spread: 70,
+  },
+  "confetti-citrons": {
+    colors: ["#facc15", "#bef264", "#65a30d", "#ffffff"],
+    particleCount: 118,
+    scalar: 0.95,
+    spread: 74,
+  },
+  "confetti-cosmos": {
+    colors: ["#4c1d95", "#22d3ee", "#f0abfc", "#020617", "#ffffff"],
+    particleCount: 152,
+    scalar: 1.05,
+    spread: 86,
+  },
 };
 
 function fireSide(
