@@ -79,9 +79,10 @@ export function EndlessPage({
           <p className="text-subtle-foreground">
             Même règle que le mot du jour, mais sans limite quotidienne. Une
             victoire rapporte moins de points, parce que tu peux relancer autant
-            de manches que tu veux, et crédite un petit loot de smotucoins
-            quand tu es connecté. En revanche, une manche perdue ou abandonnée
-            coûte des points : mieux vaut jouer que spammer.
+            de manches que tu veux, et crédite un loot de smotucoins
+            proportionnel à la longueur du mot choisi quand tu es connecté. En
+            revanche, une manche perdue ou abandonnée coûte des points : mieux
+            vaut jouer que spammer.
           </p>
           {!signedIn ? (
             <p className="text-sm text-muted-foreground">
