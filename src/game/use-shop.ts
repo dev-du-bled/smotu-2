@@ -17,6 +17,9 @@ export const emptyShopState: ShopState = {
     balance: 0,
     lifetimeEarned: 0,
     lifetimeSpent: 0,
+    loyaltyLevel: "bronze",
+    loyaltyDiscount: 0,
+    nextLoyaltyAt: 10,
     purchases: [],
     ownedItemIds: defaultOwned,
     ownedByCategory: {

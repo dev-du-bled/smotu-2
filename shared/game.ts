@@ -116,6 +116,10 @@ export type ShopItemId =
   | "hat-ninja"
   | "hat-beret"
   | "hat-detective"
+  | "hat-chef"
+  | "hat-alchimiste"
+  | "hat-samourai"
+  | "hat-fleurs"
   | "shirt-classic"
   | "shirt-neon"
   | "shirt-mastermind"
@@ -130,6 +134,10 @@ export type ShopItemId =
   | "shirt-ninja"
   | "shirt-detective"
   | "shirt-lave"
+  | "shirt-or"
+  | "shirt-retro"
+  | "shirt-foret"
+  | "shirt-cosmos"
   | "theme-default"
   | "theme-neon"
   | "theme-foret"
@@ -158,6 +166,10 @@ export type ShopItemId =
   | "confetti-rubis"
   | "confetti-citrons"
   | "confetti-cosmos"
+  | "confetti-ocean"
+  | "confetti-sakura"
+  | "confetti-arcade"
+  | "confetti-prisme"
   | "hint-letter-pack"
   | "hint-letter-solo"
   | "hint-letter-mega-pack"
@@ -1426,6 +1438,8 @@ export type ShopItem = {
   category: ShopCategory;
   slot?: ShopEquipSlot;
   price: number;
+  /** Prix catalogue avant l'éventuelle remise de fidélité du joueur. */
+  basePrice?: number;
   repeatable: boolean;
   rarity: ShopRarity;
   sortOrder: number;
@@ -1449,6 +1463,9 @@ export type ShopInventory = {
   balance: number;
   lifetimeEarned: number;
   lifetimeSpent: number;
+  loyaltyLevel: "bronze" | "argent" | "or" | "diamant";
+  loyaltyDiscount: number;
+  nextLoyaltyAt: number | null;
   purchases: ShopPurchase[];
   ownedItemIds: ShopItemId[];
   ownedByCategory: Record<ShopCategory, ShopItemId[]>;
@@ -2516,6 +2533,18 @@ export const SHOP_ITEMS: ShopItem[] = [
     bundleQuantity: 4,
     preview: { primary: "#0ea5e9", secondary: "#e0f2fe", accent: "#a855f7" },
   },
+  { id: "hat-chef", name: "Toque du chef", description: "Une toque immaculée pour cuisiner les mots.", category: "hat", slot: "hat", price: 1750, repeatable: false, rarity: "rare", sortOrder: 15, preview: { primary: "#f8fafc", secondary: "#cbd5e1", accent: "#ef4444" } },
+  { id: "hat-alchimiste", name: "Coiffe d'alchimiste", description: "Un couvre-chef mystérieux chargé de formules.", category: "hat", slot: "hat", price: 3300, repeatable: false, rarity: "epic", sortOrder: 16, preview: { primary: "#581c87", secondary: "#c084fc", accent: "#22d3ee" } },
+  { id: "hat-samourai", name: "Kabuto", description: "L'armure de tête des stratèges patients.", category: "hat", slot: "hat", price: 4100, repeatable: false, rarity: "legendary", sortOrder: 17, preview: { primary: "#991b1b", secondary: "#111827", accent: "#facc15" } },
+  { id: "hat-fleurs", name: "Couronne florale", description: "Un bouquet printanier à porter fièrement.", category: "hat", slot: "hat", price: 1450, repeatable: false, rarity: "rare", sortOrder: 18, preview: { primary: "#ec4899", secondary: "#86efac", accent: "#fde68a" } },
+  { id: "shirt-or", name: "Maillot or", description: "Une tenue brillante réservée aux collectionneurs.", category: "shirt", slot: "shirt", price: 3600, repeatable: false, rarity: "legendary", sortOrder: 15, preview: { primary: "#ca8a04", secondary: "#fef3c7", accent: "#ffffff" } },
+  { id: "shirt-retro", name: "Maillot rétro", description: "Pixels, synthés et nostalgie des salles d'arcade.", category: "shirt", slot: "shirt", price: 1800, repeatable: false, rarity: "rare", sortOrder: 16, preview: { primary: "#0f172a", secondary: "#22d3ee", accent: "#f472b6" } },
+  { id: "shirt-foret", name: "Maillot sylvestre", description: "Des verts profonds inspirés des sous-bois.", category: "shirt", slot: "shirt", price: 1250, repeatable: false, rarity: "rare", sortOrder: 17, preview: { primary: "#14532d", secondary: "#bbf7d0", accent: "#84cc16" } },
+  { id: "shirt-cosmos", name: "Maillot nébuleuse", description: "Une galaxie portable aux reflets violets.", category: "shirt", slot: "shirt", price: 2850, repeatable: false, rarity: "epic", sortOrder: 18, preview: { primary: "#312e81", secondary: "#ddd6fe", accent: "#f0abfc" } },
+  { id: "confetti-ocean", name: "Écume océanique", description: "Une vague de bleu et d'écume après chaque victoire.", category: "confetti", slot: "confetti", price: 1350, repeatable: false, rarity: "rare", sortOrder: 15, preview: { primary: "#0284c7", secondary: "#e0f2fe", accent: "#14b8a6" } },
+  { id: "confetti-sakura", name: "Pétales sakura", description: "Une pluie rose douce comme le printemps.", category: "confetti", slot: "confetti", price: 1950, repeatable: false, rarity: "epic", sortOrder: 16, preview: { primary: "#fb7185", secondary: "#fce7f3", accent: "#be185d" } },
+  { id: "confetti-arcade", name: "Pluie arcade", description: "Des couleurs électriques pour les records de Blitz.", category: "confetti", slot: "confetti", price: 2250, repeatable: false, rarity: "epic", sortOrder: 17, preview: { primary: "#22d3ee", secondary: "#f472b6", accent: "#facc15" } },
+  { id: "confetti-prisme", name: "Explosion prisme", description: "Le spectre complet pour une victoire légendaire.", category: "confetti", slot: "confetti", price: 3900, repeatable: false, rarity: "legendary", sortOrder: 18, preview: { primary: "#ef4444", secondary: "#3b82f6", accent: "#a855f7" } },
 ];
 
 export function shopItemById(itemId: unknown): ShopItem | undefined {

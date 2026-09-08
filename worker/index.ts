@@ -2465,6 +2465,17 @@ async function shopInventory(db: Db, user: AuthUser): Promise<ShopInventory> {
       .map((row) => row.answer.length),
   );
   const ownedItemIds = ownedItemIdsFromPurchases(rows);
+  const purchasedCosmetics = ownedItemIds.filter((id) => {
+    const item = shopItemById(id);
+    return item && item.price > 0;
+  }).length;
+  const loyalty = purchasedCosmetics >= 50
+    ? { loyaltyLevel: "diamant" as const, loyaltyDiscount: 15, nextLoyaltyAt: null }
+    : purchasedCosmetics >= 25
+      ? { loyaltyLevel: "or" as const, loyaltyDiscount: 10, nextLoyaltyAt: 50 }
+      : purchasedCosmetics >= 10
+        ? { loyaltyLevel: "argent" as const, loyaltyDiscount: 5, nextLoyaltyAt: 25 }
+        : { loyaltyLevel: "bronze" as const, loyaltyDiscount: 0, nextLoyaltyAt: 10 };
   const equipped = equipmentFromRows(equipmentRows, ownedItemIds, rows);
   const consumables = hintCounts(rows);
 
@@ -2472,6 +2483,7 @@ async function shopInventory(db: Db, user: AuthUser): Promise<ShopInventory> {
     balance: Math.max(0, lifetimeEarned - lifetimeSpent),
     lifetimeEarned,
     lifetimeSpent,
+    ...loyalty,
     purchases: rows.flatMap((row) => {
       const itemId = normalizeShopItemId(row.itemId);
       return itemId
@@ -2500,10 +2512,17 @@ async function shopInventory(db: Db, user: AuthUser): Promise<ShopInventory> {
 }
 
 async function shopState(db: Db, user: AuthUser): Promise<ShopState> {
+  const inventory = await shopInventory(db, user);
   return {
     sections: SHOP_SECTIONS,
-    items: SHOP_ITEMS,
-    inventory: await shopInventory(db, user),
+    items: SHOP_ITEMS.map((item) => ({
+      ...item,
+      basePrice: item.price,
+      price: item.repeatable
+        ? item.price
+        : Math.ceil((item.price * (100 - inventory.loyaltyDiscount)) / 100),
+    })),
+    inventory,
   };
 }
 
@@ -2541,10 +2560,13 @@ async function buyShopItem(
   }
 
   const inventory = await shopInventory(db, user);
+  const price = item.repeatable
+    ? item.price
+    : Math.ceil((item.price * (100 - inventory.loyaltyDiscount)) / 100);
   if (!item.repeatable && inventory.ownedItemIds.includes(item.id)) {
     throw new Error("Cet article est déjà dans ton inventaire.");
   }
-  if (inventory.balance < item.price) {
+  if (inventory.balance < price) {
     throw new Error("Solde de smotucoins insuffisant.");
   }
 
@@ -2555,7 +2577,7 @@ async function buyShopItem(
       userId: user.userId,
       itemId: item.id,
       quantity: 1,
-      spent: item.price,
+      spent: price,
       createdAt: now(),
     })
     .run();

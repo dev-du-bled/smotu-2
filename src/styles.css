@@ -461,3 +461,27 @@
     --overlay: rgb(0 0 0 / 0.74);
   }
 }
+
+
+/* Landing : mascotte cartoon en CSS 3D, sans canvas ni boucle de rendu. */
+.smotu-mascot { position: absolute; inset: 7rem 0 0; perspective: 900px; transform-style: preserve-3d; }
+.smotu-mascot-shadow { position:absolute; left:18%; right:5%; bottom:5%; height:13%; border-radius:50%; background:#18231a; opacity:.16; transform:rotate(-6deg); filter:blur(3px); }
+.smotu-mascot-body { position:absolute; width:min(21rem,70vw); aspect-ratio:1; right:9%; top:14%; border:3px solid #18231a; border-radius:44% 48% 42% 46%; background:#72a66d; box-shadow:inset -28px -30px 0 #4f7d50, inset 18px 16px 0 #8cbd83, 12px 15px 0 #18231a; transform:rotate(7deg) rotateY(-8deg); animation:smotu-float 4s ease-in-out infinite; }
+.smotu-eye { position:absolute; top:31%; width:21%; aspect-ratio:.82; border:3px solid #18231a; border-radius:50%; background:#fffaf0; box-shadow:inset -5px -6px 0 #d9d1c1; }
+.smotu-eye-left { left:19%; transform:rotate(-5deg); }
+.smotu-eye-right { right:19%; transform:rotate(8deg); }
+.smotu-eye i { position:absolute; width:35%; aspect-ratio:1; left:35%; top:40%; border-radius:50%; background:#18231a; }
+.smotu-smile { position:absolute; width:27%; height:13%; left:37%; top:59%; border-bottom:7px solid #18231a; border-radius:50%; transform:rotate(-2deg); }
+.smotu-cheek { position:absolute; top:58%; width:11%; height:5%; border-radius:50%; background:#e6532f; opacity:.72; }
+.smotu-cheek-left { left:15%; transform:rotate(8deg); }
+.smotu-cheek-right { right:14%; transform:rotate(-7deg); }
+.smotu-tile { position:absolute; z-index:4; display:grid; width:4.25rem; aspect-ratio:1; place-items:center; border:3px solid #18231a; background:#fffaf0; font-size:2rem; font-weight:900; box-shadow:5px 6px 0 #18231a; transform-style:preserve-3d; }
+.smotu-tile-s { left:7%; top:20%; transform:rotate(-13deg); }
+.smotu-tile-m { right:1%; top:52%; transform:rotate(12deg); }
+.smotu-tile-o { left:20%; bottom:7%; transform:rotate(8deg); background:#f8d84a; }
+.smotu-spark { position:absolute; right:3%; top:9%; color:#e6532f; font-size:4rem; transform:rotate(12deg); }
+.home-play-button { display:inline-flex; align-items:center; gap:2rem; min-height:3.5rem; border:2px solid #18231a; background:#18231a; padding:0 1.25rem; color:#fffaf0; font-weight:900; text-transform:uppercase; box-shadow:6px 6px 0 #e6532f; transition:transform .16s,box-shadow .16s; }
+.home-play-button:hover { transform:translate(3px,3px); box-shadow:3px 3px 0 #e6532f; }
+.home-play-button span { font-size:1.5rem; }
+@keyframes smotu-float { 0%,100%{translate:0 0} 50%{translate:0 -10px} }
+@media (prefers-reduced-motion:reduce){ .smotu-mascot-body{animation:none} }

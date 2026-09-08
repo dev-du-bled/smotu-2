@@ -1,7 +1,6 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
-  MAX_ATTEMPTS,
   WORD_LENGTH,
   WORD_LENGTH_OPTIONS,
   getPattern,
@@ -17,20 +16,32 @@ import { emptyGame, letterStates } from "./state";
 
 export const TIMED_GAME_SECONDS = 120;
 
-function newRound(wordLength: WordLengthOption, round: number): GameState {
+export type TimedGameConfig = {
+  seconds: number;
+  maxAttempts: number;
+  modeName: string;
+};
+
+export const TIMED_GAME_CONFIGS = {
+  blitz: { seconds: 60, maxAttempts: 4, modeName: "Blitz" },
+  chrono: { seconds: 120, maxAttempts: 6, modeName: "Chrono" },
+  marathon: { seconds: 180, maxAttempts: 8, modeName: "Marathon" },
+} as const satisfies Record<string, TimedGameConfig>;
+
+function newRound(wordLength: WordLengthOption, round: number, maxAttempts: number): GameState {
   return {
     ...emptyGame,
     dateKey: `Chrono #${round}`,
     answer: randomWord(wordLength),
     attempts: [],
-    maxAttempts: MAX_ATTEMPTS,
+    maxAttempts,
     over: false,
     solved: false,
     wordLength,
   };
 }
 
-export function useTimedGame() {
+export function useTimedGame(config: TimedGameConfig = TIMED_GAME_CONFIGS.chrono) {
   const [status, setStatus] = useState<"idle" | "active" | "finished">("idle");
   const [selectedWordLength, setSelectedWordLength] =
     useState<WordLengthOption>(WORD_LENGTH);
@@ -38,7 +49,7 @@ export function useTimedGame() {
   const [inputValue, setInputValue] = useState("");
   const [localError, setLocalError] = useState("");
   const [celebrationKey, setCelebrationKey] = useState("");
-  const [timeLeft, setTimeLeft] = useState(TIMED_GAME_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(config.seconds);
   const [wordsSolved, setWordsSolved] = useState(0);
   const [wordsSkipped, setWordsSkipped] = useState(0);
   const [round, setRound] = useState(0);
@@ -66,13 +77,13 @@ export function useTimedGame() {
   const rows = Array.from({ length: game.maxAttempts }, (_, index) => game.attempts[index]);
   const states = useMemo(() => letterStates(game.attempts), [game.attempts]);
   const activeRow = Math.min(game.attempts.length, game.maxAttempts - 1);
-  const progress = Math.round(((TIMED_GAME_SECONDS - timeLeft) / TIMED_GAME_SECONDS) * 100);
+  const progress = Math.round(((config.seconds - timeLeft) / config.seconds) * 100);
   const canSubmit =
     status === "active" && inputValue.length === game.wordLength && !game.over;
 
   function nextWord(nextRound: number, wordLength = selectedWordLength) {
     setRound(nextRound);
-    setGame(newRound(wordLength, nextRound));
+    setGame(newRound(wordLength, nextRound, config.maxAttempts));
     setInputValue("");
     setLocalError("");
   }
@@ -81,7 +92,7 @@ export function useTimedGame() {
     const nextWordLength = normalizeWordLength(wordLength);
     setSelectedWordLength(nextWordLength);
     setStatus("active");
-    setTimeLeft(TIMED_GAME_SECONDS);
+    setTimeLeft(config.seconds);
     setWordsSolved(0);
     setWordsSkipped(0);
     nextWord(1, nextWordLength);
@@ -112,7 +123,7 @@ export function useTimedGame() {
 
     const attemptNumber = game.attempts.length + 1;
     const solved = guess === game.answer;
-    const failed = !solved && attemptNumber >= MAX_ATTEMPTS;
+    const failed = !solved && attemptNumber >= config.maxAttempts;
     const attempt: Attempt = {
       id: `chrono-${round}-${attemptNumber}`,
       guess,
@@ -147,6 +158,7 @@ export function useTimedGame() {
 
   return {
     game,
+    config,
     progress,
     selectedWordLength,
     setSelectedWordLength: (wordLength: WordLengthOption) => {

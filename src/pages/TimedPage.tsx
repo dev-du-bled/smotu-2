@@ -1,7 +1,7 @@
 import type { ShopItemId, WordLengthOption } from "../../shared/game";
 import { GameBoard, type GameBoardProps } from "../components/GameBoard";
 import { Button, Panel, ProgressStrip, SectionKicker } from "../components/ui";
-import { TIMED_GAME_SECONDS } from "../game/use-timed-game";
+import type { TimedGameConfig } from "../game/use-timed-game";
 
 function formatTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -11,6 +11,7 @@ function formatTime(seconds: number): string {
 
 export function TimedPage({
   confettiSkin,
+  config,
   playProps,
   progress,
   selectedWordLength,
@@ -24,6 +25,7 @@ export function TimedPage({
   wordLengthOptions,
 }: {
   confettiSkin?: ShopItemId;
+  config: TimedGameConfig;
   playProps: GameBoardProps & { progress: number };
   progress: number;
   selectedWordLength: WordLengthOption;
@@ -65,16 +67,16 @@ export function TimedPage({
     return (
       <div className="mx-auto flex min-h-[inherit] max-w-2xl flex-col items-center justify-center px-4 py-10 text-center">
         <Panel className="w-full space-y-5">
-          <SectionKicker>Mode chrono</SectionKicker>
-          <h2 className="text-4xl font-black">Un maximum de mots en 120s.</h2>
+          <SectionKicker>Mode {config.modeName}</SectionKicker>
+          <h2 className="text-4xl font-black">Un maximum de mots en {config.seconds}s.</h2>
           <p className="text-subtle-foreground">
             Lance le compte à rebours, devine un mot, puis passe directement au
             suivant. Chaque mot trouvé ajoute 1 au compteur. Si tu utilises tes
-            6 essais, le mot est passé automatiquement pour garder le rythme.
+            {config.maxAttempts} essais, le mot est passé automatiquement pour garder le rythme.
           </p>
           {lengthPicker}
           <Button size="lg" type="button" variant="warning" onClick={() => startGame(selectedWordLength)}>
-            Démarrer le chrono
+            Démarrer {config.modeName.toLowerCase()}
           </Button>
         </Panel>
       </div>
@@ -86,7 +88,7 @@ export function TimedPage({
       <div className="mx-auto mb-5 grid w-full max-w-xl gap-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <SectionKicker>Mode chrono</SectionKicker>
+            <SectionKicker>Mode {config.modeName}</SectionKicker>
             <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-sm font-semibold text-subtle-foreground">
               <span className="font-mono text-lg font-black tabular-nums text-orange">
                 {formatTime(timeLeft)}
@@ -103,7 +105,7 @@ export function TimedPage({
             ) : null}
             {status === "finished" ? (
               <Button size="sm" type="button" variant="warning" onClick={() => startGame(selectedWordLength)}>
-                Rejouer 120s
+                Rejouer {config.seconds}s
               </Button>
             ) : null}
           </div>
@@ -112,7 +114,7 @@ export function TimedPage({
         <div>
           <div className="mb-2 flex items-center justify-between text-sm text-muted-foreground">
             <span>Temps écoulé</span>
-            <span>{TIMED_GAME_SECONDS - timeLeft}/{TIMED_GAME_SECONDS}s</span>
+            <span>{config.seconds - timeLeft}/{config.seconds}s</span>
           </div>
           <ProgressStrip value={progress} />
         </div>

@@ -207,6 +207,16 @@ export function ShopPage({
             </div>
           </div>
 
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-lg bg-muted p-2"><p className="text-xs text-muted-foreground">Gagnés</p><p className="font-mono font-black">{shop.inventory.lifetimeEarned}</p></div>
+            <div className="rounded-lg bg-muted p-2"><p className="text-xs text-muted-foreground">Dépensés</p><p className="font-mono font-black">{shop.inventory.lifetimeSpent}</p></div>
+            <div className="rounded-lg bg-muted p-2"><p className="text-xs text-muted-foreground">Fidélité</p><p className="font-black capitalize">{shop.inventory.loyaltyLevel}</p></div>
+          </div>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Remise permanente : <strong>{shop.inventory.loyaltyDiscount}%</strong> sur les cosmétiques.
+            {shop.inventory.nextLoyaltyAt ? ` Prochain palier à ${shop.inventory.nextLoyaltyAt} achats.` : " Palier maximal atteint."}
+          </p>
+
           {/* Le détail de l'équipement et des consommables vit sur /inventory. */}
           <Link
             className="inline-flex h-10 w-full items-center justify-center rounded-md bg-secondary px-3 text-sm font-bold uppercase tracking-wide text-secondary-foreground transition-[background-color,scale] hover:bg-secondary-hover active:scale-[0.96]"
@@ -310,7 +320,10 @@ export function ShopPage({
                     </p>
 
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <PointsAmount className="text-2xl font-black" value={item.price} />
+                      <div>
+                        {item.basePrice && item.basePrice > item.price ? <p className="text-xs text-muted-foreground line-through">{item.basePrice}</p> : null}
+                        <PointsAmount className="text-2xl font-black" value={item.price} />
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {item.category === "confetti" ? (
                           <Button

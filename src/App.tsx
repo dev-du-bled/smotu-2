@@ -10,7 +10,7 @@ import {
 } from "./game/use-daily-game";
 import { useEndlessGame } from "./game/use-endless-game";
 import { useMastermindGame } from "./game/use-mastermind-game";
-import { useTimedGame } from "./game/use-timed-game";
+import { TIMED_GAME_CONFIGS, useTimedGame, type TimedGameConfig } from "./game/use-timed-game";
 import { emptyProfileStats, useProfileStats } from "./game/use-profile";
 import { useShop } from "./game/use-shop";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
@@ -62,6 +62,8 @@ const ROUTE_META: Record<string, { title: string; description?: string }> = {
     title: "Mode chrono — Smotu",
     description: "Fais un maximum de mots en 120 secondes sur Smotu.",
   },
+  "/blitz": { title: "Blitz 60s — Smotu", description: "Quatre essais par mot et seulement 60 secondes." },
+  "/marathon": { title: "Marathon 180s — Smotu", description: "Une longue course de mots avec huit essais par grille." },
   "/shop": { title: "Boutique — Smotu", description: "Dépense tes smotucoins contre des cosmétiques et des indices." },
   "/inventory": {
     title: "Inventaire — Smotu",
@@ -207,10 +209,12 @@ function EndlessRoute({
 
 function TimedRoute({
   confettiSkin,
+  config = TIMED_GAME_CONFIGS.chrono,
 }: {
   confettiSkin?: ShopItemId;
+  config?: TimedGameConfig;
 }) {
-  const timed = useTimedGame();
+  const timed = useTimedGame(config);
 
   return <TimedPage {...timed} confettiSkin={confettiSkin} />;
 }
@@ -506,6 +510,8 @@ export function App() {
                   />
                 }
               />
+              <Route path="/blitz" element={<TimedRoute config={TIMED_GAME_CONFIGS.blitz} confettiSkin={signedIn ? publicAvatar.confettiId : undefined} />} />
+              <Route path="/marathon" element={<TimedRoute config={TIMED_GAME_CONFIGS.marathon} confettiSkin={signedIn ? publicAvatar.confettiId : undefined} />} />
               <Route
                 path="/mastermind"
                 element={
