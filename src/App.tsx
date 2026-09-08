@@ -475,7 +475,7 @@ export function App() {
             onSignIn={signIn}
             onSignOut={signOut}
           />
-          <div className="min-h-[calc(100dvh-var(--header-height))]">
+          <div className="site-content min-h-[calc(100dvh-var(--header-height))]">
             <Routes>
               <Route
                 path="/"

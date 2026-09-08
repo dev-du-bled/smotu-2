@@ -59,7 +59,7 @@ function usePrefetchOnHover(paths: readonly string[], enabled = true) {
 }
 
 function navClass(active: boolean, block = false): string {
-  return `${block ? "block w-full" : ""} rounded-md px-3 py-2 text-sm font-bold transition ${
+  return `${block ? "block w-full" : ""} px-3 py-2 text-sm font-black transition ${
     active
       ? "bg-primary text-primary-foreground"
       : "text-subtle-foreground hover:bg-muted"
@@ -483,7 +483,7 @@ export function Header({
   }, [mobileOpen]);
 
   return (
-    <header className="h-(--header-height) border-b border-input">
+    <header className="relative z-40 h-(--header-height) border-b-2 border-foreground bg-background">
       <div
         className="relative mx-auto flex h-full max-w-6xl items-center justify-between gap-3 px-4"
         ref={mobileMenuRef}
@@ -498,7 +498,7 @@ export function Header({
         </Link>
 
         <nav
-          className="hidden max-w-full rounded-lg bg-card p-1 md:flex"
+          className="hidden max-w-full border-2 border-foreground bg-card p-1 shadow-[3px_3px_0_var(--foreground)] md:flex"
           aria-label="Navigation principale"
         >
           <NavLink className={({ isActive }) => navClass(isActive)} to="/">
@@ -546,7 +546,7 @@ export function Header({
         </div>
 
         <button
-          className="grid size-10 place-items-center rounded-md bg-card text-subtle-foreground transition hover:bg-muted md:hidden"
+          className="grid size-10 place-items-center border-2 border-foreground bg-card text-subtle-foreground shadow-[3px_3px_0_var(--foreground)] transition hover:bg-muted md:hidden"
           type="button"
           aria-expanded={mobileOpen}
           aria-label="Ouvrir la navigation"
@@ -560,7 +560,7 @@ export function Header({
         </button>
 
         {mobileOpen ? (
-          <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-30 origin-top rounded-lg border border-input bg-card p-2 shadow-xl transition-[opacity,scale] duration-150 ease-(--ease-out-strong) starting:opacity-0 motion-safe:starting:scale-[0.98] md:hidden">
+          <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-30 origin-top border-2 border-foreground bg-card p-2 shadow-[6px_6px_0_var(--foreground)] transition-[opacity,scale] duration-150 ease-(--ease-out-strong) starting:opacity-0 motion-safe:starting:scale-[0.98] md:hidden">
             <nav className="grid gap-1" aria-label="Navigation mobile">
               <NavLink
                 className={({ isActive }) => navClass(isActive, true)}

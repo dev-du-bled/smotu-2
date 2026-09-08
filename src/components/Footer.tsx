@@ -5,7 +5,7 @@ import { RulesModal } from "./RulesModal";
 
 function FooterLink({ children, to }: { children: string; to: string }) {
   return (
-    <Link className="block py-1.5 transition hover:text-foreground" to={to}>
+    <Link className="block py-1.5 transition hover:text-background" to={to}>
       {children}
     </Link>
   );
@@ -13,7 +13,7 @@ function FooterLink({ children, to }: { children: string; to: string }) {
 
 function FooterTitle({ children }: { children: string }) {
   return (
-    <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-strong">
+    <p className="mb-2 font-mono text-xs font-black uppercase tracking-[0.18em] text-background/45">
       {children}
     </p>
   );
@@ -30,10 +30,10 @@ export function Footer({
   const [rulesOpen, setRulesOpen] = useState(false);
 
   return (
-    <footer className="border-t border-border">
-      <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-7 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+    <footer className="border-t-2 border-foreground bg-foreground text-background">
+      <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-7 px-4 py-10 text-sm text-background/70 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="max-w-xs sm:min-w-52">
-          <p className="text-lg font-black uppercase tracking-[0.08em] text-foreground">
+          <p className="text-2xl font-black uppercase tracking-[-0.03em] text-background">
             Smotu
           </p>
           <p className="mt-2 max-w-xs leading-6">
@@ -58,21 +58,21 @@ export function Footer({
         <div className="sm:min-w-48">
           <FooterTitle>Aide</FooterTitle>
           <button
-            className="block py-1.5 text-left transition hover:text-foreground"
+            className="block py-1.5 text-left transition hover:text-background"
             type="button"
             onClick={() => setRulesOpen(true)}
           >
             Règles du jeu
           </button>
           <button
-            className="block py-1.5 text-left transition hover:text-foreground"
+            className="block py-1.5 text-left transition hover:text-background"
             type="button"
             onClick={() => setPromptOpen(true)}
           >
             Proposer un prompt IA
           </button>
           <a
-            className="block py-1.5 transition hover:text-foreground"
+            className="block py-1.5 transition hover:text-background"
             href="https://github.com/dev-du-bled/smotu-2"
             rel="noreferrer"
             target="_blank"
