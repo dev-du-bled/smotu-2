@@ -37,7 +37,7 @@ export function Footer({
             Smotu
           </p>
           <p className="mt-2 max-w-xs leading-6">
-            Une réadaptation du grand Smotu, selon codex et claude code.
+            Le petit terrain de jeu français pour les mordus de lettres.
           </p>
         </div>
 
