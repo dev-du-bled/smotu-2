@@ -77,7 +77,7 @@ export function Panel({ children, className }: BaseProps) {
   return (
     <section
       className={cn(
-        "rounded-lg border border-border bg-card p-4",
+        "smotu-panel border-2 border-foreground bg-card p-5",
         className,
       )}
     >
@@ -152,7 +152,7 @@ export function Dropdown({
       {open ? (
         <div
           className={cn(
-            "absolute top-full z-20 mt-2 rounded-lg border border-input bg-card p-1 shadow-xl",
+            "absolute top-full z-20 mt-2 border-2 border-foreground bg-card p-1.5 shadow-[5px_5px_0_var(--foreground)]",
             // Entrée ancrée au déclencheur : scale depuis l'origine du trigger,
             // jamais depuis le centre. Sortie instantanée (les menus se ferment sec).
             "transition-[opacity,scale] duration-150 ease-(--ease-out-strong) starting:opacity-0 motion-safe:starting:scale-95",
@@ -210,7 +210,7 @@ export function Modal({
       {/* Une modale scale depuis le centre : elle n'est ancrée à aucun trigger. */}
       <div
         aria-modal="true"
-        className="flex max-h-[85dvh] w-full max-w-2xl flex-col rounded-lg border border-border bg-card shadow-xl transition-[opacity,scale] duration-200 ease-(--ease-out-strong) starting:opacity-0 motion-safe:starting:scale-[0.97]"
+        className="flex max-h-[85dvh] w-full max-w-2xl flex-col border-2 border-foreground bg-card shadow-[8px_8px_0_var(--orange)] transition-[opacity,scale] duration-200 ease-(--ease-out-strong) starting:opacity-0 motion-safe:starting:scale-[0.97]"
         role="dialog"
         onClick={(event) => event.stopPropagation()}
       >
@@ -262,7 +262,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-md font-bold uppercase tracking-wide transition enabled:active:scale-[0.96] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-strong hover:cursor-pointer",
+        "smotu-button inline-flex items-center justify-center border-2 border-foreground font-black uppercase tracking-[0.06em] transition-[transform,box-shadow,background-color] enabled:active:translate-x-0.5 enabled:active:translate-y-0.5 disabled:cursor-not-allowed disabled:border-muted-strong disabled:bg-muted disabled:text-muted-strong hover:cursor-pointer",
         variants[variant],
         sizes[size],
         className,
@@ -278,7 +278,7 @@ export function Input({ className, ...props }: ComponentProps<"input">) {
   return (
     <input
       className={cn(
-        "h-12 min-w-0 rounded-md border border-input bg-background px-4 font-mono text-lg font-bold uppercase text-foreground outline-none placeholder:text-muted-strong focus:border-ring",
+        "h-12 min-w-0 border-2 border-foreground bg-card px-4 font-mono text-lg font-bold uppercase text-foreground outline-none placeholder:text-muted-strong focus:shadow-[4px_4px_0_var(--ring)]",
         className,
       )}
       {...props}
@@ -290,7 +290,7 @@ export function LogoMark({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "relative grid size-10 place-items-center overflow-hidden rounded-md border-2 border-orange/70 bg-success text-sm font-black text-success-foreground shadow-[inset_0_-2px_0_rgba(0,0,0,0.18)]",
+        "relative grid size-10 rotate-[-3deg] place-items-center overflow-hidden border-2 border-foreground bg-success text-sm font-black text-success-foreground shadow-[3px_3px_0_var(--orange)]",
         className,
       )}
     >
@@ -341,7 +341,7 @@ export function SectionKicker({ children, className }: BaseProps) {
   return (
     <p
       className={cn(
-        "text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground",
+        "font-mono text-xs font-black uppercase tracking-[0.18em] text-muted-foreground",
         className,
       )}
     >
@@ -361,9 +361,9 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function ProgressStrip({ value }: { value: number }) {
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-muted">
+    <div className="h-2 overflow-hidden border border-foreground bg-muted">
       <div
-        className="h-full rounded-full bg-success transition-[width]"
+        className="h-full bg-success transition-[width]"
         style={{ width: `${value}%` }}
       />
     </div>
@@ -404,7 +404,7 @@ export function WordTile({
   return (
     <div
       className={cn(
-        "grid aspect-square overflow-hidden border-2",
+        "grid aspect-square overflow-hidden border-2 shadow-[2px_2px_0_var(--foreground)]",
         stateClass,
       )}
     >
@@ -443,7 +443,7 @@ export function KeyCap({
       className={cn(
         // Pas de transition de couleur : le feedback du jeu doit rester sec.
         // Seul le press a un retour tactile.
-        "grid h-12 min-w-8 place-items-center rounded px-2 text-xs font-black uppercase transition-[scale] duration-100 active:scale-[0.96] sm:min-w-10",
+        "grid h-12 min-w-8 place-items-center rounded-sm border border-foreground px-2 text-xs font-black uppercase shadow-[0_3px_0_var(--foreground)] transition-transform duration-100 active:translate-y-0.5 sm:min-w-10",
         stateClass,
       )}
       type="button"
@@ -467,7 +467,7 @@ export function RankMedal({ children, index }: BaseProps & { index: number }) {
   return (
     <span
       className={cn(
-        "grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-black",
+        "grid h-9 w-9 shrink-0 rotate-[-3deg] place-items-center border-2 border-foreground text-sm font-black shadow-[2px_2px_0_var(--foreground)]",
         colorClass,
       )}
     >

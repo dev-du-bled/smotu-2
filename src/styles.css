@@ -43,33 +43,33 @@
        donner un retour immédiat, puis se pose (jamais d'ease-in sur l'UI). */
     --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
     --header-height: 65px;
-    --background: #f5f6f8;
-    --foreground: #111318;
-    --card: #ffffff;
-    --card-foreground: #111318;
-    --card-hover: #eef0f3;
-    --popover: #ffffff;
-    --popover-foreground: #111318;
-    --primary: #111318;
-    --primary-foreground: #ffffff;
-    --secondary: #e6e8ed;
-    --secondary-foreground: #111318;
-    --secondary-hover: #d9dde5;
-    --muted: #eceef2;
-    --muted-foreground: #6b7280;
-    --muted-strong: #9ca3af;
-    --subtle-foreground: #3f4652;
-    --border: #d8dce3;
-    --input: #c8ced8;
+    --background: #f3eddf;
+    --foreground: #18231a;
+    --card: #fffaf0;
+    --card-foreground: #18231a;
+    --card-hover: #ebe3d3;
+    --popover: #fffaf0;
+    --popover-foreground: #18231a;
+    --primary: #18231a;
+    --primary-foreground: #fffaf0;
+    --secondary: #ded8ca;
+    --secondary-foreground: #18231a;
+    --secondary-hover: #cec6b6;
+    --muted: #e7dfd0;
+    --muted-foreground: #637066;
+    --muted-strong: #899087;
+    --subtle-foreground: #465448;
+    --border: #b9b3a7;
+    --input: #8d948d;
     --ring: #538d4e;
-    --success: #538d4e;
+    --success: #72a66d;
     --success-foreground: #ffffff;
     --success-hover: #477c43;
-    --warning: #b59f3b;
+    --warning: #d2ae20;
     --warning-foreground: #ffffff;
     --warning-hover: #9f8b31;
     --warning-muted: #fff7da;
-    --orange: #f97316;
+    --orange: #e6532f;
     --orange-foreground: #ffffff;
     --orange-hover: #df6410;
     --purple: #a855f7;
@@ -106,9 +106,57 @@
     font: inherit;
   }
 
+  ::selection {
+    background: var(--warning);
+    color: var(--foreground);
+  }
+
 }
 
 @layer components {
+  .site-content {
+    position: relative;
+    isolation: isolate;
+    background-image: radial-gradient(color-mix(in srgb, var(--foreground) 9%, transparent) 0.8px, transparent 0.8px);
+    background-size: 18px 18px;
+  }
+
+  .site-content::before {
+    position: absolute;
+    z-index: -1;
+    top: 3.5rem;
+    right: max(1rem, calc((100vw - 72rem) / 2));
+    width: 5rem;
+    height: 5rem;
+    border: 2px solid var(--foreground);
+    background: var(--warning);
+    box-shadow: 5px 5px 0 var(--foreground);
+    content: "";
+    opacity: 0.22;
+    rotate: 8deg;
+  }
+
+  .site-content > :not(.overflow-hidden) {
+    position: relative;
+  }
+
+  .smotu-panel {
+    box-shadow: 6px 6px 0 color-mix(in srgb, var(--foreground) 92%, transparent);
+  }
+
+  .smotu-button {
+    box-shadow: 3px 3px 0 var(--foreground);
+  }
+
+  .smotu-button:enabled:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--foreground);
+  }
+
+  .smotu-button:enabled:active {
+    box-shadow: 1px 1px 0 var(--foreground);
+  }
+
   .smotu-avatar {
     position: relative;
     display: grid;
