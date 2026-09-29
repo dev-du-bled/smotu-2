@@ -83,7 +83,6 @@ function adminUserIds(value: string | undefined): string[] {
 
 export function createAuth(env: Env, request: Request) {
   const origin = env.BETTER_AUTH_URL || new URL(request.url).origin;
-  const requestOrigin = request.headers.get("origin");
   const db = drizzle(env.DB);
 
   return betterAuth({
@@ -118,11 +117,7 @@ export function createAuth(env: Env, request: Request) {
         adminUserIds: adminUserIds(env.ADMIN_USER_IDS),
       }),
     ],
-    trustedOrigins: (incomingRequest) => [
-      origin,
-      requestOrigin,
-      incomingRequest?.headers.get("origin"),
-    ],
+    trustedOrigins: [origin],
     account: {
       accountLinking: {
         enabled: true,

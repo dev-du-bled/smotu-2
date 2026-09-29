@@ -3,7 +3,7 @@ import posthog from "posthog-js";
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || "https://us.i.posthog.com";
 
-export const isPostHogEnabled = Boolean(POSTHOG_KEY);
+const isPostHogEnabled = Boolean(POSTHOG_KEY);
 
 if (POSTHOG_KEY) {
   posthog.init(POSTHOG_KEY, {
@@ -42,5 +42,3 @@ export function identifyPostHogUser(
     role: typeof user.role === "string" ? user.role : undefined,
   });
 }
-
-export { posthog };

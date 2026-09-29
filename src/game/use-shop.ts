@@ -10,7 +10,7 @@ import { apiJson, useApiResource } from "../lib/api";
 
 const defaultOwned = defaultOwnedItemIds();
 
-export const emptyShopState: ShopState = {
+const emptyShopState: ShopState = {
   sections: SHOP_SECTIONS,
   items: [],
   inventory: {

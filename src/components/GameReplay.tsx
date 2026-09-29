@@ -97,7 +97,7 @@ export function ColorPeg({
   );
 }
 
-export function FeedbackPegs({
+function FeedbackPegs({
   exact,
   present,
 }: {

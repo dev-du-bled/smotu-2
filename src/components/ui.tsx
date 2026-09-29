@@ -454,7 +454,7 @@ export function KeyCap({
   );
 }
 
-export function RankMedal({ children, index }: BaseProps & { index: number }) {
+function RankMedal({ children, index }: BaseProps & { index: number }) {
   const colorClass =
     index === 0
       ? "bg-success text-success-foreground"
